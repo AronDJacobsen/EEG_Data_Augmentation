@@ -10,7 +10,9 @@ import matplotlib.pyplot as plt
 
 # define path to make sure stuff doesn't get saved weird places
 os.chdir(os.getcwd())
-save_dir = r"/Users/philliphoejbjerg/NovelEEG"+"/"  # ~~~ What is your execute path?
+
+# TODO: Albert du skal bare ændre denne her save_dir til din subset mappe! Så burde det hele køre
+save_dir = r"/Users/philliphoejbjerg/Albert_Subset"+"/"  # ~~~ What is your execute path?
 TUAR_dir_single_subject = r"data_TUH_EEG/TUH_EEG_CORPUS/artifact_dataset/01_tcp_ar/002"+"/"
 TUAR_dir = r"data_TUH_EEG/TUH_EEG_CORPUS/artifact_dataset"+"/" #\**\01_tcp_ar #\100\00010023\s002_2013_02_21
 # TUAR_dir = r"data_TUH_EEG\TUH_EEG_CORPUS\artifact_dataset\**\02_tcp_le"+"\\" # debug 02_tcp_le
@@ -27,8 +29,15 @@ tutorial_model = ["00010418_s008_t000.edf", "00010079_s004_t002.edf", "00009630_
                '00009623_s008_t004.edf', '00009623_s008_t005.edf', '00009623_s010_t000.edf',
                '00001006_s001_t001.edf', '00006501_s001_t000.edf', '00006514_s008_t001.edf', '00006514_s020_t001.edf']
 
+Albert_subset = ["00010418_s008_t000.edf", "00010079_s004_t002.edf", "00009630_s001_t001.edf", '00007952_s001_t001.edf',
+               '00009623_s008_t004.edf', '00009623_s008_t005.edf', '00009623_s010_t000.edf',
+               '00001006_s001_t001.edf', '00006501_s001_t000.edf', '00006514_s008_t001.edf', '00006514_s020_t001.edf',
+                 '00002348_s014_t008.edf', '00003573_s003_t000.edf', '00006224_s002_t001.edf', '00007020_s001_t001.edf',
+                 '00007981_s001_t001.edf', '00008476_s001_t000.edf', '00008527_s001_t000.edf', '00004473_s001_t000.edf',
+                 '00005672_s001_t001.edf','00003849_s001_t000.edf', '00007647_s001_t001.edf','00003008_s006_t006.edf']
+
 # for all subjects run as: file_selected = TUAR_data
-file_selected = tutorial_prep.copy()
+file_selected = Albert_subset.copy()
 
 # prepare TUAR output
 counter = 0 # debug counter
