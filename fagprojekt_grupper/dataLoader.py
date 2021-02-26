@@ -1,4 +1,5 @@
 import mne, torch, time, glob #, os, re
+from itertools import repeat
 import pandas as pd
 import numpy as np
 from collections import defaultdict
@@ -75,16 +76,17 @@ def loadPrepData(prep_directory):
     subjects = defaultdict(dict)
     test_tensors = []
     all_labels = []
-    for test in subdirs:
-        subjectID = test.split("_")[0]
-        dim_tensors = [dim_t.reshape(-1) for tensor_file in glob.glob(prep_directory + test + "/" + "**") for dim_t in torch.load(tensor_file)[0]]
-        test_labels = [torch.load(tensor_file)[1] for tensor_file in glob.glob(prep_directory + test + "/" + "**")]
+    indiv = []
+    for session_test in subdirs:
+        subjectID = session_test.split("_")[0]
+        dim_tensors = [dim_t.reshape(-1) for tensor_file in glob.glob(prep_directory + session_test + "/" + "**") for dim_t in torch.load(tensor_file)[0]]
+        target_labels = [torch.load(tensor_file)[1] for tensor_file in glob.glob(prep_directory + session_test + "/" + "**")]
 
         #TODO: Tjek lige om det her dictionary stadig er fedt!
         if subjectID in subjects.keys():
-            subjects[subjectID][test] = dim_tensors
+            subjects[subjectID][session_test] = dim_tensors
         else:
-            subjects[subjectID] = {test: dim_tensors} #TODO: MÅske skal dim_tensors ændres?
+            subjects[subjectID] = {session_test: dim_tensors} #TODO: MÅske skal dim_tensors ændres?
 
         # Stacking tensors across dimensions / electrodes - instead of across tests
         el_tensors = []
@@ -95,7 +97,11 @@ def loadPrepData(prep_directory):
         #test_tensor = torch.stack(el_tensors)
 
         #TODO: Omformatér label-listen før vi kan bruge den som target - den skal encodes.
-        all_labels.extend(test_labels)
+        all_labels.extend(target_labels)
+        # Tilføjer subjectID nummeret til en liste, ligeså mange gange som target_labels.
+        indiv.extend([subjectID] * len(target_labels))
+
+
 
     #TODO: Skift navnet på variablen test ud - det passer ikke ind i train/test-navngivning
 
@@ -103,5 +109,5 @@ def loadPrepData(prep_directory):
     torch.mean(final_tensor, dim=1)  # Mean across eletrodes, respectively
     torch.std(final_tensor, dim=1)  # Standard dev. across eletrodes, respectively
 
-    return subjects, final_tensor, all_labels
+    return subjects, final_tensor, all_labels, indiv
 

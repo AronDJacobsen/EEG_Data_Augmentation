@@ -1,4 +1,4 @@
-import os, glob, torch, time
+import os, glob, torch, time, random
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
@@ -7,7 +7,8 @@ from fagprojekt_grupper.dataLoader import processRawData, loadPrepData
 
 os.chdir(os.getcwd())
 
-save_dir = r"/Users/AlbertoK/Desktop/EEG/subset" + "/"  # ~~~ What is your execute path?
+save_dir = r"/Users/philliphoejbjerg/NovelEEG" + "/"  # ~~~ What is your execute path? # /Users/philliphoejbjerg/NovelEEG # "/Users/AlbertoK/Desktop/EEG/subset" + "/"  # ~~~ What is your execute path? # /Users/philliphoejbjerg/NovelEEG
+
 TUAR_dir = r"data_TUH_EEG/TUH_EEG_CORPUS/artifact_dataset" + "/"  # \**\01_tcp_ar #\100\00010023\s002_2013_02_21
 jsonDir = r"tmp.json"
 prep_dir = r"tempData" + "/"
@@ -26,12 +27,16 @@ subset = ["00010418_s008_t000.edf", "00010079_s004_t002.edf", "00009630_s001_t00
 
 # for all subjects run as: file_selected = TUAR_data
 file_selected = subset.copy()
-
 processRawData(TUAR_dir,save_dir,file_selected)
 """
 
+
 subdirs = [sub_dir.split("/")[-1] for sub_dir in glob.glob(prep_dirDir + "**")]
-subjects, X, y_list = loadPrepData(prep_dirDir)
+indiv = list({subdir.split("_")[0] for subdir in subdirs})
+train_indiv = random.sample(indiv, 10)
+test_indiv = np.setdiff1d(indiv, train_indiv)
+
+subjects, X, y_list, indiv = loadPrepData(prep_dirDir)
 p_inspect = subdirs[-1]
 subjects[p_inspect.split("_")[0]][p_inspect]
 
@@ -42,9 +47,8 @@ subjects[p_inspect.split("_")[0]][p_inspect]
 #labels = ['null', 'chew', 'eyem', 'elpp', 'musc', 'shiv']
 le = LabelEncoder()
 targets = le.fit_transform(labels)
-"""
-
 targets = torch.as_tensor(targets)
+"""
 
 
 
