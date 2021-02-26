@@ -1,4 +1,6 @@
 import mne, torch, time, glob #, os, re
+import pandas as pd
+import numpy as np
 from collections import defaultdict
 import preprocessing.loadData as loadData
 from preprocessing.preprocessPipeline import TUH_rename_ch, readRawEdf, pipeline, spectrogramMake, slidingWindow
@@ -71,11 +73,35 @@ def loadPrepData(prep_directory):
     subdirs = [sub_dir.split("/")[-1] for sub_dir in glob.glob(prep_directory + "**")]
 
     subjects = defaultdict(dict)
+    test_tensors = []
+    all_labels = []
     for test in subdirs:
         subjectID = test.split("_")[0]
-        tensors = [torch.load(tensor) for tensor in glob.glob(prep_directory + test + "/" + "**")]
+        dim_tensors = [dim_t.reshape(-1) for tensor_file in glob.glob(prep_directory + test + "/" + "**") for dim_t in torch.load(tensor_file)[0]]
+        test_labels = [torch.load(tensor_file)[1] for tensor_file in glob.glob(prep_directory + test + "/" + "**")]
+
+        #TODO: Tjek lige om det her dictionary stadig er fedt!
         if subjectID in subjects.keys():
-            subjects[subjectID][test] = tensors
+            subjects[subjectID][test] = dim_tensors
         else:
-            subjects[subjectID] = {test: tensors}
-    return subjects
+            subjects[subjectID] = {test: dim_tensors} #TODO: MÅske skal dim_tensors ændres?
+
+        # Stacking tensors across dimensions / electrodes - instead of across tests
+        el_tensors = []
+        for i in range(19):
+            el_tensors.append(torch.stack(dim_tensors[i::19]))
+
+        test_tensors.append(torch.stack(el_tensors))
+        #test_tensor = torch.stack(el_tensors)
+
+        #TODO: Omformatér label-listen før vi kan bruge den som target - den skal encodes.
+        all_labels.extend(test_labels)
+
+    #TODO: Skift navnet på variablen test ud - det passer ikke ind i train/test-navngivning
+
+    final_tensor = torch.cat(test_tensors, dim=1)
+    torch.mean(final_tensor, dim=1)  # Mean across eletrodes, respectively
+    torch.std(final_tensor, dim=1)  # Standard dev. across eletrodes, respectively
+
+    return subjects, final_tensor, all_labels
+

@@ -1,6 +1,7 @@
 import os, glob, torch, time
 import numpy as np
-#from sklearn...
+import pandas as pd
+from sklearn.preprocessing import LabelEncoder
 from fagprojekt_grupper.dataLoader import processRawData, loadPrepData
 
 
@@ -15,7 +16,7 @@ jsonDataDir = save_dir + jsonDir
 TUAR_dirDir = save_dir + TUAR_dir
 prep_dirDir = save_dir + prep_dir
 
-
+"""
 subset = ["00010418_s008_t000.edf", "00010079_s004_t002.edf", "00009630_s001_t001.edf", '00007952_s001_t001.edf',
           '00009623_s008_t004.edf', '00009623_s008_t005.edf', '00009623_s010_t000.edf',
           '00001006_s001_t001.edf', '00006501_s001_t000.edf', '00006514_s008_t001.edf', '00006514_s020_t001.edf',
@@ -27,8 +28,30 @@ subset = ["00010418_s008_t000.edf", "00010079_s004_t002.edf", "00009630_s001_t00
 file_selected = subset.copy()
 
 processRawData(TUAR_dir,save_dir,file_selected)
+"""
 
 subdirs = [sub_dir.split("/")[-1] for sub_dir in glob.glob(prep_dirDir + "**")]
-subjects = loadPrepData(prep_dirDir)
+subjects, X, y_list = loadPrepData(prep_dirDir)
 p_inspect = subdirs[-1]
 subjects[p_inspect.split("_")[0]][p_inspect]
+
+#TODO: Does not work yet!
+"""
+# Encoding of labels
+#labels = y_list
+#labels = ['null', 'chew', 'eyem', 'elpp', 'musc', 'shiv']
+le = LabelEncoder()
+targets = le.fit_transform(labels)
+"""
+
+targets = torch.as_tensor(targets)
+
+
+
+subjects_list = list(subjects.keys())
+train_subjects = subjects_list[:10]
+test_subjects = subjects_list[10:20]
+
+example = '00004625_s003_t001'
+
+#new = pd.DataFrame.from_dict(subjects[example.split("_")[0]][example][i][0])
