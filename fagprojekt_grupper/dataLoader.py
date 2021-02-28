@@ -103,19 +103,24 @@ def loadPrepData(subjects_dir, prep_directory):
     pt_inputs = [pt_dir for ID in subjects_dir for session in subjects_dir[ID].keys() for pt_dir in glob.glob(prep_directory + session + "/"+ "**")]
 
     # Loading all preprocessed files and dividing them into data, X, and target variable, y.
-    for pt_dir in pt_inputs:
+    error_id = set() # set for keeping track of subjects with errors in data.
+    for count, pt_dir in enumerate(pt_inputs):
         pt_loaded = torch.load(pt_dir)
         pt_label = np.zeros(len(label_encoder))
 
         # Encoding labels as a one-hot encoding.
         for label in pt_loaded[1]:
             pt_label[label_encoder[label]] = 1
-        # Rearranging tensors to flattened numpy arrays.
-        input_loader.append(pt_loaded[0].numpy().flatten().astype(np.float16))
-        label_loader.append(pt_label)
+        # Rearranging tensors to flattened numpy arrays, while checking for correct shape.
+        if len(pt_loaded[0].numpy().flatten().astype(np.float16)) != 4579:
+            error_id.add(pt_inputs[count].split("/")[5].split("_")[0])
+            pass
+        else:
+            input_loader.append(pt_loaded[0].numpy().flatten().astype(np.float16))
+            label_loader.append(pt_label)
 
-        # Load subject ID for current window.
-        ID_loader.append(pt_dir.split("/")[-2].split("_")[0])
+            # Load subject ID for current window.
+            ID_loader.append(pt_dir.split("/")[-2].split("_")[0])
 
     # Stacking data to matrices.
     X = np.stack(input_loader)

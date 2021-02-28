@@ -8,7 +8,7 @@ from fagprojekt_grupper.dataLoader import processRawData, loadPrepData, createSu
 os.chdir(os.getcwd())
 
 # What is your execute path? #
-save_dir = r"/Users/AlbertoK/Desktop/EEG/subset" + "/"  # /Users/philliphoejbjerg/NovelEEG # "/Users/AlbertoK/Desktop/EEG/subset" + "/"  # ~~~ What is your execute path? # /Users/philliphoejbjerg/NovelEEG
+save_dir = r"/Users/philliphoejbjerg/NovelEEG" + "/"  # /Users/philliphoejbjerg/NovelEEG # "/Users/AlbertoK/Desktop/EEG/subset" + "/"  # ~~~ What is your execute path? # /Users/philliphoejbjerg/NovelEEG
 
 #Directing to correct directories
 TUAR_dir = r"data_TUH_EEG/TUH_EEG_CORPUS/artifact_dataset" + "/"  # \**\01_tcp_ar #\100\00010023\s002_2013_02_21
@@ -35,11 +35,11 @@ train_indiv = set(np.random.choice(individuals, 10, replace=False))
 test_indiv = set(np.setdiff1d(individuals, list(train_indiv)))
 
 #Splitting train and test set.
-train_indeces = [i for i, ID in enumerate(ID_frame) if ID in train_indiv]
-test_indeces = [i for i, ID in enumerate(ID_frame) if ID in test_indiv]
+train_indices = [i for i, ID in enumerate(ID_frame) if ID in train_indiv]
+test_indices = [i for i, ID in enumerate(ID_frame) if ID in test_indiv]
 
-X_train, y_train = X[train_indeces,:], y[train_indeces]
-X_test, y_test = X[test_indeces,:], y[test_indeces]
+X_train, y_train = X[train_indices,:], y[train_indices]
+X_test, y_test = X[test_indices,:], y[test_indices]
 
 # Standardizing data
 #TODO: Vil vi standardisere? Er det gjort korrekt nu?
@@ -58,7 +58,7 @@ model.score(X_test, y_test[:,0])
 # Encoding choice can be found in loadPrepData-function in dataLoader-script
 #TODO: Der er nok en fejl i bestemmelsen af klassen, hvis der er flere labels på et vindue..
 multi_class_labels = np.array([np.where(y_win==1)[0][0] for y_win in y]) #Don't know if this should be used..
-y_train_multi, y_test_multi = multi_class_labels[train_indeces], multi_class_labels[test_indeces]
+y_train_multi, y_test_multi = multi_class_labels[train_indices], multi_class_labels[test_indices]
 
 #Fitting and evaluating multinomial logistic regression
 model = LogisticRegression(multi_class='multinomial', solver='lbfgs',max_iter=1000)
@@ -69,9 +69,9 @@ model.score(X_test, y_test_multi)
 
 # Now we will ignore 'null'-class completely from training and test data.
 # Excluding 'null'-observations from data.
-train_indeces, test_indeces = np.where(y_train_multi!=5)[0], np.where(y_test_multi!=5)[0]
-X_train_nonull, y_train_nonull = X_train[train_indeces,:], y_train_multi[train_indeces]
-X_test_nonull, y_test_nonull = X_test[test_indeces,:], y_test_multi[test_indeces]
+train_indices, test_indices = np.where(y_train_multi!=5)[0], np.where(y_test_multi!=5)[0]
+X_train_nonull, y_train_nonull = X_train[train_indices,:], y_train_multi[train_indices]
+X_test_nonull, y_test_nonull = X_test[test_indices,:], y_test_multi[test_indices]
 
 # Fitting a 5-class multinomial logistic regression without 'null' as a class.
 model = LogisticRegression(multi_class='multinomial', solver='lbfgs',max_iter=1000)
