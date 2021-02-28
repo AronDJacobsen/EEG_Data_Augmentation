@@ -1,14 +1,16 @@
 import os, glob, torch, time, random
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import LabelEncoder
-from fagprojekt_grupper.dataLoader import processRawData, loadPrepData
+from sklearn.linear_model import LogisticRegression
+from fagprojekt_grupper.dataLoader import processRawData, loadPrepData, createSubjectDict
 
-
+# Ensuring correct path
 os.chdir(os.getcwd())
 
-save_dir = r"/Users/philliphoejbjerg/NovelEEG" + "/"  # ~~~ What is your execute path? # /Users/philliphoejbjerg/NovelEEG # "/Users/AlbertoK/Desktop/EEG/subset" + "/"  # ~~~ What is your execute path? # /Users/philliphoejbjerg/NovelEEG
+# What is your execute path? #
+save_dir = r"/Users/AlbertoK/Desktop/EEG/subset" + "/"  # /Users/philliphoejbjerg/NovelEEG # "/Users/AlbertoK/Desktop/EEG/subset" + "/"  # ~~~ What is your execute path? # /Users/philliphoejbjerg/NovelEEG
 
+#Directing to correct directories
 TUAR_dir = r"data_TUH_EEG/TUH_EEG_CORPUS/artifact_dataset" + "/"  # \**\01_tcp_ar #\100\00010023\s002_2013_02_21
 jsonDir = r"tmp.json"
 prep_dir = r"tempData" + "/"
@@ -17,45 +19,95 @@ jsonDataDir = save_dir + jsonDir
 TUAR_dirDir = save_dir + TUAR_dir
 prep_dirDir = save_dir + prep_dir
 
+
+
+# Creating directory for subjects, sessions, windows for easy extraction of tests in loadPrepData
+subjects = createSubjectDict(prep_dirDir)
+
+# X = Number of windows, 19*241    y = Number of windows, 6 categories     ID_frame = subjectID for each window
+X, y, ID_frame = loadPrepData(subjects, prep_dirDir)
+individuals = np.unique(ID_frame)
+
+# Defining subjects to use for the train and test set. For now 10 random train_individuals.
+# TODO: Vi bør have et valideringssæt til træningen, der også er delt ind efter subjects.
+np.random.seed(0)
+train_indiv = set(np.random.choice(individuals, 10, replace=False))
+test_indiv = set(np.setdiff1d(individuals, list(train_indiv)))
+
+#Splitting train and test set.
+train_indeces = [i for i, ID in enumerate(ID_frame) if ID in train_indiv]
+test_indeces = [i for i, ID in enumerate(ID_frame) if ID in test_indiv]
+
+X_train, y_train = X[train_indeces,:], y[train_indeces]
+X_test, y_test = X[test_indeces,:], y[test_indeces]
+
+# Standardizing data
+#TODO: Vil vi standardisere? Er det gjort korrekt nu?
+Xmean, Xdev = np.mean(X_train, axis=0), np.std(X_train, axis=0)
+X_train = (X_train - Xmean) / Xdev
+X_test = (X_test - Xmean) / Xdev
+
+# Fitting and evaluating a binary logistic regression. Solely predicting presence/absence of eyemovement in a window.
+#TODO: Kan man specificere et valideringssæt i LogisticRegression?
+model = LogisticRegression(max_iter=1000)
+model.fit(X_train, y_train[:,0]) # Starting with only testing eyemovement.
+model.predict(X_test)
+model.score(X_test, y_test[:,0])
+
+# Multi-class problem - collapsing one-hot encoding to get 6 categorical labels for the multinomial log. reg.
+# Encoding choice can be found in loadPrepData-function in dataLoader-script
+#TODO: Der er nok en fejl i bestemmelsen af klassen, hvis der er flere labels på et vindue..
+multi_class_labels = np.array([np.where(y_win==1)[0][0] for y_win in y]) #Don't know if this should be used..
+y_train_multi, y_test_multi = multi_class_labels[train_indeces], multi_class_labels[test_indeces]
+
+#Fitting and evaluating multinomial logistic regression
+model = LogisticRegression(multi_class='multinomial', solver='lbfgs',max_iter=1000)
+model.fit(X_train, y_train_multi) # Trying a multiclass
+model.predict(X_test)
+model.score(X_test, y_test_multi)
+
+
+# Now we will ignore 'null'-class completely from training and test data.
+# Excluding 'null'-observations from data.
+train_indeces, test_indeces = np.where(y_train_multi!=5)[0], np.where(y_test_multi!=5)[0]
+X_train_nonull, y_train_nonull = X_train[train_indeces,:], y_train_multi[train_indeces]
+X_test_nonull, y_test_nonull = X_test[test_indeces,:], y_test_multi[test_indeces]
+
+# Fitting a 5-class multinomial logistic regression without 'null' as a class.
+model = LogisticRegression(multi_class='multinomial', solver='lbfgs',max_iter=1000)
+model.fit(X_train_nonull, y_train_nonull) # Trying a multiclass
+model.predict(X_test_nonull)
+model.score(X_test_nonull, y_test_nonull)
+
+
+
+
 """
-subset = ["00010418_s008_t000.edf", "00010079_s004_t002.edf", "00009630_s001_t001.edf", '00007952_s001_t001.edf',
-          '00009623_s008_t004.edf', '00009623_s008_t005.edf', '00009623_s010_t000.edf',
-          '00001006_s001_t001.edf', '00006501_s001_t000.edf', '00006514_s008_t001.edf', '00006514_s020_t001.edf',
-          '00002348_s014_t008.edf', '00003573_s003_t000.edf', '00006224_s002_t001.edf', '00007020_s001_t001.edf',
-          '00007981_s001_t001.edf', '00008476_s001_t000.edf', '00008527_s001_t000.edf', '00004473_s001_t000.edf',
-          '00005672_s001_t001.edf', '00003849_s001_t000.edf', '00007647_s001_t001.edf', '00003008_s006_t006.edf']
-
-# for all subjects run as: file_selected = TUAR_data
-file_selected = subset.copy()
-processRawData(TUAR_dir,save_dir,file_selected)
-"""
-
-
-subdirs = [sub_dir.split("/")[-1] for sub_dir in glob.glob(prep_dirDir + "**")]
-indiv = list({subdir.split("_")[0] for subdir in subdirs})
-train_indiv = random.sample(indiv, 10)
-test_indiv = np.setdiff1d(indiv, train_indiv)
-
-subjects, X, y_list, indiv = loadPrepData(prep_dirDir)
-p_inspect = subdirs[-1]
-subjects[p_inspect.split("_")[0]][p_inspect]
-
-#TODO: Does not work yet!
-"""
-# Encoding of labels
-#labels = y_list
-#labels = ['null', 'chew', 'eyem', 'elpp', 'musc', 'shiv']
-le = LabelEncoder()
-targets = le.fit_transform(labels)
-targets = torch.as_tensor(targets)
+# Not done at all - might be used to divide by electrodes
+a = []
+for i in range(19):
+    a.append(X[0,i*241:(i+1)*241])
 """
 
 
 
-subjects_list = list(subjects.keys())
-train_subjects = subjects_list[:10]
-test_subjects = subjects_list[10:20]
+""" Kode til at tjekke fordelingen af klasser
 
-example = '00004625_s003_t001'
+#Eyemovement
+print(np.unique(y_train[:,0], return_counts=True))
 
-#new = pd.DataFrame.from_dict(subjects[example.split("_")[0]][example][i][0])
+#Chew
+print(np.unique(y_train[:,1], return_counts=True))
+
+#Shiver
+print(np.unique(y_train[:,2], return_counts=True))
+
+#Elpp
+print(np.unique(y_train[:,3], return_counts=True))
+
+#Musc
+print(np.unique(y_train[:,4], return_counts=True))
+
+#Null
+print(np.unique(y_train[:,5], return_counts=True))
+"""

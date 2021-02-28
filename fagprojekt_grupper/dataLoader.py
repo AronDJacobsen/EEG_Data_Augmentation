@@ -69,8 +69,64 @@ def processRawData(data_path, save_path, file_selected):
           % (int((toc - tic) / 60), int((toc - tic) % 60), len(subjects), subjects[subject_ID][edf]["tWindow"],
              subjects[subject_ID][edf]["tStep"]))
 
-# TODO  -  Find på et andet navn
-def loadPrepData(prep_directory):
+
+
+def createSubjectDict(prep_directory):
+    # Setting directory
+    subdirs = [sub_dir.split("/")[-1] for sub_dir in glob.glob(prep_directory + "**")]
+    subjects = defaultdict(dict)
+
+    # Loop through all session to load window-tensors into the "subjects"-dictionary
+    for session_test in subdirs:
+        subjectID = session_test.split("_")[0]
+        dim_tensors = [dim_t.reshape(-1) for tensor_file in glob.glob(prep_directory + session_test + "/" + "**") for dim_t in torch.load(tensor_file)[0]]
+
+        # Assigning window-tensors to their subjectID and session key.
+        if subjectID in subjects.keys():
+            subjects[subjectID][session_test] = dim_tensors
+        else:
+            subjects[subjectID] = {session_test: dim_tensors}
+
+    return subjects
+
+
+def loadPrepData(subjects_dir, prep_directory):
+
+    #Setting start-values
+    input_loader = []
+    label_loader = []
+    ID_loader = []
+    # Encoding rules for the 6 classes.
+    label_encoder = {"eyem":0, "chew":1, "shiv":2, "elpp":3, "musc":4, "null":5}
+
+    # Looping through all session-folders to get the filepaths to all the preprocessed windows.
+    pt_inputs = [pt_dir for ID in subjects_dir for session in subjects_dir[ID].keys() for pt_dir in glob.glob(prep_directory + session + "/"+ "**")]
+
+    # Loading all preprocessed files and dividing them into data, X, and target variable, y.
+    for pt_dir in pt_inputs:
+        pt_loaded = torch.load(pt_dir)
+        pt_label = np.zeros(len(label_encoder))
+
+        # Encoding labels as a one-hot encoding.
+        for label in pt_loaded[1]:
+            pt_label[label_encoder[label]] = 1
+        # Rearranging tensors to flattened numpy arrays.
+        input_loader.append(pt_loaded[0].numpy().flatten().astype(np.float16))
+        label_loader.append(pt_label)
+
+        # Load subject ID for current window.
+        ID_loader.append(pt_dir.split("/")[-2].split("_")[0])
+
+    # Stacking data to matrices.
+    X = np.stack(input_loader)
+    y = np.stack(label_loader)
+    ID_frame = np.stack(ID_loader)
+
+    return X, y, ID_frame
+
+
+#Overflødigt nu - skal vi bare slette det?
+"""
     subdirs = [sub_dir.split("/")[-1] for sub_dir in glob.glob(prep_directory + "**")]
 
     subjects = defaultdict(dict)
@@ -110,4 +166,4 @@ def loadPrepData(prep_directory):
     torch.std(final_tensor, dim=1)  # Standard dev. across eletrodes, respectively
 
     return subjects, final_tensor, all_labels, indiv
-
+"""
