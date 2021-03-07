@@ -127,7 +127,7 @@ def loadPrepData(subjects_dir, prep_directory):
     y = np.stack(label_loader)
     ID_frame = np.stack(ID_loader)
 
-    return X, y, ID_frame
+    return X, y, ID_frame, error_id
 
 
 #Overflødigt nu - skal vi bare slette det?

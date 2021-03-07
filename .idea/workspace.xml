@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="9d0212b8-9642-494a-8118-a0e68635b8f6" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/fagprojekt_grupper/DescStat.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/fagprojekt_grupper/dataLoader.py" beforeDir="false" afterPath="$PROJECT_DIR$/fagprojekt_grupper/dataLoader.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/fagprojekt_grupper/modelFitting.py" beforeDir="false" afterPath="$PROJECT_DIR$/fagprojekt_grupper/modelFitting.py" afterDir="false" />
@@ -10,6 +11,13 @@
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -31,8 +39,9 @@
   <component name="PropertiesComponent">
     <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
+    <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
   </component>
-  <component name="RunManager" selected="Python.modelFitting">
+  <component name="RunManager" selected="Python.preproccesData">
     <configuration name="dataLoader" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="EEG_epilepsia" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -119,8 +128,8 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.modelFitting" />
         <item itemvalue="Python.preproccesData" />
+        <item itemvalue="Python.modelFitting" />
         <item itemvalue="Python.dataLoader" />
         <item itemvalue="Python.fagprojekt_tutorial" />
       </list>
@@ -153,44 +162,19 @@
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/preprocessing/loadData.py</url>
-          <line>41</line>
-          <option name="timeStamp" value="31" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/preprocessing/loadData.py</url>
-          <line>26</line>
-          <option name="timeStamp" value="32" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/fagprojekt_grupper/modelFitting.py</url>
-          <line>101</line>
+          <line>133</line>
           <option name="timeStamp" value="35" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/fagprojekt_grupper/dataLoader.py</url>
-          <line>125</line>
-          <option name="timeStamp" value="36" />
+          <line>65</line>
+          <option name="timeStamp" value="43" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/fagprojekt_grupper/dataLoader.py</url>
-          <line>126</line>
-          <option name="timeStamp" value="37" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/fagprojekt_grupper/dataLoader.py</url>
-          <line>127</line>
-          <option name="timeStamp" value="38" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/fagprojekt_grupper/modelFitting.py</url>
-          <line>28</line>
-          <option name="timeStamp" value="39" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/fagprojekt_grupper/dataLoader.py</url>
-          <line>105</line>
-          <option name="timeStamp" value="40" />
+          <line>11</line>
+          <option name="timeStamp" value="45" />
         </line-breakpoint>
       </breakpoints>
       <default-breakpoints>

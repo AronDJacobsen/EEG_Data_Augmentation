@@ -3,29 +3,61 @@ import numpy as np
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
 from fagprojekt_grupper.dataLoader import processRawData, loadPrepData, createSubjectDict
+import pickle
 
-# Ensuring correct path
-os.chdir(os.getcwd())
+# Hvis man arbejder med fulde datasæt er det megget smartere først at lave pickles, og så hente det ned bagefter med LoadPickles
+def CreatePickles():
+    # Ensuring correct path
+    os.chdir(os.getcwd())
 
-# What is your execute path? #
-save_dir = r"/Users/philliphoejbjerg/NovelEEG" + "/"  # /Users/philliphoejbjerg/NovelEEG # "/Users/AlbertoK/Desktop/EEG/subset" + "/"  # ~~~ What is your execute path? # /Users/philliphoejbjerg/NovelEEG
+    # What is your execute path? #
+    save_dir = r"/Users/philliphoejbjerg/NovelEEG" + "/"  # /Users/philliphoejbjerg/NovelEEG # "/Users/AlbertoK/Desktop/EEG/subset" + "/"  # ~~~ What is your execute path? # /Users/philliphoejbjerg/NovelEEG
 
-#Directing to correct directories
-TUAR_dir = r"data_TUH_EEG/TUH_EEG_CORPUS/artifact_dataset" + "/"  # \**\01_tcp_ar #\100\00010023\s002_2013_02_21
-jsonDir = r"tmp.json"
-prep_dir = r"tempData" + "/"
+    #Directing to correct directories
+    TUAR_dir = r"data_TUH_EEG/TUH_EEG_CORPUS/artifact_dataset" + "/"  # \**\01_tcp_ar #\100\00010023\s002_2013_02_21
+    jsonDir = r"tmp.json"
+    prep_dir = r"tempData" + "/"
 
-jsonDataDir = save_dir + jsonDir
-TUAR_dirDir = save_dir + TUAR_dir
-prep_dirDir = save_dir + prep_dir
+    jsonDataDir = save_dir + jsonDir
+    TUAR_dirDir = save_dir + TUAR_dir
+    prep_dirDir = save_dir + prep_dir
 
+    # Creating directory for subjects, sessions, windows for easy extraction of tests in loadPrepData
+    subjects = createSubjectDict(prep_dirDir)
 
+    # X = Number of windows, 19*241    y = Number of windows, 6 categories     ID_frame = subjectID for each window
+    X, y, ID_frame, error_id = loadPrepData(subjects, prep_dirDir)
 
-# Creating directory for subjects, sessions, windows for easy extraction of tests in loadPrepData
-subjects = createSubjectDict(prep_dirDir)
+    pickle.dump(X, open("X.pkl", "wb"))
+    pickle.dump(y, open("y.pkl", "wb"))
+    pickle.dump(ID_frame, open("ID_frame.pkl", "wb"))
 
-# X = Number of windows, 19*241    y = Number of windows, 6 categories     ID_frame = subjectID for each window
-X, y, ID_frame = loadPrepData(subjects, prep_dirDir)
+    return X, y, ID_frame, error_id
+
+def LoadPickles(DelNan = False):
+    X = pickle.load(open("X.pkl", "rb"))
+    y = pickle.load(open("y.pkl", "rb"))
+    ID_frame = pickle.load(open("ID_frame.pkl", "rb"))
+
+    # Deletes rows with NaN values.
+    if DelNan == True:
+        X, y, ID_frame = DeleteNan()
+
+    return X, y, ID_frame
+
+def DeleteNan(X = X, y = y, ID_frame = ID_frame):
+    # NanList in decreasing order, shows window-index with NaN.
+    NanList = [47698, 47687, 47585, 47569, 47490, 47475, 47436, 47409, 47339, 35919, 35914, 35759, 14819, 14815, 14802, 14787, 14786, 14781, 14776, 14770, 14765, 14758, 14752, 14745, 14741, 14726, 14717, 2246, 2242, 2064]
+
+    for ele in NanList:
+        X = np.delete(X, (ele), axis = 0)
+        y = np.delete(y, (ele), axis=0)
+        ID_frame = np.delete(ID_frame, (ele))
+
+    return X, y, ID_frame
+
+X, y, ID_frame = LoadPickles(DelNan = True)
+
 individuals = np.unique(ID_frame)
 
 # Defining subjects to use for the train and test set. For now 10 random train_individuals.
