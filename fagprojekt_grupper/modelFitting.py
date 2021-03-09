@@ -5,13 +5,19 @@ from sklearn.linear_model import LogisticRegression
 from fagprojekt_grupper.dataLoader import processRawData, loadPrepData, createSubjectDict
 import pickle
 
+from fagprojekt_grupper.models import lr_mixup, nn_mixup, baseline, lr, gnb, knn, rf
+
+
 # Hvis man arbejder med fulde datasæt er det megget smartere først at lave pickles, og så hente det ned bagefter med LoadPickles
 def CreatePickles():
     # Ensuring correct path
     os.chdir(os.getcwd())
 
     # What is your execute path? #
-    save_dir = r"/Users/philliphoejbjerg/NovelEEG" + "/"  # /Users/philliphoejbjerg/NovelEEG # "/Users/AlbertoK/Desktop/EEG/subset" + "/"  # ~~~ What is your execute path? # /Users/philliphoejbjerg/NovelEEG
+    # /Users/philliphoejbjerg/NovelEEG
+    # /Users/Jacobsen/Desktop/DTU/4_semester/1_Bachelor_project/3_code
+    # /Users/AlbertoK/Desktop/EEG/subset
+    save_dir = r"/Users/philliphoejbjerg/NovelEEG" + "/"
 
     #Directing to correct directories
     TUAR_dir = r"data_TUH_EEG/TUH_EEG_CORPUS/artifact_dataset" + "/"  # \**\01_tcp_ar #\100\00010023\s002_2013_02_21
@@ -28,6 +34,7 @@ def CreatePickles():
     # X = Number of windows, 19*241    y = Number of windows, 6 categories     ID_frame = subjectID for each window
     X, y, ID_frame, error_id = loadPrepData(subjects, prep_dirDir)
 
+
     pickle.dump(X, open("X.pkl", "wb"))
     pickle.dump(y, open("y.pkl", "wb"))
     pickle.dump(ID_frame, open("ID_frame.pkl", "wb"))
@@ -35,17 +42,24 @@ def CreatePickles():
     return X, y, ID_frame, error_id
 
 def LoadPickles(DelNan = False):
+
+    # put the pickles in the fagprojekt_grupper file
+    os.chdir(os.getcwd())
+
     X = pickle.load(open("X.pkl", "rb"))
     y = pickle.load(open("y.pkl", "rb"))
     ID_frame = pickle.load(open("ID_frame.pkl", "rb"))
 
+
     # Deletes rows with NaN values.
     if DelNan == True:
-        X, y, ID_frame = DeleteNan()
+        X, y, ID_frame = DeleteNan(X, y, ID_frame)
+
+
 
     return X, y, ID_frame
 
-def DeleteNan(X = X, y = y, ID_frame = ID_frame):
+def DeleteNan(X, y, ID_frame):
     # NanList in decreasing order, shows window-index with NaN.
     NanList = [47698, 47687, 47585, 47569, 47490, 47475, 47436, 47409, 47339, 35919, 35914, 35759, 14819, 14815, 14802, 14787, 14786, 14781, 14776, 14770, 14765, 14758, 14752, 14745, 14741, 14726, 14717, 2246, 2242, 2064]
 
@@ -56,6 +70,42 @@ def DeleteNan(X = X, y = y, ID_frame = ID_frame):
 
     return X, y, ID_frame
 
+
+def balance(X, y, increase, reduce):
+    #### dealing with class implanace ####
+
+    #used:
+    #   - https://machinelearningmastery.com/smote-oversampling-for-imbalanced-classification/
+
+    from collections import Counter
+    # what is the class balance?
+    balance_b = Counter(y)
+
+    #if necessary: pip install imbalanced-learn
+    from imblearn.over_sampling import SMOTE
+    from imblearn.under_sampling import RandomUnderSampler
+    from imblearn.pipeline import Pipeline
+
+    #oversample minority
+    over = SMOTE(sampling_strategy=increase) # increase minority to have % of majority
+    #undersample majority
+    under = RandomUnderSampler(sampling_strategy=reduce) # reduce majority to have % more than minority
+
+    #initializing pipeline for transformation of dataset
+    steps = [('o', over), ('u', under)]
+    pipeline = Pipeline(steps=steps)
+    # transform the dataset
+    X, y = pipeline.fit_resample(X, y)
+
+    # how is the balance now?
+    balance_a = Counter(y)
+
+    print('Before:', balance_b)
+    print('After: ', balance_a)
+
+    return X, y
+
+
 X, y, ID_frame = LoadPickles(DelNan = True)
 
 individuals = np.unique(ID_frame)
@@ -63,8 +113,8 @@ individuals = np.unique(ID_frame)
 # Defining subjects to use for the train and test set. For now 10 random train_individuals.
 # TODO: Vi bør have et valideringssæt til træningen, der også er delt ind efter subjects.
 np.random.seed(0)
-train_indiv = set(np.random.choice(individuals, 10, replace=False))
-test_indiv = set(np.setdiff1d(individuals, list(train_indiv)))
+train_indiv = set(np.random.choice(individuals, 15, replace=False))
+test_indiv = set(np.random.choice(np.setdiff1d(individuals, list(train_indiv)), 10, replace=False))
 
 #Splitting train and test set.
 train_indices = [i for i, ID in enumerate(ID_frame) if ID in train_indiv]
@@ -78,6 +128,47 @@ X_test, y_test = X[test_indices,:], y[test_indices]
 Xmean, Xdev = np.mean(X_train, axis=0), np.std(X_train, axis=0)
 X_train = (X_train - Xmean) / Xdev
 X_test = (X_test - Xmean) / Xdev
+
+
+# balancing dataset
+# we only want to evaluate eye movement
+# only on training data
+X_train, y_train = balance(X_train, y_train[:,0], increase = 0.15, reduce = 0.4)
+y_test = y_test[:,0]
+
+acc_lr_mixup, f1_lr_mixup = lr_mixup(X_train, y_train, X_test, y_test, augr=0.5, mixup = False, alpha= None,
+                                batch_size = 100, lr_rate = 0.05, epochs = 2)
+
+
+acc_nn_mixup, f1_nn_mixup = nn_mixup(X_train, y_train, X_test, y_test, augr=0.5, mixup = False, alpha= None,
+                                batch_size = 256, lr_rate = 0.01, epochs = 5)
+
+
+models = {'Baseline' : baseline, 'LR' : lr, 'GNB' : gnb,
+          'KNN' : knn,  'RF' : rf
+          }
+data = [X_train, y_train, X_test, y_test]
+output = ['accuracy', 'f1_score']
+
+
+def evaluate(models, data, output):
+    initial_data = {}
+    for key in models:
+        accuracy, f1_score = models[key](data[0],data[1],data[2],data[3])
+        initial_data[key] = [accuracy, f1_score]
+
+    df = pd.DataFrame.from_dict(initial_data)
+    df.index = output
+    #print(df)
+    return df
+
+
+df = evaluate(models, data, output)
+
+df['nn'] = [acc_nn_mixup, f1_nn_mixup]
+
+print(df)
+
 
 # Fitting and evaluating a binary logistic regression. Solely predicting presence/absence of eyemovement in a window.
 #TODO: Kan man specificere et valideringssæt i LogisticRegression?
