@@ -1,16 +1,19 @@
 import os
 import preprocessing.loadData as loadData
 from fagprojekt_grupper.dataLoader import processRawData
+import numpy as np
+import matplotlib.pyplot as plt
 
 
 # Ensuring correct path
 os.chdir(os.getcwd())
 
 # What is your execute path? #
-save_dir = r"/Users/philliphoejbjerg/NovelEEG" + "/"  # /Users/philliphoejbjerg/NovelEEG # "/Users/AlbertoK/Desktop/EEG/subset" + "/"  # ~~~ What is your execute path? # /Users/philliphoejbjerg/NovelEEG
-#save_dir = r"/Users/AlbertoK/Desktop/EEG/subset" + "/"
 
-#Directing to correct directories
+save_dir = r"/Users/philliphoejbjerg/NovelEEG" + "/"
+# Albert path mac: save_dir = r"/Users/AlbertoK/Desktop/EEG/subset" + "/"
+# Phillip: save_dir = r"/Users/philliphoejbjerg/NovelEEG" + "/"
+
 TUAR_dir = r"data_TUH_EEG/TUH_EEG_CORPUS/artifact_dataset" + "/"  # \**\01_tcp_ar #\100\00010023\s002_2013_02_21
 jsonDir = r"tmp.json"
 prep_dir = r"tempData" + "/"
@@ -19,8 +22,10 @@ jsonDataDir = save_dir + jsonDir
 TUAR_dirDir = save_dir + TUAR_dir
 prep_dirDir = save_dir + prep_dir
 
+
+
 # Which files should be processed - a subset or all?
-TUAR_data = loadData.findEdf(path=TUAR_dir, selectOpt=False, saveDir=save_dir)
+TUAR_data = loadData.findEdf(path=TUAR_dirDir, selectOpt=False, saveDir=save_dir)
 files_selected = TUAR_data
 """ subset = ["00010418_s008_t000.edf", "00010079_s004_t002.edf", "00009630_s001_t001.edf", '00007952_s001_t001.edf',
                '00009623_s008_t004.edf', '00009623_s008_t005.edf', '00009623_s010_t000.edf',
@@ -32,5 +37,8 @@ files_selected = TUAR_data
 # files_selected = subset.copy()
 
 # CALLING THE PREPROCESSING
-processRawData(TUAR_dir, save_dir, files_selected)
+all_subject_age, all_subject_gender = processRawData(TUAR_dir, save_dir, files_selected)
 
+all_subject_age_hist = np.histogram(all_subject_age, range=(0,100))
+plt.hist(all_subject_age, range=(0,100))
+plt.show()
