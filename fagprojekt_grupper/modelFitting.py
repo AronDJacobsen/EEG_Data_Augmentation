@@ -151,6 +151,8 @@ data = [X_train, y_train, X_test, y_test]
 output = ['accuracy', 'f1_score']
 
 
+
+
 def evaluate(models, data, output):
     initial_data = {}
     for key in models:
@@ -167,7 +169,6 @@ df = evaluate(models, data, output)
 
 df['nn'] = [acc_nn_mixup, f1_nn_mixup]
 
-print(df)
 
 
 # Fitting and evaluating a binary logistic regression. Solely predicting presence/absence of eyemovement in a window.

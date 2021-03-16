@@ -2,10 +2,6 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="0c3523a9-1a9d-4559-a5e8-ac6f43bb5e36" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/fagprojekt_grupper/models.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/EEG_epilepsia.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/EEG_epilepsia.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/fagprojekt_grupper/modelFitting.py" beforeDir="false" afterPath="$PROJECT_DIR$/fagprojekt_grupper/modelFitting.py" afterDir="false" />
     </list>
@@ -95,5 +91,16 @@
       <updated>1615129300868</updated>
     </task>
     <servers />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/fagprojekt_grupper/modelFitting.py</url>
+          <line>201</line>
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
 </project>
