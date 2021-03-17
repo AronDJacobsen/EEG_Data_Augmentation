@@ -63,6 +63,8 @@ def processRawData(data_path, save_path, file_selected):
                                                                         "local_return": True})  # r"C:\Users\anden\PycharmProjects"+"\\"})
         # except:
         #     print("sit a while and listen: %s" % subjects[subject_ID][edf]['path'])
+
+        """
         # catch age and gender for descriptive statistics
         if subjects[subject_ID][edf]["gender"].lower() == 'm':
             all_subject_gender["male"].append(subjects[subject_ID][edf]["gender"].lower())
@@ -76,16 +78,21 @@ def processRawData(data_path, save_path, file_selected):
         all_subject_age.append(subjects[subject_ID][edf]["age"])
         # except:
         #     print("sit a while and listen: %s" % subjects[subject_ID][edf]['path'])
+        
 
     all_subject_age = np.array(all_subject_age)
     toc = time.time()
+    """
+    """
+
     print("\n~~~~~~~~~~~~~~~~~~~~\n"
           "it took %imin:%is to run preprocess-pipeline for %i patients\n with window length [%.2fs] and t_step [%.2fs]"
           "\n~~~~~~~~~~~~~~~~~~~~\n"
           % (int((toc - tic) / 60), int((toc - tic) % 60), len(subjects), subjects[subject_ID][edf]["tWindow"],
              subjects[subject_ID][edf]["tStep"]))
+             """
 
-    return all_subject_age, all_subject_gender
+    #return all_subject_age, all_subject_gender
 
 
 def createSubjectDict(prep_directory):

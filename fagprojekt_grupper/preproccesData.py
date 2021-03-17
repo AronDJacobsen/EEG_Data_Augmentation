@@ -25,7 +25,7 @@ prep_dirDir = save_dir + prep_dir
 
 
 # Which files should be processed - a subset or all?
-TUAR_data = loadData.findEdf(path=TUAR_dirDir, selectOpt=False, saveDir=save_dir)
+TUAR_data = loadData.findEdf(path=TUAR_dir, selectOpt=False, saveDir=save_dir)
 files_selected = TUAR_data
 """ subset = ["00010418_s008_t000.edf", "00010079_s004_t002.edf", "00009630_s001_t001.edf", '00007952_s001_t001.edf',
                '00009623_s008_t004.edf', '00009623_s008_t005.edf', '00009623_s010_t000.edf',
@@ -37,8 +37,9 @@ files_selected = TUAR_data
 # files_selected = subset.copy()
 
 # CALLING THE PREPROCESSING
-all_subject_age, all_subject_gender = processRawData(TUAR_dir, save_dir, files_selected)
+processRawData(TUAR_dir, save_dir, files_selected)
+#all_subject_age, all_subject_gender = processRawData(TUAR_dir, save_dir, files_selected)
 
-all_subject_age_hist = np.histogram(all_subject_age, range=(0,100))
-plt.hist(all_subject_age, range=(0,100))
-plt.show()
+#all_subject_age_hist = np.histogram(all_subject_age, range=(0,100))
+#plt.hist(all_subject_age, range=(0,100))
+#plt.show()

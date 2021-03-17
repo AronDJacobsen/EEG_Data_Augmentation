@@ -7,6 +7,7 @@
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/fagprojekt_grupper/dataLoader.py" beforeDir="false" afterPath="$PROJECT_DIR$/fagprojekt_grupper/dataLoader.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/fagprojekt_grupper/preproccesData.py" beforeDir="false" afterPath="$PROJECT_DIR$/fagprojekt_grupper/preproccesData.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/preprocessing/loadData.py" beforeDir="false" afterPath="$PROJECT_DIR$/preprocessing/loadData.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -32,6 +33,7 @@
   <component name="PropertiesComponent">
     <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
   </component>
   <component name="RunManager" selected="Python.preproccesData">
@@ -121,14 +123,9 @@
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/fagprojekt_grupper/modelFitting.py</url>
-          <line>201</line>
-          <option name="timeStamp" value="1" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/fagprojekt_grupper/preproccesData.py</url>
-          <line>27</line>
-          <option name="timeStamp" value="3" />
+          <url>file://$PROJECT_DIR$/fagprojekt_grupper/dataLoader.py</url>
+          <line>68</line>
+          <option name="timeStamp" value="6" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

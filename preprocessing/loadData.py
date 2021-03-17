@@ -24,7 +24,7 @@ def findEdf(path=False, selectOpt=False, saveDir=False):
     # bypass personal dictionaries
     pathRootInt = len(list(filter(None, saveDir.split('/'))))
     # find all .edf files in path
-    pathList = ['/'.join(fDir.split('/')[pathRootInt+1:]) for fDir in glob.glob(saveDir+path + "**/*.edf", recursive=True)]
+    pathList = ['/'.join(fDir.split('/')[pathRootInt+1:]) for fDir in glob.glob(saveDir+path + "**/*.edf", recursive=True)] #evt : glob.glob(saveDir+path + "**/*.edf", recursive=True)]glob.glob(saveDir+path + "**/*.edf", recursive=True)]
     # Har her tilføjet et +1 i pathRootInt for at fjerne NoveEEG fra at komme med i path her.
     # Dette var et problem siden den både kom med som starten af denne path.
     # Og slutningen af en anden path. Når de sættes sammen kom den altså to gange.
