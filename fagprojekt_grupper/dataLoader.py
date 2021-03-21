@@ -19,8 +19,8 @@ def processRawData(data_path, save_path, file_selected, windowsOS=False):
     tic = time.time()
 
     subjects = defaultdict(dict)
-    all_subject_gender = {"male": [], "female": [], "other": []}
-    all_subject_age = []
+    #all_subject_gender = {"male": [], "female": [], "other": []}
+    #all_subject_age = []
     for edf in file_selected:  # TUAR_data:
         subject_ID = edf.split('_')[0]
         if subject_ID in subjects.keys():
@@ -64,7 +64,7 @@ def processRawData(data_path, save_path, file_selected, windowsOS=False):
         # except:
         #     print("sit a while and listen: %s" % subjects[subject_ID][edf]['path'])
 
-
+        """
         # catch age and gender for descriptive statistics
         if subjects[subject_ID][edf]["gender"].lower() == 'm':
             all_subject_gender["male"].append(subjects[subject_ID][edf]["gender"].lower())
@@ -81,6 +81,7 @@ def processRawData(data_path, save_path, file_selected, windowsOS=False):
         
 
     all_subject_age = np.array(all_subject_age)
+    
     toc = time.time()
 
 
@@ -92,7 +93,7 @@ def processRawData(data_path, save_path, file_selected, windowsOS=False):
 
 
     #return all_subject_age, all_subject_gender
-
+    """
 
 def createSubjectDict(prep_directory, windowsOS=False):
     # Setting directory

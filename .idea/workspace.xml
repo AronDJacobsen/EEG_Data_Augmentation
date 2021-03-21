@@ -2,13 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="0c3523a9-1a9d-4559-a5e8-ac6f43bb5e36" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/EEG_epilepsia.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/EEG_epilepsia.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/fagprojekt_grupper/dataLoader.py" beforeDir="false" afterPath="$PROJECT_DIR$/fagprojekt_grupper/dataLoader.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/fagprojekt_grupper/modelFitting.py" beforeDir="false" afterPath="$PROJECT_DIR$/fagprojekt_grupper/modelFitting.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/fagprojekt_grupper/preproccesData.py" beforeDir="false" afterPath="$PROJECT_DIR$/fagprojekt_grupper/preproccesData.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/preprocessing/loadData.py" beforeDir="false" afterPath="$PROJECT_DIR$/preprocessing/loadData.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -24,6 +19,14 @@
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitSEFilterConfiguration">
+    <file-type-list>
+      <filtered-out-file-type name="LOCAL_BRANCH" />
+      <filtered-out-file-type name="REMOTE_BRANCH" />
+      <filtered-out-file-type name="TAG" />
+      <filtered-out-file-type name="COMMIT_BY_MESSAGE" />
+    </file-type-list>
   </component>
   <component name="ProjectId" id="1pQxpIK9VIFHv2fDcuxWjYTtoyj" />
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
