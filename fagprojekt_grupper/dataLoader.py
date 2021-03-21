@@ -7,12 +7,12 @@ import preprocessing.loadData as loadData
 from preprocessing.preprocessPipeline import TUH_rename_ch, readRawEdf, pipeline, spectrogramMake, slidingWindow
 
 
-def processRawData(data_path, save_path, file_selected):
+def processRawData(data_path, save_path, file_selected, windowsOS=False):
     # Redefining so we don't have to change variables through all of the function
     TUAR_dir = data_path
     save_dir = save_path
 
-    TUAR_data = loadData.findEdf(path=TUAR_dir, selectOpt=False, saveDir=save_dir)
+    TUAR_data = loadData.findEdf(path=TUAR_dir, selectOpt=False, saveDir=save_dir, windowsOS=windowsOS)
 
     # prepare TUAR output
     counter = 0  # debug counter
@@ -34,8 +34,8 @@ def processRawData(data_path, save_path, file_selected):
 
         # initialize hierarchical dict
         proc_subject = subjects[subject_ID][edf]
-        proc_subject = readRawEdf(proc_subject, saveDir=save_dir, tWindow=10, tStep=10 * .5,
-                                  read_raw_edf_param={'preload': True})  # ,
+        # TODO: Jeg har problemer her (ALBERT)
+        proc_subject = readRawEdf(proc_subject, saveDir=save_dir, tWindow=1, tStep=1 * .5, read_raw_edf_param={'preload': True})  # ,
         # "stim_channel": ['EEG ROC-REF', 'EEG LOC-REF', 'EEG EKG1-REF',
         #                  'EEG T1-REF', 'EEG T2-REF', 'PHOTIC-REF', 'IBI',
         #                  'BURSTS', 'SUPPR']})
@@ -53,7 +53,7 @@ def processRawData(data_path, save_path, file_selected):
                                    exclude=['Fz', 'Pz', 'ROC', 'LOC', 'EKG1', 'T1', 'T2', 'BURSTS', 'SUPPR', 'IBI',
                                             'PHOTIC'])
         mne.pick_info(proc_subject["rawData"].info, sel=ch_TPC, copy=False)
-        pipeline(proc_subject["rawData"], type="standard_1005", notchfq=60, downSam=100)
+        pipeline(proc_subject["rawData"], type="standard_1005", notchfq=60, downSam=150)
 
         # Generate output windows for (X,y) as (tensor, label)
         proc_subject["preprocessing_output"] = slidingWindow(proc_subject, t_max=proc_subject["rawData"].times.max(),
@@ -64,7 +64,7 @@ def processRawData(data_path, save_path, file_selected):
         # except:
         #     print("sit a while and listen: %s" % subjects[subject_ID][edf]['path'])
 
-        """
+
         # catch age and gender for descriptive statistics
         if subjects[subject_ID][edf]["gender"].lower() == 'm':
             all_subject_gender["male"].append(subjects[subject_ID][edf]["gender"].lower())
@@ -82,28 +82,34 @@ def processRawData(data_path, save_path, file_selected):
 
     all_subject_age = np.array(all_subject_age)
     toc = time.time()
-    """
-    """
+
 
     print("\n~~~~~~~~~~~~~~~~~~~~\n"
           "it took %imin:%is to run preprocess-pipeline for %i patients\n with window length [%.2fs] and t_step [%.2fs]"
           "\n~~~~~~~~~~~~~~~~~~~~\n"
           % (int((toc - tic) / 60), int((toc - tic) % 60), len(subjects), subjects[subject_ID][edf]["tWindow"],
              subjects[subject_ID][edf]["tStep"]))
-             """
+
 
     #return all_subject_age, all_subject_gender
 
 
-def createSubjectDict(prep_directory):
+def createSubjectDict(prep_directory, windowsOS=False):
     # Setting directory
-    subdirs = [sub_dir.split("/")[-1] for sub_dir in glob.glob(prep_directory + "**")]
+    if windowsOS:
+        subdirs = [sub_dir.split("\\")[-1] for sub_dir in glob.glob(prep_directory + "**")]
+    else:
+        subdirs = [sub_dir.split("/")[-1] for sub_dir in glob.glob(prep_directory + "**")]
     subjects = defaultdict(dict)
 
     # Loop through all session to load window-tensors into the "subjects"-dictionary
     for session_test in subdirs:
         subjectID = session_test.split("_")[0]
-        dim_tensors = [dim_t.reshape(-1) for tensor_file in glob.glob(prep_directory + session_test + "/" + "**") for dim_t in torch.load(tensor_file)[0]]
+        if windowsOS:
+            dim_tensors = [dim_t.reshape(-1) for tensor_file in glob.glob(prep_directory + session_test + "\\" + "**")
+                           for dim_t in torch.load(tensor_file)[0]]
+        else:
+            dim_tensors = [dim_t.reshape(-1) for tensor_file in glob.glob(prep_directory + session_test + "/" + "**") for dim_t in torch.load(tensor_file)[0]]
 
         # Assigning window-tensors to their subjectID and session key.
         if subjectID in subjects.keys():
@@ -114,7 +120,7 @@ def createSubjectDict(prep_directory):
     return subjects
 
 
-def loadPrepData(subjects_dir, prep_directory):
+def loadPrepData(subjects_dir, prep_directory, windowsOS = False):
 
     #Setting start-values
     input_loader = []
@@ -124,7 +130,11 @@ def loadPrepData(subjects_dir, prep_directory):
     label_encoder = {"eyem":0, "chew":1, "shiv":2, "elpp":3, "musc":4, "null":5}
 
     # Looping through all session-folders to get the filepaths to all the preprocessed windows.
-    pt_inputs = [pt_dir for ID in subjects_dir for session in subjects_dir[ID].keys() for pt_dir in glob.glob(prep_directory + session + "/"+ "**")]
+    if windowsOS:
+        pt_inputs = [pt_dir for ID in subjects_dir for session in subjects_dir[ID].keys() for pt_dir in
+                     glob.glob(prep_directory + session + "\\" + "**")]
+    else:
+        pt_inputs = [pt_dir for ID in subjects_dir for session in subjects_dir[ID].keys() for pt_dir in glob.glob(prep_directory + session + "/"+ "**")]
 
     # Loading all preprocessed files and dividing them into data, X, and target variable, y.
     error_id = set() # set for keeping track of subjects with errors in data.
@@ -136,15 +146,21 @@ def loadPrepData(subjects_dir, prep_directory):
         for label in pt_loaded[1]:
             pt_label[label_encoder[label]] = 1
         # Rearranging tensors to flattened numpy arrays, while checking for correct shape.
-        if len(pt_loaded[0].numpy().flatten().astype(np.float16)) != 4579:
-            error_id.add(pt_inputs[count].split("/")[5].split("_")[0])
+        if len(pt_loaded[0].numpy().flatten().astype(np.float16)) != 4579: #TODO: Er det her hardcoded?
+            if windowsOS:
+                error_id.add(pt_inputs[count].split("\\")[5].split("_")[0])
+            else:
+                error_id.add(pt_inputs[count].split("/")[5].split("_")[0])
             pass
         else:
             input_loader.append(pt_loaded[0].numpy().flatten().astype(np.float16))
             label_loader.append(pt_label)
 
             # Load subject ID for current window.
-            ID_loader.append(pt_dir.split("/")[-2].split("_")[0])
+            if windowsOS:
+                ID_loader.append(pt_dir.split("\\")[-2].split("_")[0])
+            else:
+                ID_loader.append(pt_dir.split("/")[-2].split("_")[0])
 
     # Stacking data to matrices.
     X = np.stack(input_loader)

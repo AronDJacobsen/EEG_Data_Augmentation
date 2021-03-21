@@ -13,26 +13,34 @@ def CreatePickles():
     # Ensuring correct path
     os.chdir(os.getcwd())
 
-    # What is your execute path? #
-    # /Users/philliphoejbjerg/NovelEEG
-    # /Users/Jacobsen/Desktop/DTU/4_semester/1_Bachelor_project/3_code
-    # /Users/AlbertoK/Desktop/EEG/subset
-    save_dir = r"/Users/philliphoejbjerg/NovelEEG" + "/"
+    windowsOS = False
 
-    #Directing to correct directories
-    TUAR_dir = r"data_TUH_EEG/TUH_EEG_CORPUS/artifact_dataset" + "/"  # \**\01_tcp_ar #\100\00010023\s002_2013_02_21
+    # What is your execute path? #
+
+    if windowsOS:
+        save_dir = r"C:\Users\TUAR_full_data" + "\\"
+        TUAR_dir = r"data_TUH_EEG\TUH_EEG_CORPUS\artifact_dataset" + "\\"
+        prep_dir = r"tempData" + "\\"
+    else:
+        save_dir = r"/Users/AlbertoK/Desktop/EEG/subset" + "/"
+        TUAR_dir = r"data_TUH_EEG/TUH_EEG_CORPUS/artifact_dataset" + "/"  # \**\01_tcp_ar #\100\00010023\s002_2013_02_21
+        prep_dir = r"tempData" + "/"
+
+        # Albert path mac: save_dir = r"/Users/AlbertoK/Desktop/EEG/subset" + "/"
+        # Aron:
+        # Phillip: save_dir = r"/Users/philliphoejbjerg/NovelEEG" + "/"
+
     jsonDir = r"tmp.json"
-    prep_dir = r"tempData" + "/"
 
     jsonDataDir = save_dir + jsonDir
     TUAR_dirDir = save_dir + TUAR_dir
     prep_dirDir = save_dir + prep_dir
 
     # Creating directory for subjects, sessions, windows for easy extraction of tests in loadPrepData
-    subjects = createSubjectDict(prep_dirDir)
+    subjects = createSubjectDict(prep_dirDir, windows=windowsOS)
 
     # X = Number of windows, 19*241    y = Number of windows, 6 categories     ID_frame = subjectID for each window
-    X, y, ID_frame, error_id = loadPrepData(subjects, prep_dirDir)
+    X, y, ID_frame, error_id = loadPrepData(subjects, prep_dirDir, windowsOS=windowsOS)
 
 
     pickle.dump(X, open("X.pkl", "wb"))
