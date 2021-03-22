@@ -2,11 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="0c3523a9-1a9d-4559-a5e8-ac6f43bb5e36" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/fagprojekt_grupper/visualizations.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/fagprojekt_grupper/dataLoader.py" beforeDir="false" afterPath="$PROJECT_DIR$/fagprojekt_grupper/dataLoader.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/fagprojekt_grupper/modelFitting.py" beforeDir="false" afterPath="$PROJECT_DIR$/fagprojekt_grupper/modelFitting.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/fagprojekt_grupper/preproccesData.py" beforeDir="false" afterPath="$PROJECT_DIR$/fagprojekt_grupper/preproccesData.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -204,7 +201,7 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/fagprojekt_grupper/modelFitting.py</url>
-          <line>116</line>
+          <line>124</line>
           <option name="timeStamp" value="29" />
         </line-breakpoint>
       </breakpoints>

@@ -69,7 +69,15 @@ def LoadPickles(DelNan = False):
 
 def DeleteNan(X, y, ID_frame):
     # NanList in decreasing order, shows window-index with NaN.
-    NanList = [47698, 47687, 47585, 47569, 47490, 47475, 47436, 47409, 47339, 35919, 35914, 35759, 14819, 14815, 14802, 14787, 14786, 14781, 14776, 14770, 14765, 14758, 14752, 14745, 14741, 14726, 14717, 2246, 2242, 2064]
+    NanList = []
+    for i in range(len(X)):
+        windowVals = np.isnan(X[i])
+
+        if np.any(windowVals==True):
+            print(np.any(windowVals==True))
+            NanList.append(i)
+    # TODO: DelNan - no Nans in current data
+    # NanList = [47698, 47687, 47585, 47569, 47490, 47475, 47436, 47409, 47339, 35919, 35914, 35759, 14819, 14815, 14802, 14787, 14786, 14781, 14776, 14770, 14765, 14758, 14752, 14745, 14741, 14726, 14717, 2246, 2242, 2064]
 
     for ele in NanList:
         X = np.delete(X, (ele), axis = 0)
