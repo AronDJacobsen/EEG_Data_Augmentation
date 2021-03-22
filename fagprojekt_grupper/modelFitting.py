@@ -13,7 +13,7 @@ def CreatePickles():
     # Ensuring correct path
     os.chdir(os.getcwd())
 
-    windowsOS = False
+    windowsOS = True
 
     # What is your execute path? #
 

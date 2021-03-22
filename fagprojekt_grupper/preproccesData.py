@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 # Ensuring correct path
 os.chdir(os.getcwd())
 
-windowsOS = False
+windowsOS = True
 
 # What is your execute path? #
 

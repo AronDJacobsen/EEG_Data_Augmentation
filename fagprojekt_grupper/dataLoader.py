@@ -34,7 +34,6 @@ def processRawData(data_path, save_path, file_selected, windowsOS=False):
 
         # initialize hierarchical dict
         proc_subject = subjects[subject_ID][edf]
-        # TODO: Jeg har problemer her (ALBERT)
         proc_subject = readRawEdf(proc_subject, saveDir=save_dir, tWindow=1, tStep=1 * .5, read_raw_edf_param={'preload': True})  # ,
         # "stim_channel": ['EEG ROC-REF', 'EEG LOC-REF', 'EEG EKG1-REF',
         #                  'EEG T1-REF', 'EEG T2-REF', 'PHOTIC-REF', 'IBI',
