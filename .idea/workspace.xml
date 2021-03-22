@@ -2,8 +2,34 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="0c3523a9-1a9d-4559-a5e8-ac6f43bb5e36" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/evaluation/pipeline.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/evaluation/plotResults.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/models/dataAugmentation.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/EEG_epilepsia.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/EEG_epilepsia.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/fagprojekt_grupper/modelFitting.py" beforeDir="false" afterPath="$PROJECT_DIR$/fagprojekt_grupper/modelFitting.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/LoadFarrahTueData/edfFiles.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/LoadFarrahTueData/loadData.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/LoadFarrahTueData/loadFromJson.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/LoadFarrahTueData/preprocessPipeline.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/LoadFarrahTueData/singleReadTest.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/LoadFarrahTueData/singleReadTest_old.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/LoadFarrahTueData/tmp.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/LoadTUHData_Andreas/loadTUHData.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/fagprojekt_grupper/DescStat.py" beforeDir="false" afterPath="$PROJECT_DIR$/summaryVisualz/DescStat.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/fagprojekt_grupper/dataLoader.py" beforeDir="false" afterPath="$PROJECT_DIR$/prepData/dataLoader.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/fagprojekt_grupper/fagprojekt_tutorial.py" beforeDir="false" afterPath="$PROJECT_DIR$/fagprojekt_tutorials/fagprojekt_tutorial.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/fagprojekt_grupper/fagprojekt_tutorial_original.py" beforeDir="false" afterPath="$PROJECT_DIR$/fagprojekt_tutorials/fagprojekt_tutorial_original.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/fagprojekt_grupper/modelFitting.py" beforeDir="false" afterPath="$PROJECT_DIR$/models/modelFitting.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/fagprojekt_grupper/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/models/models.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/fagprojekt_grupper/preproccesData.py" beforeDir="false" afterPath="$PROJECT_DIR$/prepData/preproccesData.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/fagprojekt_grupper/visualizations.py" beforeDir="false" afterPath="$PROJECT_DIR$/summaryVisualz/visualizations.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pre_trained_cnn/.gitkeep" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pre_trained_cnn/generate_data_q.ipynb" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pre_trained_cnn/generate_data_quality.ipynb" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pre_trained_cnn/pre_trained_cnn.ipynb" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pre_trained_cnn/save_pretrained_conv_net.ipynb" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/preprocessing/loadData.py" beforeDir="false" afterPath="$PROJECT_DIR$/prepData/loadData.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/preprocessing/preprocessPipeline.py" beforeDir="false" afterPath="$PROJECT_DIR$/prepData/preprocessPipeline.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -40,7 +66,15 @@
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
   </component>
-  <component name="RunManager" selected="Python.modelFitting">
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia\prepData" />
+      <recent name="C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia\summaryVisualz" />
+      <recent name="C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia\models" />
+      <recent name="C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia" />
+    </key>
+  </component>
+  <component name="RunManager" selected="Python.visualizations">
     <configuration name="fagprojekt_tutorial_original" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="EEG_epilepsia" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -74,7 +108,7 @@
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/fagprojekt_grupper/modelFitting.py" />
+      <option name="SCRIPT_NAME" value="C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia\models\modelFitting.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -95,7 +129,7 @@
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/fagprojekt_grupper/models.py" />
+      <option name="SCRIPT_NAME" value="C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia\models\models.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -116,7 +150,28 @@
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/fagprojekt_grupper/preproccesData.py" />
+      <option name="SCRIPT_NAME" value="C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia\prepData\preproccesData.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="visualizations" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="EEG_epilepsia" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/summaryVisualz" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/summaryVisualz/visualizations.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -127,6 +182,7 @@
     </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.visualizations" />
         <item itemvalue="Python.modelFitting" />
         <item itemvalue="Python.preproccesData" />
         <item itemvalue="Python.fagprojekt_tutorial_original" />
@@ -160,49 +216,29 @@
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/fagprojekt_grupper/dataLoader.py</url>
-          <line>67</line>
-          <option name="timeStamp" value="6" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/fagprojekt_grupper/dataLoader.py</url>
-          <line>36</line>
-          <option name="timeStamp" value="12" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/fagprojekt_grupper/fagprojekt_tutorial_original.py</url>
+          <url>file://$PROJECT_DIR$/fagprojekt_tutorials/fagprojekt_tutorial_original.py</url>
           <line>105</line>
           <option name="timeStamp" value="20" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/fagprojekt_grupper/fagprojekt_tutorial_original.py</url>
+          <url>file://$PROJECT_DIR$/fagprojekt_tutorials/fagprojekt_tutorial_original.py</url>
           <line>38</line>
           <option name="timeStamp" value="22" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/fagprojekt_grupper/fagprojekt_tutorial_original.py</url>
+          <url>file://$PROJECT_DIR$/fagprojekt_tutorials/fagprojekt_tutorial_original.py</url>
           <line>32</line>
           <option name="timeStamp" value="23" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/fagprojekt_grupper/dataLoader.py</url>
-          <line>35</line>
-          <option name="timeStamp" value="26" />
+          <url>file://$PROJECT_DIR$/summaryVisualz/visualizations.py</url>
+          <line>6</line>
+          <option name="timeStamp" value="31" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/fagprojekt_grupper/dataLoader.py</url>
-          <line>23</line>
-          <option name="timeStamp" value="27" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/fagprojekt_grupper/dataLoader.py</url>
-          <line>32</line>
-          <option name="timeStamp" value="28" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/fagprojekt_grupper/modelFitting.py</url>
-          <line>124</line>
-          <option name="timeStamp" value="29" />
+          <url>file://$PROJECT_DIR$/prepData/dataLoader.py</url>
+          <line>77</line>
+          <option name="timeStamp" value="32" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

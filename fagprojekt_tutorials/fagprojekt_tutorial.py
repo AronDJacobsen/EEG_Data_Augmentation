@@ -3,8 +3,8 @@ from collections import defaultdict
 import numpy as np
 import pandas as pd
 # from ../LoadFarrahTueData.loadData import jsonLoad
-import preprocessing.loadData as loadData
-from preprocessing.preprocessPipeline import TUH_rename_ch, readRawEdf, pipeline, spectrogramMake, slidingWindow
+import prepData.loadData as loadData
+from prepData.preprocessPipeline import TUH_rename_ch, readRawEdf, pipeline, spectrogramMake, slidingWindow
 from scipy import signal
 import matplotlib.pyplot as plt
 
