@@ -18,6 +18,8 @@ def processRawData(data_path, save_path, file_selected, windowsOS=False):
     subjects = defaultdict(dict)
     all_subject_gender = {"male": [], "female": [], "other": []}
     all_subject_age = []
+    subjects_marked = []
+
     for edf in file_selected:  # TUAR_data:
         subject_ID = edf.split('_')[0]
         if subject_ID in subjects.keys():
@@ -61,21 +63,24 @@ def processRawData(data_path, save_path, file_selected, windowsOS=False):
         # except:
         #     print("sit a while and listen: %s" % subjects[subject_ID][edf]['path'])
 
-
-        # catch age and gender for descriptive statistics
-        if subjects[subject_ID][edf]["gender"].lower() == 'm':
-            all_subject_gender["male"].append(subjects[subject_ID][edf]["gender"].lower())
-            # gender[0].append(subjects[id][edf]["gender"].lower())
-        elif subjects[subject_ID][edf]["gender"].lower() == 'f':
-            all_subject_gender["female"].append(subjects[subject_ID][edf]["gender"].lower())
-            # gender[1].append(subjects[id][edf]["gender"].lower())
-        else:
-            all_subject_gender["other"].append(subjects[subject_ID][edf]["gender"].lower())
-            # print(subjects[id][edf]["gender"].lower())
-        all_subject_age.append(subjects[subject_ID][edf]["age"])
-        # except:
-        #     print("sit a while and listen: %s" % subjects[subject_ID][edf]['path'])
-
+        if subject_ID not in subjects_marked:
+            # catch age and gender for descriptive statistics
+            if subjects[subject_ID][edf]["gender"].lower() == 'm':
+                #all_subject_gender["male"].append(subjects[subject_ID][edf]["gender"].lower())
+                all_subject_gender["male"].append(subjects[subject_ID][edf]["age"])
+                # gender[0].append(subjects[id][edf]["gender"].lower())
+            elif subjects[subject_ID][edf]["gender"].lower() == 'f':
+                #all_subject_gender["female"].append(subjects[subject_ID][edf]["gender"].lower())
+                all_subject_gender["female"].append(subjects[subject_ID][edf]["age"])
+                # gender[1].append(subjects[id][edf]["gender"].lower())
+            else:
+                # all_subject_gender["other"].append(subjects[subject_ID][edf]["gender"].lower())
+                all_subject_gender["other"].append(subjects[subject_ID][edf]["age"])
+                # print(subjects[id][edf]["gender"].lower())
+            all_subject_age.append(subjects[subject_ID][edf]["age"])
+            # except:
+            #     print("sit a while and listen: %s" % subjects[subject_ID][edf]['path'])
+            subjects_marked.append(subject_ID)
 
     all_subject_age = np.array(all_subject_age)
 

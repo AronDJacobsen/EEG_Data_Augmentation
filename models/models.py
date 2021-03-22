@@ -6,106 +6,197 @@ from torch.autograd import Variable
 from sklearn import metrics
 from sklearn.metrics import f1_score
 from sklearn.metrics import roc_auc_score
+from sklearn.metrics import confusion_matrix
 
 # importing models
 from sklearn.linear_model import LogisticRegression
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import AdaBoostClassifier
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
+from sklearn.neural_network import MLPClassifier
+from sklearn.linear_model import SGDClassifier
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import make_pipeline
+import xgboost as xgb
+
 #import torchvision.transforms as transforms
 
 
 
 class models:
-    def __init__(self):
-        #TODO: DEFINE INITIAL FUNCTION
+    def __init__(self, X_train, y_train, X_test, y_test):
+
         self.X_train = X_train
         self.X_test = X_test
         self.y_train = y_train
         self.y_test = y_test
+        self.target_names = ["absent", "present"] #, "shiv", "elpp", "musc", "null"]
 
-    def baseline(X_train, y_train, X_test, y_test):
+        super(models, self)
 
+    def baseline(self):
+        np.unique(self.y_test, return_counts=True)[1][0] / len(self.y_test)
 
-        np.unique(y_test, return_counts=True)[1][0] / len(y_test)
         #baseline error
-        into_list = y_train.tolist()
+        into_list = self.y_train.tolist()
         most_occurence = max(into_list, key=into_list.count)
+        y_pred = [most_occurence] * len(self.y_test)
+
         # 1 - error (because if incorrect we get 1)
-        accuracy = 1 - np.sum((most_occurence - y_test)**2) / len(y_test)
+        accuracy = 1 - np.sum((most_occurence - self.y_test)**2) / len(self.y_test)
 
         #f1 doesn't work, we don't have true positives since we only predict 0
         #y_pred = np.array([most_occurence for _ in y_test])
         #f1_s = f1_score(y_test, y_pred)
-        f1_s = float('nan')
-        return accuracy, f1_s
+        # f1_s = float('nan')
+        f1_s = f1_score(self.y_test, y_pred)
+        cm1 = confusion_matrix(self.y_test, y_pred, labels=[0, 1])
+        sensitivity = cm1[0, 0] / (cm1[0, 0] + cm1[0, 1])
+
+        return accuracy, f1_s, sensitivity
 
 
-    def lr(X_train, y_train, X_test, y_test):
+    def lr(self):
         model = LogisticRegression(max_iter=1000)
-        model.fit(X_train, y_train)
-        y_pred = model.predict(X_test)
-        accuracy = model.score(X_test, y_test)
-        f1_s = f1_score(y_test, y_pred)
-        return accuracy, f1_s
-
-    def gnb(X_train, y_train, X_test, y_test):
-        model = GaussianNB()
-        model.fit(X_train, y_train)
-        y_pred = model.predict(X_test)
-        accuracy = model.score(X_test, y_test)
-        f1_s = f1_score(y_test, y_pred)
-        return accuracy, f1_s
-
-
-
-    def knnf(params):
-
-        model = KNeighborsClassifier(**params)
-
         model.fit(self.X_train, self.y_train)
+        y_pred = model.predict(self.X_test)
 
+        accuracy = model.score(self.X_test, self.y_test)
+        f1_s = f1_score(self.y_test, y_pred)
+        cm1 = confusion_matrix(self.y_test, y_pred, labels=[0,1])
+        sensitivity = cm1[0,0] / (cm1[0,0]+cm1[0,1])
+
+        return accuracy, f1_s, sensitivity
+
+    def gnb(self):
+        model = GaussianNB()
+        model.fit(self.X_train, self.y_train)
+        y_pred = model.predict(self.X_test)
+
+        accuracy = model.score(self.X_test, self.y_test)
+        f1_s = f1_score(self.y_test, y_pred)
+        cm1 = confusion_matrix(self.y_test, y_pred, labels=[0, 1])
+        sensitivity = cm1[0, 0] / (cm1[0, 0] + cm1[0, 1])
+
+        return accuracy, f1_s, sensitivity
+
+
+
+    def knnf(self): #, params):
+        #model = KNeighborsClassifier(**params)
+        model = KNeighborsClassifier()
+        model.fit(self.X_train, self.y_train)
         y_pred = model.predict(self.X_test)
         #accuracy = model.score(X_test, y_test)
-        #accuracy = metrics.accuracy_score(y_test, y_pred)
 
-        f1 = f1_score(y_test, y_pred)
+        accuracy = metrics.accuracy_score(self.y_test, y_pred)
+        f1_s = f1_score(self.y_test, y_pred)
+        cm1 = confusion_matrix(self.y_test, y_pred, labels=[0, 1])
+        sensitivity = cm1[0, 0] / (cm1[0, 0] + cm1[0, 1])
+
+        return accuracy, f1_s, sensitivity
 
 
-        return f1
 
-
-
-    def rf(X_train, y_train, X_test, y_test):
+    def rf(self):
         model = RandomForestClassifier(max_depth=10, random_state=0)
-        model.fit(X_train, y_train)
-        y_pred = model.predict(X_test)
-        accuracy = model.score(X_test, y_test)
-        f1_s = f1_score(y_test, y_pred)
-        return accuracy, f1_s
+        model.fit(self.X_train, self.y_train)
+        y_pred = model.predict(self.X_test)
+
+        accuracy = model.score(self.X_test, self.y_test)
+        f1_s = f1_score(self.y_test, y_pred)
+        cm1 = confusion_matrix(self.y_test, y_pred, labels=[0, 1])
+        sensitivity = cm1[0, 0] / (cm1[0, 0] + cm1[0, 1])
+
+        return accuracy, f1_s, sensitivity
+
+    def LDA(self):
+        model = LDA()
+        model.fit(self.X_train, self.y_train)
+        y_pred = model.predict(self.X_test)
+
+        accuracy = metrics.accuracy_score(self.y_test, y_pred)
+        f1_s = f1_score(self.y_test, y_pred)
+        cm1 = confusion_matrix(self.y_test, y_pred, labels=[0, 1])
+        sensitivity = cm1[0, 0] / (cm1[0, 0] + cm1[0, 1])
+
+        return accuracy, f1_s, sensitivity
 
 
+    def MLP(self):
+        model = MLPClassifier(random_state=1, max_iter=300)
+        model.fit(self.X_train, self.y_train)
+        y_pred = model.predict(self.X_test)
 
-#### -------------------------------- ####
+        accuracy = metrics.accuracy_score(self.y_test, y_pred)
+        f1_s = f1_score(self.y_test, y_pred)
+        cm1 = confusion_matrix(self.y_test, y_pred, labels=[0, 1])
+        sensitivity = cm1[0, 0] / (cm1[0, 0] + cm1[0, 1])
+
+        return accuracy, f1_s, sensitivity
+
+
+    def AdaBoost(self, n_estimators=50, learning_rate=1.0):
+        model = AdaBoostClassifier(n_estimators=n_estimators, random_state=0)
+        model.fit(self.X_train, self.y_train)
+        y_pred = model.predict(self.X_test)
+
+        accuracy = metrics.accuracy_score(self.y_test, y_pred)
+        f1_s = f1_score(self.y_test, y_pred)
+        cm1 = confusion_matrix(self.y_test, y_pred, labels=[0, 1])
+        sensitivity = cm1[0, 0] / (cm1[0, 0] + cm1[0, 1])
+
+        return accuracy, f1_s, sensitivity
+
+    def SGD(self):
+        # Default loss in SGDClassifier gives SVM
+        model = make_pipeline(StandardScaler(), SGDClassifier(max_iter=1000, tol=1e-3))
+        model.fit(self.X_train, self.y_train)
+        y_pred = model.predict(self.X_test)
+
+        accuracy = metrics.accuracy_score(self.y_test, y_pred)
+        f1_s = f1_score(self.y_test, y_pred)
+        cm1 = confusion_matrix(self.y_test, y_pred, labels=[0, 1])
+        sensitivity = cm1[0, 0] / (cm1[0, 0] + cm1[0, 1])
+
+        return accuracy, f1_s, sensitivity
+
+
+    def XGBoost(self):
+        model = xgb.XGBClassifier(random_state=1, learning_rate=0.01, max_depth=5)
+        model.fit(self.X_train, self.y_train)
+        y_pred = model.predict(self.X_test)
+
+        accuracy = metrics.accuracy_score(self.y_test, y_pred)
+        f1_s = f1_score(self.y_test, y_pred)
+        cm1 = confusion_matrix(self.y_test, y_pred, labels=[0, 1])
+        sensitivity = cm1[0, 0] / (cm1[0, 0] + cm1[0, 1])
+
+        return accuracy, f1_s, sensitivity
+
+    #### -------------------------------- ####
 
 # models using mixuo
-    def lr_mixup(X_train, y_train, X_test, y_test, augr, mixup, alpha, batch_size, lr_rate, epochs):
+
+    def lr_mixup(self, augr, mixup, alpha, batch_size, lr_rate, epochs):
 
         # in general:
         #   - https://towardsdatascience.com/logistic-regression-on-mnist-with-pytorch-b048327f8d19
         # for mix up:
         #   - https://github.com/facebookresearch/mixup-cifar10
 
-        input_dim = len(X_train[0,:])
-        output_dim = len(np.unique(y_train))
+        input_dim = len(self.X_train[0,:])
+        output_dim = len(np.unique(self.y_train))
 
 
 
         # initialize for pytorch
-        X_train = torch.from_numpy(X_train).float()
-        y_train = torch.FloatTensor(y_train).float().long()
-        X_test = torch.from_numpy(X_test).float()
-        y_test = torch.FloatTensor(y_test).float().long()
+        X_train = torch.from_numpy(self.X_train).float()
+        y_train = torch.FloatTensor(self.y_train).float().long()
+        X_test = torch.from_numpy(self.X_test).float()
+        y_test = torch.FloatTensor(self.y_test).float().long()
 
 
 
@@ -220,23 +311,23 @@ class models:
 
 
 
-    def nn_mixup(X_train, y_train, X_test, y_test, augr, mixup, alpha, batch_size, lr_rate, epochs):
+    def nn_mixup(self,  augr, mixup, alpha, batch_size, lr_rate, epochs):
 
         # in general:
         #   - https://towardsdatascience.com/logistic-regression-on-mnist-with-pytorch-b048327f8d19
         # for mix up:
         #   - https://github.com/facebookresearch/mixup-cifar10
 
-        input_dim = len(X_train[0,:])
-        output_dim = len(np.unique(y_train))
+        input_dim = len(self.X_train[0,:])
+        output_dim = len(np.unique(self.y_train))
 
 
 
         # initialize for pytorch
-        X_train = torch.from_numpy(X_train).float()
-        y_train = torch.FloatTensor(y_train).float().long()
-        X_test = torch.from_numpy(X_test).float()
-        y_test = torch.FloatTensor(y_test).float().long()
+        X_train = torch.from_numpy(self.X_train).float()
+        y_train = torch.FloatTensor(self.y_train).float().long()
+        X_test = torch.from_numpy(self.X_test).float()
+        y_test = torch.FloatTensor(self.y_test).float().long()
 
 
 

@@ -62,7 +62,7 @@ def pipeline(MNE_raw=None, lpfq=1, hpfq=40, notchfq=50, downSam=100, type="easyc
     MNE_raw.notch_filter(freqs=notchfq, notch_widths=5)
 
     # Step : Downsample # TODO: error introduced after MNE -- update
-    MNE_raw.resample(sfreq=downSam)
+    # MNE_raw.resample(sfreq=downSam)
 
     # Step 7 inference statistics to annotate bad channels
     # TODO: "BADS" code from MNEi & PREP

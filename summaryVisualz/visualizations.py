@@ -40,8 +40,9 @@ ax.w_zaxis.set_ticklabels([])
 
 plt.show()
 
-
-cnp.cumsum(pca_out.explained_variance_ratio_)
+# Might be useful
+"""
+np.cumsum(pca_out.explained_variance_ratio_)
 num_pc = pca_out.n_features_
 pc_list = ["PC"+str(i) for i in list(range(1, num_pc+1))]
 
@@ -58,3 +59,4 @@ fig, ax = model.scatter3d()
 fig, ax = model.biplot3d(n_feat=6, legend=True)
 
 print(X)
+"""
