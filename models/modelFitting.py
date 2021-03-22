@@ -40,8 +40,9 @@ def balance(X, y, increase, reduce):
 
     return X, y
 
+pickle_dir = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia"
 
-X, y, ID_frame = LoadPickles(DelNan = True)
+X, y, ID_frame = LoadPickles(pickle_path=pickle_dir, DelNan = True)
 
 individuals = np.unique(ID_frame)
 

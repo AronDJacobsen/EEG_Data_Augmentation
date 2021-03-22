@@ -122,10 +122,10 @@ def CreatePickles(windowsOS=False):
 
     return X, y, ID_frame, error_id
 
-def LoadPickles(DelNan = False):
+def LoadPickles(pickle_path, DelNan = False):
 
     # put the pickles in the prepData folder
-    os.chdir(os.getcwd())
+    os.chdir(pickle_path)
 
     X = pickle.load(open("X.pkl", "rb"))
     y = pickle.load(open("y.pkl", "rb"))

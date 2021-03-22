@@ -25,7 +25,7 @@ def findEdf(path=False, selectOpt=False, saveDir=False, windowsOS=False):
     if windowsOS:
         pathRootInt = len(list(filter(None, saveDir.split('\\'))))
         # find all .edf files in path
-        pathList = ['\\'.join(fDir.split('\\')[pathRootInt + 1:]) for fDir in
+        pathList = ['\\'.join(fDir.split('\\')[pathRootInt:]) for fDir in
                     glob.glob(saveDir + path + "**\\*.edf", recursive=True)]
     else:
         pathRootInt = len(list(filter(None, saveDir.split('/'))))

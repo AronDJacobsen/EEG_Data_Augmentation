@@ -1,35 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
   <component name="ChangeListManager">
     <list default="true" id="0c3523a9-1a9d-4559-a5e8-ac6f43bb5e36" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/evaluation/pipeline.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/evaluation/plotResults.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/models/dataAugmentation.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/EEG_epilepsia.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/EEG_epilepsia.iml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/prepData/preprocessPipeline2.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/LoadFarrahTueData/edfFiles.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/LoadFarrahTueData/loadData.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/LoadFarrahTueData/loadFromJson.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/LoadFarrahTueData/preprocessPipeline.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/LoadFarrahTueData/singleReadTest.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/LoadFarrahTueData/singleReadTest_old.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/LoadFarrahTueData/tmp.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/LoadTUHData_Andreas/loadTUHData.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/fagprojekt_grupper/DescStat.py" beforeDir="false" afterPath="$PROJECT_DIR$/summaryVisualz/DescStat.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/fagprojekt_grupper/dataLoader.py" beforeDir="false" afterPath="$PROJECT_DIR$/prepData/dataLoader.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/fagprojekt_grupper/fagprojekt_tutorial.py" beforeDir="false" afterPath="$PROJECT_DIR$/fagprojekt_tutorials/fagprojekt_tutorial.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/fagprojekt_grupper/fagprojekt_tutorial_original.py" beforeDir="false" afterPath="$PROJECT_DIR$/fagprojekt_tutorials/fagprojekt_tutorial_original.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/fagprojekt_grupper/modelFitting.py" beforeDir="false" afterPath="$PROJECT_DIR$/models/modelFitting.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/fagprojekt_grupper/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/models/models.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/fagprojekt_grupper/preproccesData.py" beforeDir="false" afterPath="$PROJECT_DIR$/prepData/preproccesData.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/fagprojekt_grupper/visualizations.py" beforeDir="false" afterPath="$PROJECT_DIR$/summaryVisualz/visualizations.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pre_trained_cnn/.gitkeep" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/pre_trained_cnn/generate_data_q.ipynb" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/pre_trained_cnn/generate_data_quality.ipynb" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/pre_trained_cnn/pre_trained_cnn.ipynb" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/pre_trained_cnn/save_pretrained_conv_net.ipynb" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/preprocessing/loadData.py" beforeDir="false" afterPath="$PROJECT_DIR$/prepData/loadData.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/preprocessing/preprocessPipeline.py" beforeDir="false" afterPath="$PROJECT_DIR$/prepData/preprocessPipeline.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/models/modelFitting.py" beforeDir="false" afterPath="$PROJECT_DIR$/models/modelFitting.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/prepData/dataLoader.py" beforeDir="false" afterPath="$PROJECT_DIR$/prepData/dataLoader.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/prepData/loadData.py" beforeDir="false" afterPath="$PROJECT_DIR$/prepData/loadData.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/prepData/preproccesData.py" beforeDir="false" afterPath="$PROJECT_DIR$/prepData/preproccesData.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/summaryVisualz/visualizations.py" beforeDir="false" afterPath="$PROJECT_DIR$/summaryVisualz/visualizations.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -117,7 +99,7 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="models" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+    <configuration name="preproccesData (1)" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="EEG_epilepsia" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
@@ -125,11 +107,11 @@
         <env name="PYTHONUNBUFFERED" value="1" />
       </envs>
       <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/fagprojekt_grupper" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/prepData" />
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia\models\models.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/prepData/preproccesData.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -183,10 +165,10 @@
     <recent_temporary>
       <list>
         <item itemvalue="Python.visualizations" />
+        <item itemvalue="Python.preproccesData (1)" />
         <item itemvalue="Python.modelFitting" />
         <item itemvalue="Python.preproccesData" />
         <item itemvalue="Python.fagprojekt_tutorial_original" />
-        <item itemvalue="Python.models" />
       </list>
     </recent_temporary>
   </component>
@@ -232,13 +214,23 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/summaryVisualz/visualizations.py</url>
-          <line>6</line>
-          <option name="timeStamp" value="31" />
+          <line>59</line>
+          <option name="timeStamp" value="33" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/prepData/dataLoader.py</url>
-          <line>77</line>
-          <option name="timeStamp" value="32" />
+          <url>file://$PROJECT_DIR$/prepData/preprocessPipeline.py</url>
+          <line>14</line>
+          <option name="timeStamp" value="37" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/prepData/preprocessPipeline2.py</url>
+          <line>64</line>
+          <option name="timeStamp" value="40" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/summaryVisualz/visualizations.py</url>
+          <line>51</line>
+          <option name="timeStamp" value="46" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

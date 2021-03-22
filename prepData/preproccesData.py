@@ -1,7 +1,8 @@
 import os, time, mne
+import numpy as np
 from collections import defaultdict
 import prepData.loadData as loadData
-from prepData.preprocessPipeline import TUH_rename_ch, readRawEdf, pipeline, spectrogramMake, slidingWindow
+from prepData.preprocessPipeline2 import TUH_rename_ch, readRawEdf, pipeline, spectrogramMake, slidingWindow
 
 def processRawData(data_path, save_path, file_selected, windowsOS=False):
     # Redefining so we don't have to change variables through all of the function
@@ -15,8 +16,8 @@ def processRawData(data_path, save_path, file_selected, windowsOS=False):
     tic = time.time()
 
     subjects = defaultdict(dict)
-    # all_subject_gender = {"male": [], "female": [], "other": []}
-    # all_subject_age = []
+    all_subject_gender = {"male": [], "female": [], "other": []}
+    all_subject_age = []
     for edf in file_selected:  # TUAR_data:
         subject_ID = edf.split('_')[0]
         if subject_ID in subjects.keys():
@@ -60,7 +61,7 @@ def processRawData(data_path, save_path, file_selected, windowsOS=False):
         # except:
         #     print("sit a while and listen: %s" % subjects[subject_ID][edf]['path'])
 
-        """
+
         # catch age and gender for descriptive statistics
         if subjects[subject_ID][edf]["gender"].lower() == 'm':
             all_subject_gender["male"].append(subjects[subject_ID][edf]["gender"].lower())
@@ -88,8 +89,8 @@ def processRawData(data_path, save_path, file_selected, windowsOS=False):
              subjects[subject_ID][edf]["tStep"]))
 
 
-    #return all_subject_age, all_subject_gender
-    """
+    return all_subject_age, all_subject_gender
+
 
 
 if __name__ == '__main__':
@@ -102,7 +103,7 @@ if __name__ == '__main__':
 
     if windowsOS:
         save_dir = r"C:\Users\Albert Kjøller\Documents\GitHub\TUAR_full_data" + "\\"
-        TUAR_dir = r"data_TUH_EEG\TUH_EEG_CORPUS\artifact_dataset" + "\\"
+        TUAR_dir = r"TUH_EEG_CORPUS\artifact_dataset" + "\\"
         prep_dir = r"tempData" + "\\"
     else:
         save_dir = r"/Users/AlbertoK/Desktop/EEG/subset" + "/"
@@ -128,7 +129,7 @@ if __name__ == '__main__':
 
 
     # CALLING THE PREPROCESSING
-    processRawData(TUAR_dir, save_dir, files_selected, windowsOS=windowsOS)
+    age, gender = processRawData(TUAR_dir, save_dir, files_selected, windowsOS=windowsOS)
     #all_subject_age, all_subject_gender = processRawData(TUAR_dir, save_dir, files_selected)
 
     #all_subject_age_hist = np.histogram(all_subject_age, range=(0,100))
