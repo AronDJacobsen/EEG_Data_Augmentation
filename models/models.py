@@ -19,29 +19,76 @@ from sklearn.ensemble import RandomForestClassifier
 class models:
     def __init__(self):
         #TODO: DEFINE INITIAL FUNCTION
+        self.X_train = X_train
+        self.X_test = X_test
+        self.y_train = y_train
+        self.y_test = y_test
 
-    #mixup
-    def mixup_data(x, y, alpha=1.0):
-        '''Returns mixed inputs, pairs of targets, and lambda'''
-        if alpha > 0:
-            lam = np.random.beta(alpha, alpha)
-        else:
-            lam = 1
-
-        batch_size = x.size()[0]
-        index = torch.randperm(batch_size)
-
-        mixed_x = lam * x + (1 - lam) * x[index, :]
-        y_a, y_b = y, y[index]
-        return mixed_x, y_a, y_b, lam
-
-    # loss based on mixup
-    def mixup_criterion(criterion, pred, y_a, y_b, lam):
-        return lam * criterion(pred, y_a) + (1 - lam) * criterion(pred, y_b)
+    def baseline(X_train, y_train, X_test, y_test):
 
 
+        np.unique(y_test, return_counts=True)[1][0] / len(y_test)
+        #baseline error
+        into_list = y_train.tolist()
+        most_occurence = max(into_list, key=into_list.count)
+        # 1 - error (because if incorrect we get 1)
+        accuracy = 1 - np.sum((most_occurence - y_test)**2) / len(y_test)
+
+        #f1 doesn't work, we don't have true positives since we only predict 0
+        #y_pred = np.array([most_occurence for _ in y_test])
+        #f1_s = f1_score(y_test, y_pred)
+        f1_s = float('nan')
+        return accuracy, f1_s
 
 
+    def lr(X_train, y_train, X_test, y_test):
+        model = LogisticRegression(max_iter=1000)
+        model.fit(X_train, y_train)
+        y_pred = model.predict(X_test)
+        accuracy = model.score(X_test, y_test)
+        f1_s = f1_score(y_test, y_pred)
+        return accuracy, f1_s
+
+    def gnb(X_train, y_train, X_test, y_test):
+        model = GaussianNB()
+        model.fit(X_train, y_train)
+        y_pred = model.predict(X_test)
+        accuracy = model.score(X_test, y_test)
+        f1_s = f1_score(y_test, y_pred)
+        return accuracy, f1_s
+
+
+
+    def knnf(params):
+
+        model = KNeighborsClassifier(**params)
+
+        model.fit(self.X_train, self.y_train)
+
+        y_pred = model.predict(self.X_test)
+        #accuracy = model.score(X_test, y_test)
+        #accuracy = metrics.accuracy_score(y_test, y_pred)
+
+        f1 = f1_score(y_test, y_pred)
+
+
+        return f1
+
+
+
+    def rf(X_train, y_train, X_test, y_test):
+        model = RandomForestClassifier(max_depth=10, random_state=0)
+        model.fit(X_train, y_train)
+        y_pred = model.predict(X_test)
+        accuracy = model.score(X_test, y_test)
+        f1_s = f1_score(y_test, y_pred)
+        return accuracy, f1_s
+
+
+
+#### -------------------------------- ####
+
+# models using mixuo
     def lr_mixup(X_train, y_train, X_test, y_test, augr, mixup, alpha, batch_size, lr_rate, epochs):
 
         # in general:
@@ -307,62 +354,6 @@ class models:
 
         return accuracy, f1_s
 
-
-
-
-    def baseline(X_train, y_train, X_test, y_test):
-
-
-        np.unique(y_test, return_counts=True)[1][0] / len(y_test)
-        #baseline error
-        into_list = y_train.tolist()
-        most_occurence = max(into_list, key=into_list.count)
-        # 1 - error (because if incorrect we get 1)
-        accuracy = 1 - np.sum((most_occurence - y_test)**2) / len(y_test)
-
-        #f1 doesn't work, we don't have true positives since we only predict 0
-        #y_pred = np.array([most_occurence for _ in y_test])
-        #f1_s = f1_score(y_test, y_pred)
-        f1_s = float('nan')
-        return accuracy, f1_s
-
-
-    def lr(X_train, y_train, X_test, y_test):
-        model = LogisticRegression(max_iter=1000)
-        model.fit(X_train, y_train)
-        y_pred = model.predict(X_test)
-        accuracy = model.score(X_test, y_test)
-        f1_s = f1_score(y_test, y_pred)
-        return accuracy, f1_s
-
-    def gnb(X_train, y_train, X_test, y_test):
-        model = GaussianNB()
-        model.fit(X_train, y_train)
-        y_pred = model.predict(X_test)
-        accuracy = model.score(X_test, y_test)
-        f1_s = f1_score(y_test, y_pred)
-        return accuracy, f1_s
-
-
-
-    def knn(X_train, y_train, X_test, y_test):
-        model = KNeighborsClassifier(n_neighbors=20)
-        model.fit(X_train, y_train)
-        y_pred = model.predict(X_test)
-        #accuracy = model.score(X_test, y_test)
-        accuracy = metrics.accuracy_score(y_test, y_pred)
-        f1_s = f1_score(y_test, y_pred)
-        return accuracy, f1_s
-
-
-
-    def rf(X_train, y_train, X_test, y_test):
-        model = RandomForestClassifier(max_depth=10, random_state=0)
-        model.fit(X_train, y_train)
-        y_pred = model.predict(X_test)
-        accuracy = model.score(X_test, y_test)
-        f1_s = f1_score(y_test, y_pred)
-        return accuracy, f1_s
 
 
 

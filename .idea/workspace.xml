@@ -5,6 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="0c3523a9-1a9d-4559-a5e8-ac6f43bb5e36" name="Default Changelist" comment="">
+<<<<<<< Updated upstream
       <change afterPath="$PROJECT_DIR$/prepData/preprocessPipeline2.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/models/modelFitting.py" beforeDir="false" afterPath="$PROJECT_DIR$/models/modelFitting.py" afterDir="false" />
@@ -12,6 +13,16 @@
       <change beforePath="$PROJECT_DIR$/prepData/loadData.py" beforeDir="false" afterPath="$PROJECT_DIR$/prepData/loadData.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/prepData/preproccesData.py" beforeDir="false" afterPath="$PROJECT_DIR$/prepData/preproccesData.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/summaryVisualz/visualizations.py" beforeDir="false" afterPath="$PROJECT_DIR$/summaryVisualz/visualizations.py" afterDir="false" />
+=======
+      <change afterPath="$PROJECT_DIR$/models/modelFitting_vol2.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/EEG_epilepsia.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/EEG_epilepsia.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/evaluation/pipeline.py" beforeDir="false" afterPath="$PROJECT_DIR$/evaluation/pipeline.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/models/dataAugmentation.py" beforeDir="false" afterPath="$PROJECT_DIR$/models/dataAugmentation.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/models/modelFitting.py" beforeDir="false" afterPath="$PROJECT_DIR$/models/modelFitting.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/models/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/models/models.py" afterDir="false" />
+>>>>>>> Stashed changes
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -56,7 +67,7 @@
       <recent name="C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.visualizations">
+  <component name="RunManager" selected="Python.pipeline">
     <configuration name="fagprojekt_tutorial_original" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="EEG_epilepsia" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -99,7 +110,11 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
+<<<<<<< Updated upstream
     <configuration name="preproccesData (1)" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+=======
+    <configuration name="pipeline" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+>>>>>>> Stashed changes
       <module name="EEG_epilepsia" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
@@ -107,11 +122,19 @@
         <env name="PYTHONUNBUFFERED" value="1" />
       </envs>
       <option name="SDK_HOME" value="" />
+<<<<<<< Updated upstream
       <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/prepData" />
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/prepData/preproccesData.py" />
+=======
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/evaluation" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/evaluation/pipeline.py" />
+>>>>>>> Stashed changes
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -164,6 +187,7 @@
     </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.pipeline" />
         <item itemvalue="Python.visualizations" />
         <item itemvalue="Python.preproccesData (1)" />
         <item itemvalue="Python.modelFitting" />
@@ -193,6 +217,7 @@
         </entry>
       </map>
     </option>
+    <option name="oldMeFiltersMigrated" value="true" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -231,6 +256,11 @@
           <url>file://$PROJECT_DIR$/summaryVisualz/visualizations.py</url>
           <line>51</line>
           <option name="timeStamp" value="46" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/evaluation/pipeline.py</url>
+          <line>51</line>
+          <option name="timeStamp" value="33" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
