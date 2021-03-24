@@ -7,6 +7,7 @@ from sklearn import metrics
 from sklearn.metrics import f1_score
 from sklearn.metrics import roc_auc_score
 from sklearn.metrics import confusion_matrix
+from time import time
 
 # importing models
 from sklearn.linear_model import LogisticRegression
@@ -41,11 +42,12 @@ class models:
 
         #baseline error
         into_list = self.y_train.tolist()
-        most_occurence = max(into_list, key=into_list.count)
-        y_pred = [most_occurence] * len(self.y_test)
+        uniques = np.unique(into_list, return_counts=True)
+        majority_class = np.argmax(uniques[1])
+        y_pred = [majority_class] * len(self.y_test)
 
         # 1 - error (because if incorrect we get 1)
-        accuracy = 1 - np.sum((most_occurence - self.y_test)**2) / len(self.y_test)
+        accuracy = 1 - np.sum((majority_class - self.y_test)**2) / len(self.y_test)
 
         #f1 doesn't work, we don't have true positives since we only predict 0
         #y_pred = np.array([most_occurence for _ in y_test])
@@ -54,6 +56,7 @@ class models:
         f1_s = f1_score(self.y_test, y_pred)
         cm1 = confusion_matrix(self.y_test, y_pred, labels=[0, 1])
         sensitivity = cm1[0, 0] / (cm1[0, 0] + cm1[0, 1])
+
 
         return accuracy, f1_s, sensitivity
 

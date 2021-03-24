@@ -1,9 +1,12 @@
 
 
+import numpy as np
+import torch
+
 # maybe seperate smote and downsampling
 
 def smote(X, y, increase):
-
+    pass
 
 
 def balance(X, y, increase, reduce):

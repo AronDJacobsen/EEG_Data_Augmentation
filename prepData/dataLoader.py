@@ -15,6 +15,7 @@ def createSubjectDict(prep_directory, windowsOS=False):
     subjects = defaultdict(dict)
 
     # Loop through all session to load window-tensors into the "subjects"-dictionary
+    index=0
     for session_test in subdirs:
         subjectID = session_test.split("_")[0]
         if windowsOS:
@@ -29,10 +30,13 @@ def createSubjectDict(prep_directory, windowsOS=False):
         else:
             subjects[subjectID] = {session_test: dim_tensors}
 
+        index += 1
+        print("Subject dict running...: {:d}/{:d}".format(index,len(subdirs)))
+
     return subjects
 
 
-def loadPrepData(subjects_dir, prep_directory, windowsOS = False):
+def PicklePrepData(subjects_dict, prep_directory, save_path, windowsOS = False):
 
     #Setting start-values
     input_loader = []
@@ -43,12 +47,13 @@ def loadPrepData(subjects_dir, prep_directory, windowsOS = False):
 
     # Looping through all session-folders to get the filepaths to all the preprocessed windows.
     if windowsOS:
-        pt_inputs = [pt_dir for ID in subjects_dir for session in subjects_dir[ID].keys() for pt_dir in
+        pt_inputs = [pt_dir for ID in subjects_dict for session in subjects_dict[ID].keys() for pt_dir in
                      glob.glob(prep_directory + session + "\\" + "**")]
     else:
-        pt_inputs = [pt_dir for ID in subjects_dir for session in subjects_dir[ID].keys() for pt_dir in glob.glob(prep_directory + session + "/"+ "**")]
+        pt_inputs = [pt_dir for ID in subjects_dict for session in subjects_dict[ID].keys() for pt_dir in glob.glob(prep_directory + session + "/"+ "**")]
 
     # Loading all preprocessed files and dividing them into data, X, and target variable, y.
+    index = 0
     error_id = set() # set for keeping track of subjects with errors in data.
     for count, pt_dir in enumerate(pt_inputs):
         pt_loaded = torch.load(pt_dir)
@@ -58,7 +63,7 @@ def loadPrepData(subjects_dir, prep_directory, windowsOS = False):
         for label in pt_loaded[1]:
             pt_label[label_encoder[label]] = 1
         # Rearranging tensors to flattened numpy arrays, while checking for correct shape.
-        if len(pt_loaded[0].numpy().flatten().astype(np.float16)) != 4579:
+        if len(pt_loaded[0].numpy().flatten().astype(np.float16)) != 475:
             if windowsOS:
                 error_id.add(pt_inputs[count].split("\\")[5].split("_")[0])
             else:
@@ -74,12 +79,21 @@ def loadPrepData(subjects_dir, prep_directory, windowsOS = False):
             else:
                 ID_loader.append(pt_dir.split("/")[-2].split("_")[0])
 
+        index += 1
+        print("LoadPrepData running...: {:d}/{:d}".format(index, len(pt_inputs)))
+
     # Stacking data to matrices.
     X = np.stack(input_loader)
     y = np.stack(label_loader)
     ID_frame = np.stack(ID_loader)
 
-    return X, y, ID_frame, error_id
+
+    np.save(save_path + r"\X.npy", X)
+    np.save(save_path + r"\y.npy", y)
+    np.save(save_path + r"\ID_frame.npy", ID_frame)
+    print("Successfully saved pickles!")
+
+    # return X, y, ID_frame, error_id
 
 
 # Hvis man arbejder med fulde datasæt er det megget smartere først at lave pickles, og så hente det ned bagefter med LoadPickles
@@ -140,22 +154,50 @@ def LoadPickles(pickle_path, DelNan = False):
 
     return X, y, ID_frame
 
+def LoadNumpyPickles(pickle_path, X_file, y_file, ID_file, DelNan = False):
+
+    # Your pickle should be placed in prepData folder
+    os.chdir(pickle_path)
+
+    X = np.load(pickle_path + X_file, allow_pickle='TRUE')
+    y = np.load(pickle_path + y_file, allow_pickle='TRUE')
+    ID_frame = np.load(pickle_path + ID_file, allow_pickle='TRUE')
+
+
+    # Deletes rows with NaN values.
+    if DelNan == True:
+        X, y, ID_frame = DeleteNan(X, y, ID_frame)
+
+        np.save(pickle_path + r"\X_clean.npy", X)
+        np.save(pickle_path + r"\y_clean.npy", y)
+        np.save(pickle_path + r"\ID_frame_clean.npy", ID_frame)
+        print("Successfully saved pickles without NaNs!")
+
+    return X, y, ID_frame
+
+
+
 def DeleteNan(X, y, ID_frame):
     # NanList in decreasing order, shows window-index with NaN.
     NanList = []
     for i in range(len(X)):
+        print("Searching for NaNs: {:d}/{:d}".format(i, len(X)))
         windowVals = np.isnan(X[i])
 
         if np.any(windowVals==True):
-            print(np.any(windowVals==True))
+
             NanList.append(i)
 
     # TODO: DelNan - no Nans in current data
     # NanList = [47698, 47687, 47585, 47569, 47490, 47475, 47436, 47409, 47339, 35919, 35914, 35759, 14819, 14815, 14802, 14787, 14786, 14781, 14776, 14770, 14765, 14758, 14752, 14745, 14741, 14726, 14717, 2246, 2242, 2064]
-
-    for ele in NanList:
-        X = np.delete(X, (ele), axis = 0)
-        y = np.delete(y, (ele), axis=0)
-        ID_frame = np.delete(ID_frame, (ele))
+    if len(NanList) == 0:
+        print("No NaNs found!")
+    else:
+        for i, ele in enumerate(NanList):
+            print("{:d} NaNs detected - deleting NaN number: {:d}/{:d}".format(len(NanList), i+1, len(NanList)))
+            X = np.delete(X, (ele-i), axis = 0) # Since we delete the index completely from the frame, the rest of the indices will be too high - therefore we subtract i
+            y = np.delete(y, (ele-i), axis=0)
+            ID_frame = np.delete(ID_frame, (ele))
+        print("Deleted {:d} NaNs from the data.".format(len(NanList)))
 
     return X, y, ID_frame

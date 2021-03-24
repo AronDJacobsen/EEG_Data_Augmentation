@@ -3,17 +3,27 @@ from models.modelFitting_vol2 import *
 from sklearn.model_selection import cross_val_score, KFold
 from models.models import models
 import numpy as np
+import matplotlib.pyplot as plt
 from collections import defaultdict
 from hyperopt import fmin, tpe, hp, STATUS_OK, Trials
+from prepData.dataLoader import *
+from time import time
 
 
-#loading data
-pickle_dir = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia"
-X, y, ID_frame = LoadPickles(pickle_path=pickle_dir, DelNan = True)
-#finding individuals
+prep_dir = r"C:\Users\Albert Kjøller\Documents\GitHub\TUAR_full_data\tempData" + "\\"
+pickle_path = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia"
+
+# Create pickles from preprocessed data based on the paths above. Unmuted when pickles exist
+# subject_dict = createSubjectDict(prep_directory=prep_dir, windowsOS=True)
+# PicklePrepData(subjects_dict=subject_dict, prep_directory=prep_dir, save_path=pickle_path, windowsOS = True)
+
+#loading data - define which pickles to load (with NaNs or without)
+X_file = r"\X_clean.npy"    #X_file = r"\X.npy"
+y_file = r"\y_clean.npy"    #y_file = r"\y.npy"
+ID_file = r"\ID_frame_clean.npy"   #ID_file = r"\ID_frame.npy"
+
+X, y, ID_frame = LoadNumpyPickles(pickle_path=pickle_path, X_file=X_file, y_file=y_file, ID_file=ID_file, DelNan = False)
 individuals = np.unique(ID_frame)
-
-
 
 
 spaceknn = {'n_neighbors': range(1,100)}
@@ -24,10 +34,11 @@ spaceknn = {'n_neighbors': range(1,100)}
 # Shape of the dictionary : model_dict = {Name of method: (function name (from models.py), hyperparams for opt) }
 
 # TODO: XGBoost does not work at the moment
+# TODO: KNN TAKES A REALLY LONG TIME (NOT ENDING!)
 # model_dict = {'XGBoost' : ('XGBoost', None)} # for testing a single classifier.
 model_dict = {'Baseline': ('baseline', None), 'LogisticReg' : ('lr', None), 'Naive-Bayes' : ('gnb', None),
-              'KNN' : ('knnf', spaceknn), 'RandomForest' : ('rf', None), 'LinearDiscriminantAnalysis' : ('LDA', None), 
-               'MultiLayerPerceptron' : ('MLP', None), 'AdaBoost' : ('AdaBoost', None), 
+               'KNN' : ('knnf', spaceknn), 'RandomForest' : ('rf', None), 'LinearDiscriminantAnalysis' : ('LDA', None),
+               'MultiLayerPerceptron' : ('MLP', None), 'AdaBoost' : ('AdaBoost', None),
                'StochGradientDescent_SVM' : ('SGD', None)} #, 'XGBoost' : ('XGBoost', None)}
 
 # Dictionary holding keys and values for all functions from the models.py file. Used to "look up" functions in the CV
@@ -66,13 +77,17 @@ for train_index, test_index in kf.split(individuals):
     for key in model_dict:
         #https://medium.com/district-data-labs/parameter-tuning-with-hyperopt-faa86acdfdce
         #https://towardsdatascience.com/hyperparameter-optimization-in-python-part-2-hyperopt-5f661db91324
+        start_time = time()
 
         name, space = model_dict[key]
         f = function_dict[name](env)
-        print(key + ": \t" + str(f))
+        end_time = time()
+        took_time = (end_time - start_time)
+
+        print(key + ": \t" + str(f) + ". Time: {:f} seconds".format(took_time))
+
         # acc, F1, sensitivity = f
         acc, F1, sensitivity = f
-
 
 
         if name in CV_scores.keys():
@@ -89,9 +104,38 @@ for train_index, test_index in kf.split(individuals):
 
     i += 1
 
+allModelsStats = []
+model_names = []
+
+for model in CV_scores:
+    model_names.append(model)
+    stats = np.empty((3,2))
+
+    for j, metric in enumerate(CV_scores[model]):
+        stats[j,0] = CV_scores[model][metric].mean()
+        stats[j, 1] = CV_scores[model][metric].std()
+
+    allModelsStats.append(stats)
+
+modelMeans_acc = [modelStats[0, 0] for modelStats in allModelsStats]
+modelError_acc = [modelStats[0, 1] for modelStats in allModelsStats]
+
+x_pos = np.arange(len(modelMeans_acc))
+fig, ax = plt.subplots()
+ax.bar(x_pos, modelMeans_acc, yerr=modelError_acc, align='center', alpha=0.5, ecolor='black', capsize=10)
+ax.set_ylabel('Metric: accuracy')
+ax.set_xticks(x_pos)
+ax.set_xticklabels(model_names)
+ax.set_title('Mean accuracy through {:d}-fold CV'.format(K))
+ax.yaxis.grid(True)
+
+# Save the figure and show
+plt.tight_layout()
+#plt.savefig('bar_plot_with_error_bars.png')
+plt.show()
 
 
-print("Hej")
+print("hej")
 """
         trials = Trials()
         best = fmin(f, space, algo=tpe.suggest, max_evals=100, trials=trials)

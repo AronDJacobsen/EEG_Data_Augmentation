@@ -62,7 +62,7 @@ def pipeline(MNE_raw=None, lpfq=1, hpfq=40, notchfq=50, downSam=100, type="easyc
     MNE_raw.notch_filter(freqs=notchfq, notch_widths=5)
 
     # Step : Downsample # TODO: error introduced after MNE -- update
-    # MNE_raw.resample(sfreq=downSam)
+    MNE_raw.resample(sfreq=downSam) # Main reason: standardizing for all subjects
 
     # Step 7 inference statistics to annotate bad channels
     # TODO: "BADS" code from MNEi & PREP
@@ -105,7 +105,7 @@ def spectrogramMake(MNE_raw=None, t0=0, tWindow=120, crop_fq=45, FFToverlap=None
         # plt.ylim(0,45)
         # plt.show()
 
-    return torch.tensor(normSxx) # for np delete torch.tensor
+    return torch.tensor(normSxx, dtype=torch.float16) # for np delete torch.tensor
 
 # Segment EEG into designated windows
 def slidingWindow(EEG_series=None, t_max=0, tStep=1, FFToverlap=None, crop_fq=45, annoDir=None,

@@ -4,12 +4,17 @@ from sklearn.preprocessing import StandardScaler
 from bioinfokit.visuz import cluster
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-from prepData.dataLoader import LoadPickles
+from prepData.dataLoader import LoadNumpyPickles
 
-pickle_dir = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia"
+pickle_path = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia"
 
+#loading data - define which pickles to load (with NaNs or without)
+X_file = r"\X_clean.npy"    #X_file = r"\X.npy"
+y_file = r"\y_clean.npy"    #y_file = r"\y.npy"
+ID_file = r"\ID_frame_clean.npy"   #ID_file = r"\ID_frame.npy"
 
-X, y, ID_frame = LoadPickles(pickle_path=pickle_dir, DelNan=True)
+X, y, ID_frame = LoadNumpyPickles(pickle_path=pickle_path, X_file=X_file, y_file=y_file, ID_file=ID_file, DelNan = False)
+
 labels = ['eyem','chew','shiv','elpp','musc','null']
 
 # Standardizing data and reformating target variable
