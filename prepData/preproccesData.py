@@ -34,7 +34,7 @@ def processRawData(data_path, save_path, file_selected, windowsOS=False):
 
         # initialize hierarchical dict
         proc_subject = subjects[subject_ID][edf]
-        proc_subject = readRawEdf(proc_subject, saveDir=save_dir, tWindow=1, tStep=1 * .25, # 75% temporalt overlap
+        proc_subject = readRawEdf(proc_subject, saveDir=save_dir, tWindow=60, tStep=60, # * .25, # 75% temporalt overlap
                                   read_raw_edf_param={'preload': True})  # ,
         # "stim_channel": ['EEG ROC-REF', 'EEG LOC-REF', 'EEG EKG1-REF',
         #                  'EEG T1-REF', 'EEG T2-REF', 'PHOTIC-REF', 'IBI',
@@ -146,8 +146,10 @@ if __name__ == '__main__':
 
     print("Breakpoint for evaluating metadata...")
 
+    # colors = "lightcoral" or "lightsteelblue" or lightslategrey"
+
     # Visualizing gender and age distribution
-    plt.hist(gender['male'], bins=20, color="cornflowerblue", range=(0,100))
+    plt.hist(gender['male'], bins=20, color="lightsteelblue", range=(0,100))
     plt.vlines(np.mean(gender['male']), 0, 16, linestyles='dashed',color='red')
     plt.xlabel("Age (years)")
     plt.ylabel("Counts")
@@ -156,7 +158,7 @@ if __name__ == '__main__':
     plt.show()
 
 
-    plt.hist(gender['female'], bins=20, color="lightsteelblue", range=(0,100))
+    plt.hist(gender['female'], bins=20, color="lightcoral", range=(0,100))
     plt.vlines(np.mean(gender['female']), 0, 16, linestyles='dashed',color='red')
     plt.xlabel("Age (years)")
     plt.ylabel("Counts")
@@ -165,7 +167,7 @@ if __name__ == '__main__':
     plt.show()
 
 
-    plt.hist(age, bins=20, color="slategrey", range=(0,100))
+    plt.hist(age, bins=20, color="lightslategrey", range=(0,100))
     plt.vlines(np.mean(age), 0, 30, linestyles='dashed',color='red')
     plt.xlabel("Age (years)")
     plt.ylabel("Counts")

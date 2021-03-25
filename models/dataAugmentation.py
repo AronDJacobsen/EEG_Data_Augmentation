@@ -17,7 +17,8 @@ def balance(X, y, increase, reduce):
 
     from collections import Counter
     # what is the class balance?
-    balance_b = Counter(y)
+    balance_b = np.unique(y, return_counts=True)
+    #balance_b = Counter(y)
 
     #if necessary: pip install imbalanced-learn
     from imblearn.over_sampling import SMOTE
@@ -36,7 +37,9 @@ def balance(X, y, increase, reduce):
     X, y = pipeline.fit_resample(X, y)
 
     # how is the balance now?
-    balance_a = Counter(y)
+    #balance_a = Counter(y)
+    balance_a = np.unique(y, return_counts=True)
+
 
     print('Before:', balance_b)
     print('After: ', balance_a)
