@@ -20,7 +20,7 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.linear_model import SGDClassifier
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import make_pipeline
-import xgboost as xgb
+#import xgboost as xgb
 
 #import torchvision.transforms as transforms
 
@@ -33,9 +33,20 @@ class models:
         self.X_test = X_test
         self.y_train = y_train
         self.y_test = y_test
-        self.target_names = ["absent", "present"] #, "shiv", "elpp", "musc", "null"]
+        self.target_names = ["absent", "present"] # "shiv", "elpp", "musc", "null"]
 
         super(models, self)
+
+    def scores(self, y_pred):
+
+        f1_s = f1_score(self.y_test, y_pred, average='weighted')
+
+        cm1 = confusion_matrix(self.y_test, y_pred, labels=[0,1])
+        sensitivity = cm1[0,0] / (cm1[0,0]+cm1[0,1])
+
+
+        return f1_s, sensitivity
+
 
     def baseline(self):
         np.unique(self.y_test, return_counts=True)[1][0] / len(self.y_test)
@@ -67,9 +78,9 @@ class models:
         y_pred = model.predict(self.X_test)
 
         accuracy = model.score(self.X_test, self.y_test)
-        f1_s = f1_score(self.y_test, y_pred)
-        cm1 = confusion_matrix(self.y_test, y_pred, labels=[0,1])
-        sensitivity = cm1[0,0] / (cm1[0,0]+cm1[0,1])
+
+        f1_s, sensitivity = models.scores(self, y_pred)
+
 
         return accuracy, f1_s, sensitivity
 
@@ -87,31 +98,28 @@ class models:
 
 
 
-    def knnf(self): #, params):
+    def knn(self, n_neighbors=1): #, params):
         #model = KNeighborsClassifier(**params)
-        model = KNeighborsClassifier()
+        model = KNeighborsClassifier(n_neighbors)
         model.fit(self.X_train, self.y_train)
         y_pred = model.predict(self.X_test)
         #accuracy = model.score(X_test, y_test)
 
         accuracy = metrics.accuracy_score(self.y_test, y_pred)
-        f1_s = f1_score(self.y_test, y_pred)
-        cm1 = confusion_matrix(self.y_test, y_pred, labels=[0, 1])
-        sensitivity = cm1[0, 0] / (cm1[0, 0] + cm1[0, 1])
+
+        f1_s, sensitivity = models.scores(self, y_pred)
 
         return accuracy, f1_s, sensitivity
 
 
 
-    def rf(self):
-        model = RandomForestClassifier(max_depth=10, random_state=0)
+    def rf(self, n_estimators = 100):
+        model = RandomForestClassifier(n_estimators)
         model.fit(self.X_train, self.y_train)
         y_pred = model.predict(self.X_test)
-
         accuracy = model.score(self.X_test, self.y_test)
-        f1_s = f1_score(self.y_test, y_pred)
-        cm1 = confusion_matrix(self.y_test, y_pred, labels=[0, 1])
-        sensitivity = cm1[0, 0] / (cm1[0, 0] + cm1[0, 1])
+
+        f1_s, sensitivity = models.scores(self, y_pred)
 
         return accuracy, f1_s, sensitivity
 
