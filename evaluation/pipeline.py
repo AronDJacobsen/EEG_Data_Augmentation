@@ -228,6 +228,7 @@ def mean_confidence_interval(data, confidence=0.95):
 
 
 confidence = {}
+confidence_log = {}
 
 
 artifact_names = ['eyem', 'chew', 'shiv', 'elpp', 'musc'] #, 'null']
@@ -257,6 +258,14 @@ for model in CV_scores:
             minus, mean, plus = mean_confidence_interval(sensitivities)
 
             confidence[artifact_names[artifact]] = [minus, mean, plus]
+
+        accuracies.append(CV_scores[model][artifact]['accuracy'].mean())
+        weighted_f1s.append(CV_scores[model][artifact]['F1'].mean())
+
+        if model == 'lr':
+            minus, mean, plus = mean_confidence_interval(sensitivities)
+
+            confidence_log[artifact_names[artifact]] = [minus, mean, plus]
 
         accuracies.append(CV_scores[model][artifact]['accuracy'].mean())
         weighted_f1s.append(CV_scores[model][artifact]['F1'].mean())
