@@ -34,7 +34,7 @@ def processRawData(data_path, save_path, file_selected, windowsOS=False):
 
         # initialize hierarchical dict
         proc_subject = subjects[subject_ID][edf]
-        proc_subject = readRawEdf(proc_subject, saveDir=save_dir, tWindow=60, tStep=60, # * .25, # 75% temporalt overlap
+        proc_subject = readRawEdf(proc_subject, saveDir=save_dir, tWindow=1, tStep=1 * .25, # 75% temporalt overlap
                                   read_raw_edf_param={'preload': True})  # ,
         # "stim_channel": ['EEG ROC-REF', 'EEG LOC-REF', 'EEG EKG1-REF',
         #                  'EEG T1-REF', 'EEG T2-REF', 'PHOTIC-REF', 'IBI',
@@ -59,7 +59,7 @@ def processRawData(data_path, save_path, file_selected, windowsOS=False):
                                                         'Fp2', 'F4', 'C4', 'P4', 'O2', 'F8', 'T4', 'T6', 'A1', 'A2'])
 
         # downSampling must be above the filter frequency in FIR to avoid aliasing
-        pipeline(proc_subject["rawData"], type="standard_1005", notchfq=60, downSam=150)
+        pipeline(proc_subject["rawData"], type="standard_1005", notchfq=60, downSam=150) # TO avoid aliasing for the FIR-filter
 
         # Generate output windows for (X,y) as (tensor, label)
         proc_subject["preprocessing_output"] = slidingWindow(proc_subject, t_max=proc_subject["rawData"].times.max(),

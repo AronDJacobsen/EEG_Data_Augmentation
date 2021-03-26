@@ -14,32 +14,31 @@ import matplotlib.pyplot as plt
 import scipy.stats
 
 #prep_dir = r"C:\Users\Albert Kjøller\Documents\GitHub\TUAR_full_data\tempData" + "\\"
-#pickle_path = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia"
 
-pickle_path = r"/Users/Jacobsen/Documents/GitHub/EEG_epilepsia" + "/"
-mac = True
+pickle_path = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia"
+# pickle_path = r"/Users/Jacobsen/Documents/GitHub/EEG_epilepsia" + "/"
+windowsOS = True
 
 # Create pickles from preprocessed data based on the paths above. Unmuted when pickles exist
 # subject_dict = createSubjectDict(prep_directory=prep_dir, windowsOS=True)
 # PicklePrepData(subjects_dict=subject_dict, prep_directory=prep_dir, save_path=pickle_path, windowsOS = True)
 #windows
 #loading data - define which pickles to load (with NaNs or without)
-if mac:
+if windowsOS:
+    X_file = r"\X_clean.npy"    #X_file = r"\X.npy"
+    y_file = r"\y_clean.npy"    #y_file = r"\y.npy"
+    ID_file = r"\ID_frame_clean.npy"   #ID_file = r"\ID_frame.npy"
+
+else:
     X_file = r"X_clean.npy"    #X_file = r"\X.npy"
     y_file = r"y_clean.npy"    #y_file = r"\y.npy"
     ID_file = r"ID_frame_clean.npy"   #ID_file = r"\ID_frame.npy"
-else:
-    X_file = r"/X_clean.npy"    #X_file = r"\X.npy"
-    y_file = r"/y_clean.npy"    #y_file = r"\y.npy"
-    ID_file = r"/ID_frame_clean.npy"   #ID_file = r"\ID_frame.npy"
-
-
 
 X, y, ID_frame = LoadNumpyPickles(pickle_path=pickle_path, X_file=X_file, y_file=y_file, ID_file=ID_file, DelNan = False)
 
 
 # extract a subset
-X, y, ID_frame = subset(X, y, ID_frame, no_indiv=10)
+X, y, ID_frame = subset(X, y, ID_frame, no_indiv=50)
 
 
 X, y, ID_frame = binary(X, y, ID_frame)
@@ -86,7 +85,7 @@ spacerf = {'n_estimators': hp.choice('n_estimators', range(1,100,1))}
 #model_dict = {'Baseline': ('baseline', None), 'LogisticReg' : ('lr', None), 'KNN' : ('knn', spaceknn)}
 
 
-model_dict = {'Baseline': ('baseline', None), 'LogisticReg' : ('lr', None), 'KNN' : ('knn', spaceknn), 'RF': ('rf',spacerf)}
+model_dict = {'Baseline': ('baseline', None), 'LogisticReg' : ('lr', None), 'KNN' : ('knn', spaceknn)}
 
 
 # Dictionary holding keys and values for all functions from the models.py file. Used to "look up" functions in the CV
@@ -123,18 +122,23 @@ for train_index, test_index in kf.split(individuals):
     X_test, y_test = X[test_indices,:], y[test_indices][:,0]
 '''
 # not based on individuals
-classes = 5
+artifact_names = ['eyem', 'chew', 'shiv', 'elpp', 'musc'] #, 'null']
+classes = len(artifact_names)
 
-artifact_names = ['Eyemovement', 'Chew', 'Shiver', 'Elpp', 'Musc']
-
+cross_val_time_start = time()
 for train_index, test_index in kf.split(X):
 
-    X_train, X_test = X[train_index], X[test_index]
+    print("\n-----------------------------------------------")
+    print("Running {:d}-fold CV - fold {:d}/{:d}".format(K, i+1, K))
+    print("-----------------------------------------------")
 
+    X_train, X_test = X[train_index], X[test_index]
     y_train, y_test = y[train_index], y[test_index]
 
 
+
     for artifact in range(classes):
+        print("\nTraining on the class: " + artifact_names[artifact] + "\n")
 
         #define new
         ytrain = y_train[:,artifact]
@@ -214,6 +218,7 @@ for train_index, test_index in kf.split(X):
     i += 1
 
 
+
 def mean_confidence_interval(data, confidence=0.95):
     a = 1.0 * np.array(data)
     n = len(a)
@@ -225,7 +230,7 @@ def mean_confidence_interval(data, confidence=0.95):
 confidence = {}
 
 
-artifact_names = ['Eyemovement', 'Chew', 'Shiver', 'Elpp', 'Musc']
+artifact_names = ['eyem', 'chew', 'shiv', 'elpp', 'musc'] #, 'null']
 
 model_names = []
 
@@ -263,9 +268,13 @@ for model in CV_scores:
         initial_data['accuracy'] = [np.mean(accuracies)]
 
     if 'weighted_f1' in initial_data:
-            initial_data['weighted_f1'].append(np.mean(accuracies))
+            initial_data['weighted_f1'].append(np.mean(weighted_f1s))
     else:
-        initial_data['weighted_f1'] = [np.mean(accuracies)]
+        initial_data['weighted_f1'] = [np.mean(weighted_f1s)]
+
+cross_val_time_end = time()
+cross_val_time = cross_val_time_end - cross_val_time_start
+print("The cross-validation took " + str(cross_val_time) + "seconds = " + str(cross_val_time/60) + "minutes")
 
 df_eval = pd.DataFrame.from_dict(initial_data)
 df_eval.index = model_names

@@ -100,6 +100,8 @@ class models:
 
     def knn(self, n_neighbors=1): #, params):
         #model = KNeighborsClassifier(**params)
+        if n_neighbors < 1:
+            n_neighbors = 1 # TODO: hardcoded lige nu pga. en fejl hvor den fik 0 neighbours
         model = KNeighborsClassifier(n_neighbors)
         model.fit(self.X_train, self.y_train)
         y_pred = model.predict(self.X_test)
