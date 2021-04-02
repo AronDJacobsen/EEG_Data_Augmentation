@@ -1,4 +1,3 @@
-from prepData.dataLoader import LoadPickles
 from models.modelFitting_vol2 import *
 from sklearn.model_selection import cross_val_score, KFold
 from models.models import models
@@ -15,9 +14,9 @@ import scipy.stats
 
 #prep_dir = r"C:\Users\Albert Kjøller\Documents\GitHub\TUAR_full_data\tempData" + "\\"
 
-pickle_path = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia"
-# pickle_path = r"/Users/Jacobsen/Documents/GitHub/EEG_epilepsia" + "/"
-windowsOS = True
+#pickle_path = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia"
+pickle_path = r"/Users/Jacobsen/Documents/GitHub/EEG_epilepsia" + "/"
+windowsOS = False
 
 # Create pickles from preprocessed data based on the paths above. Unmuted when pickles exist
 # subject_dict = createSubjectDict(prep_directory=prep_dir, windowsOS=True)
@@ -37,14 +36,16 @@ else:
 X, y, ID_frame = LoadNumpyPickles(pickle_path=pickle_path, X_file=X_file, y_file=y_file, ID_file=ID_file, DelNan = False)
 
 
-# extract a subset
-X, y, ID_frame = subset(X, y, ID_frame, no_indiv=50)
+# extract a subset for faster running time
+X, y, ID_frame = subset(X, y, ID_frame, no_indiv=40)
 
-
+# apply the inclusion principle
 X, y, ID_frame = binary(X, y, ID_frame)
 
+# the split data
 individuals = np.unique(ID_frame)
 
+'''
 #downsampel none to twice that of the second largest
 size = []
 for i in range(len(y[0,:])):
@@ -58,7 +59,7 @@ X, y = rand_undersample(X, y, arg = {5:down_to})
 
 #upsample all to the majority
 X, y = smote(X, y, multi = True)
-
+'''
 
 # TODO: Specify hyperparameters for optimization
 # TODO: This should be done both in the model_dict and in the functions in the moodels.py file
@@ -102,7 +103,14 @@ CV_scores = defaultdict(dict)
 i = 0
 #looping CV folds
 #based on individuals
-'''
+
+
+# not based on individuals
+artifact_names = ['eyem', 'chew', 'shiv', 'elpp', 'musc', 'null']
+classes = len(artifact_names)
+
+cross_val_time_start = time()
+
 for train_index, test_index in kf.split(individuals):
 
     print("\n-----------------------------------------------")
@@ -118,36 +126,28 @@ for train_index, test_index in kf.split(individuals):
     test_indices = [i for i, ID in enumerate(ID_frame) if ID in testindv]
 
     # TODO: Extend to multiple binary classifiers (they should classify on the same data as well!).
-    X_train, y_train = X[train_indices,:], y[train_indices][:,0]
-    X_test, y_test = X[test_indices,:], y[test_indices][:,0]
-'''
-# not based on individuals
-artifact_names = ['eyem', 'chew', 'shiv', 'elpp', 'musc'] #, 'null']
-classes = len(artifact_names)
+    X_train, y_train = X[train_indices,:], y[train_indices] # we keep the original and balance new later
+    X_test, y_test = X[test_indices,:], y[test_indices]
 
-cross_val_time_start = time()
-for train_index, test_index in kf.split(X):
-
-    print("\n-----------------------------------------------")
-    print("Running {:d}-fold CV - fold {:d}/{:d}".format(K, i+1, K))
-    print("-----------------------------------------------")
-
-    X_train, X_test = X[train_index], X[test_index]
-    y_train, y_test = y[train_index], y[test_index]
-
-
-
+    # for each artifact
     for artifact in range(classes):
         print("\nTraining on the class: " + artifact_names[artifact] + "\n")
 
-        #define new
-        ytrain = y_train[:,artifact]
-        ytest = y_test[:,artifact]
+        # only include the artifact of interest
+        Xtrain = X_train # only to keep things similar
+        Xtest = X_test # only to keep things similar
+        ytrain = y_train[:, artifact]
+        ytest = y_test[:, artifact]
+
+        # now resample majority up to minority to achive equal
+        # link to args in the function
+        Xtrain, ytrain = rand_undersample(Xtrain, ytrain, arg = 'majority', multi = False)
+
 
         #make classes even
-        Xtrain, ytrain = smote(X_train, ytrain, multi=False)
+        #Xtrain, ytrain = smote(X_train, ytrain, multi=False)
 
-        env = models(Xtrain, ytrain, X_test, ytest)
+        env = models(Xtrain, ytrain, Xtest, ytest)
 
 
     #loop through models
@@ -171,7 +171,7 @@ for train_index, test_index in kf.split(X):
                     #it minimizes
                     return -f1_s
 
-                best = fmin(fn=objective, space=space, algo=tpe.suggest, max_evals=8, trials=trials)
+                best = fmin(fn=objective, space=space, algo=tpe.suggest, max_evals=5, trials=trials)
 
                 # visualize one
                 if i==0 and artifact == 0 and name == 'knn':
@@ -231,12 +231,13 @@ confidence = {}
 confidence_log = {}
 
 
-artifact_names = ['eyem', 'chew', 'shiv', 'elpp', 'musc'] #, 'null']
+artifact_names = ['eyem', 'chew', 'shiv', 'elpp', 'musc', 'null']
 
 model_names = []
 
 initial_data = {}
 
+# if statements are used if the dict is originally empty
 for model in CV_scores:
     model_names.append(model)
 
@@ -270,7 +271,7 @@ for model in CV_scores:
         accuracies.append(CV_scores[model][artifact]['accuracy'].mean())
         weighted_f1s.append(CV_scores[model][artifact]['F1'].mean())
 
-
+    # find average for each fold
     if 'accuracy' in initial_data:
         initial_data['accuracy'].append(np.mean(accuracies))
     else:

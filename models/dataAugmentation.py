@@ -31,15 +31,24 @@ def binary(X, y, ID_frame):
 
     # where only one of the classes are present (except null)
     transform_indices = np.where(np.sum(y[:,:classes-1],axis=1) == 1)[0]
-    # remove null from there
+
+    # we one is present, we set is to 0 in the null class
     y[transform_indices, classes-1] = np.zeros(len(transform_indices))
 
+    # we now only include where one class is present
+    include = np.where(np.sum(y[:,:classes],axis=1) == 1)[0]
+    y = y[include, :]
+    X = X[include, :]
+    ID_frame = ID_frame[include]
+
+    '''
     #indices with more than 1 class
     del_indices = np.where(np.sum(y[:,:classes],axis=1) > 1)[0]
 
     X = np.delete(X, del_indices, axis=0)
     y = np.delete(y, del_indices, axis=0)
     ID_frame = np.delete(ID_frame,del_indices, axis=0)
+    '''
 
     return X, y, ID_frame
 
@@ -73,22 +82,26 @@ def smote(X, y, multi):
 
 
 
-def rand_undersample(X, y, arg):
+def rand_undersample(X, y, arg, multi):
 
-    lb = preprocessing.LabelBinarizer()
-    y = np.argmax(y, axis=1)
+    if multi:
+        lb = preprocessing.LabelBinarizer()
+        y = np.argmax(y, axis=1)
+        under = RandomUnderSampler(sampling_strategy=arg)
+        X_under, y_under = under.fit_resample(X, y)
+        y_under = lb.fit_transform(y_under)
+    else:
+        #undersample majority
+        #balance_b = Counter(y) # for binary
+        # https://machinelearningmastery.com/random-oversampling-and-undersampling-for-imbalanced-classification/
+        under = RandomUnderSampler(sampling_strategy=arg)
+        X_under, y_under = under.fit_resample(X, y)
+        # how is the balance now?
 
-    #undersample majority
-    #balance_b = Counter(y)
-    under = RandomUnderSampler(sampling_strategy=arg) # reduce majority to have % more than minority
-    X_under, y_under = under.fit_resample(X, y)
-    # how is the balance now?
-    #balance_a = Counter(y)
+        #balance_a = Counter(y)
+        #print('Before:', balance_b)
+        #print('After: ', balance_a)
 
-    #print('Before:', balance_b)
-    #print('After: ', balance_a)
-
-    y_under = lb.fit_transform(y_under)
 
     return X_under, y_under
 
