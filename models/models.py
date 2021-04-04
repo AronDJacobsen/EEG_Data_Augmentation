@@ -39,13 +39,23 @@ class models:
 
     def scores(self, y_pred):
 
-        f1_s = f1_score(self.y_test, y_pred, average='weighted')
+        # zero_division sets it to 0 as default
+        f1_s = f1_score(self.y_test, y_pred, average='weighted', zero_division = 0)
 
-        cm1 = confusion_matrix(self.y_test, y_pred, labels=[0,1])
-        sensitivity = cm1[0,0] / (cm1[0,0]+cm1[0,1])
+        #cm1 = confusion_matrix(self.y_test, y_pred, labels=[0, 1])
+        #sensitivity = cm1[0,0] / (cm1[0,0]+cm1[0,1])
 
+        conf_matrix = confusion_matrix(self.y_test, y_pred, labels=[0, 1])
 
-        return f1_s, sensitivity
+        TP = conf_matrix[1][1]
+        TN = conf_matrix[0][0]
+        FP = conf_matrix[0][1]
+        FN = conf_matrix[1][0]
+        sensitivity = (TP / float(TP + FN))
+
+        accuracy = (TP + TN) / (TP + TN + FP + FN)
+        accuracy, f1_s, sensitivity = np.round([accuracy, f1_s, sensitivity], 4)
+        return accuracy, f1_s, sensitivity
 
 
     def baseline(self):
@@ -57,122 +67,103 @@ class models:
         majority_class = np.argmax(uniques[1])
         y_pred = [majority_class] * len(self.y_test)
 
-        # 1 - error (because if incorrect we get 1)
-        accuracy = 1 - np.sum((majority_class - self.y_test)**2) / len(self.y_test)
-
         #f1 doesn't work, we don't have true positives since we only predict 0
         #y_pred = np.array([most_occurence for _ in y_test])
         #f1_s = f1_score(y_test, y_pred)
         # f1_s = float('nan')
-        f1_s = f1_score(self.y_test, y_pred)
-        cm1 = confusion_matrix(self.y_test, y_pred, labels=[0, 1])
-        sensitivity = cm1[0, 0] / (cm1[0, 0] + cm1[0, 1])
+        accuracy, f1_s, sensitivity = models.scores(self, y_pred)
 
 
         return accuracy, f1_s, sensitivity
 
 
-    def lr(self):
-        model = LogisticRegression(max_iter=1000)
+    def LR(self, C):
+        model = LogisticRegression(C = C, max_iter = 500)
         model.fit(self.X_train, self.y_train)
         y_pred = model.predict(self.X_test)
 
-        accuracy = model.score(self.X_test, self.y_test)
 
-        f1_s, sensitivity = models.scores(self, y_pred)
+        accuracy, f1_s, sensitivity = models.scores(self, y_pred)
 
 
         return accuracy, f1_s, sensitivity
 
-    def gnb(self):
+    def GNB(self):
         model = GaussianNB()
         model.fit(self.X_train, self.y_train)
         y_pred = model.predict(self.X_test)
 
-        accuracy = model.score(self.X_test, self.y_test)
-        f1_s = f1_score(self.y_test, y_pred)
-        cm1 = confusion_matrix(self.y_test, y_pred, labels=[0, 1])
-        sensitivity = cm1[0, 0] / (cm1[0, 0] + cm1[0, 1])
+        accuracy, f1_s, sensitivity = models.scores(self, y_pred)
+
 
         return accuracy, f1_s, sensitivity
 
 
 
-    def knn(self, n_neighbors=1): #, params):
+    def KNN(self, n_neighbors): #, params):
         #model = KNeighborsClassifier(**params)
-        if n_neighbors < 1:
-            n_neighbors = 1 # TODO: hardcoded lige nu pga. en fejl hvor den fik 0 neighbours
-        model = KNeighborsClassifier(n_neighbors)
+        #if n_neighbors < 1:
+        #    n_neighbors = 1 # TODO: hardcoded lige nu pga. en fejl hvor den fik 0 neighbours
+        model = KNeighborsClassifier(n_neighbors = n_neighbors)
         model.fit(self.X_train, self.y_train)
         y_pred = model.predict(self.X_test)
         #accuracy = model.score(X_test, y_test)
 
-        accuracy = metrics.accuracy_score(self.y_test, y_pred)
-
-        f1_s, sensitivity = models.scores(self, y_pred)
+        accuracy, f1_s, sensitivity = models.scores(self, y_pred)
 
         return accuracy, f1_s, sensitivity
 
 
 
-    def rf(self, n_estimators = 100):
-        model = RandomForestClassifier(n_estimators)
-        model.fit(self.X_train, self.y_train)
-        y_pred = model.predict(self.X_test)
-        accuracy = model.score(self.X_test, self.y_test)
-
-        f1_s, sensitivity = models.scores(self, y_pred)
-
-        return accuracy, f1_s, sensitivity
-
-    def LDA(self):
-        model = LDA()
+    def RF(self, n_estimators):
+        model = RandomForestClassifier(n_estimators = n_estimators)
         model.fit(self.X_train, self.y_train)
         y_pred = model.predict(self.X_test)
 
-        accuracy = metrics.accuracy_score(self.y_test, y_pred)
-        f1_s = f1_score(self.y_test, y_pred)
-        cm1 = confusion_matrix(self.y_test, y_pred, labels=[0, 1])
-        sensitivity = cm1[0, 0] / (cm1[0, 0] + cm1[0, 1])
+        accuracy, f1_s, sensitivity = models.scores(self, y_pred)
 
         return accuracy, f1_s, sensitivity
 
-
-    def MLP(self):
-        model = MLPClassifier(random_state=1, max_iter=300)
+    def LDA(self, solver):
+        if np.isreal(solver):
+            vars = ['svd', 'lsqr']
+            model = LDA(solver = vars[solver-1])
+        else:
+            model = LDA(solver = solver)
         model.fit(self.X_train, self.y_train)
         y_pred = model.predict(self.X_test)
 
-        accuracy = metrics.accuracy_score(self.y_test, y_pred)
-        f1_s = f1_score(self.y_test, y_pred)
-        cm1 = confusion_matrix(self.y_test, y_pred, labels=[0, 1])
-        sensitivity = cm1[0, 0] / (cm1[0, 0] + cm1[0, 1])
+        accuracy, f1_s, sensitivity = models.scores(self, y_pred)
 
         return accuracy, f1_s, sensitivity
 
 
-    def AdaBoost(self, n_estimators=50, learning_rate=1.0):
-        model = AdaBoostClassifier(n_estimators=n_estimators, random_state=0)
+    def MLP(self, hidden_layer_sizes):
+        model = MLPClassifier(hidden_layer_sizes = hidden_layer_sizes)
         model.fit(self.X_train, self.y_train)
         y_pred = model.predict(self.X_test)
 
-        accuracy = metrics.accuracy_score(self.y_test, y_pred)
-        f1_s = f1_score(self.y_test, y_pred)
-        cm1 = confusion_matrix(self.y_test, y_pred, labels=[0, 1])
-        sensitivity = cm1[0, 0] / (cm1[0, 0] + cm1[0, 1])
+        accuracy, f1_s, sensitivity = models.scores(self, y_pred)
 
         return accuracy, f1_s, sensitivity
 
-    def SGD(self):
+
+    def AdaBoost(self, learning_rate):
+        model = AdaBoostClassifier(learning_rate = learning_rate)
+        model.fit(self.X_train, self.y_train)
+        y_pred = model.predict(self.X_test)
+
+        accuracy, f1_s, sensitivity = models.scores(self, y_pred)
+
+        return accuracy, f1_s, sensitivity
+
+    def SGD(self, alpha):
         # Default loss in SGDClassifier gives SVM
-        model = make_pipeline(StandardScaler(), SGDClassifier(max_iter=1000, tol=1e-3))
+        model = make_pipeline(StandardScaler(), SGDClassifier(alpha = alpha))
         model.fit(self.X_train, self.y_train)
         y_pred = model.predict(self.X_test)
 
-        accuracy = metrics.accuracy_score(self.y_test, y_pred)
-        f1_s = f1_score(self.y_test, y_pred)
-        cm1 = confusion_matrix(self.y_test, y_pred, labels=[0, 1])
-        sensitivity = cm1[0, 0] / (cm1[0, 0] + cm1[0, 1])
+        accuracy, f1_s, sensitivity = models.scores(self, y_pred)
 
         return accuracy, f1_s, sensitivity
 
@@ -183,13 +174,19 @@ class models:
         y_pred = model.predict(self.X_test)
 
         accuracy = metrics.accuracy_score(self.y_test, y_pred)
-        f1_s = f1_score(self.y_test, y_pred)
-        cm1 = confusion_matrix(self.y_test, y_pred, labels=[0, 1])
-        sensitivity = cm1[0, 0] / (cm1[0, 0] + cm1[0, 1])
+
+        f1_s, sensitivity = models.scores(self, y_pred)
 
         return accuracy, f1_s, sensitivity
 
-    #### -------------------------------- ####
+
+
+
+#### -------------------------------- ####
+
+
+
+
 
 # models using mixuo
 

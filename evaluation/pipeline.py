@@ -37,7 +37,7 @@ X, y, ID_frame = LoadNumpyPickles(pickle_path=pickle_path, X_file=X_file, y_file
 
 
 # extract a subset for faster running time
-X, y, ID_frame = subset(X, y, ID_frame, no_indiv=40)
+X, y, ID_frame = subset(X, y, ID_frame, no_indiv=24)
 
 # apply the inclusion principle
 X, y, ID_frame = binary(X, y, ID_frame)
@@ -76,22 +76,53 @@ model_dict = {'Baseline': ('baseline', None), 'LogisticReg' : ('lr', None), 'Nai
                'StochGradientDescent_SVM' : ('SGD', None)} #, 'XGBoost' : ('XGBoost', None)}
 '''
 
-spaceknn = {'n_neighbors': hp.choice('n_neighbors', range(1,60,1))}
+spaceb = None
 
-spacerf = {'n_estimators': hp.choice('n_estimators', range(1,100,1))}
+#lr, inverse regularization strength
+spacelr = {'C': hp.lognormal('C', 0, 1)} # we can increase interval
 
-#spacerf = {'n_estimators': hp.choice('n_estimators', range(50,150,1)), 'criterion': hp.choice('criterion', ['gini', 'entropy'])}
+#adaboost,
+spaceab = {'learning_rate': hp.lognormal('learning_rate', 0, 1)} # we can increase interval
 
+#don't think it is necessary
+#spacegnb = {'var_smoothing': hp.choice('var_smoothing', range(0.01,1,0.01))}
+spacegnb = None
+
+#knn, nr neighbors
+vals = [ int for int in range(1, 60, 1) ]
+spaceknn = {'n_neighbors': hp.choice('n_neighbors', vals)}
+
+#lda, solvers for shrinkage
+spacelda = {'solver': hp.choice('solver', ['svd', 'lsqr', 'eigen'])}
+
+#mlp,
+vals = [ int for int in range(50,200,1) ]
+spacemlp = {'hidden_layer_sizes': hp.choice('hidden_layer_sizes', vals)}
+
+#rf, trees in estimating
+vals = [ int for int in range(1,100,1) ]
+spacerf = {'n_estimators': hp.choice('n_estimators', vals)}
+
+#sgd,
+spacesgd = {'alpha': hp.lognormal('alpha', 0, 1)} # we can increase interval
 
 #model_dict = {'Baseline': ('baseline', None), 'LogisticReg' : ('lr', None), 'KNN' : ('knn', spaceknn)}
 
 
-model_dict = {'Baseline': ('baseline', None), 'LogisticReg' : ('lr', None), 'KNN' : ('knn', spaceknn)}
+
+model_dict = {'baseline': ('baseline', spaceb), 'LR' : ('LR', spacelr),
+              'AdaBoost' : ('AdaBoost', spaceab), 'GNB' : ('GNB', spacegnb),
+              'KNN' : ('KNN', spaceknn), 'RF' : ('RF', spacerf),
+              'LDA' : ('LDA', spacelda), 'MLP' : ('MLP', spacemlp),
+              'SGD' : ('SGD', spacesgd)} #, 'XGBoost' : ('XGBoost', None)}
 
 
 # Dictionary holding keys and values for all functions from the models.py file. Used to "look up" functions in the CV
 # and hyperoptimization part
 function_dict = models.__dict__
+
+evals = 4
+
 
 #setting fold details
 K = 5 # 80% training and 20% testing
@@ -164,6 +195,8 @@ for train_index, test_index in kf.split(individuals):
             #if no == 1:
             if space is not None:
 
+                print('HyperOpt on: ', key) # print model name
+
                 trials = Trials()
 
                 def objective(params):
@@ -171,7 +204,7 @@ for train_index, test_index in kf.split(individuals):
                     #it minimizes
                     return -f1_s
 
-                best = fmin(fn=objective, space=space, algo=tpe.suggest, max_evals=5, trials=trials)
+                best = fmin(fn=objective, space=space, algo=tpe.suggest, max_evals=evals, trials=trials)
 
                 # visualize one
                 if i==0 and artifact == 0 and name == 'knn':
@@ -192,7 +225,7 @@ for train_index, test_index in kf.split(individuals):
                 f = function_dict[name](env,**best)
 
             #without hyperopt
-            else:
+            else: # none
                 f = function_dict[name](env)
             end_time = time()
             took_time = (end_time - start_time)
@@ -208,16 +241,19 @@ for train_index, test_index in kf.split(individuals):
                 CV_scores[name][artifact]['F1'][i] = F1
                 CV_scores[name][artifact]['sensitivity'][i] = sensitivity
 
-            else:
+            else: # initialize, only once
                 CV_scores[name][artifact] = {'accuracy' : np.zeros(K), 'F1' : np.zeros(K), 'sensitivity': np.zeros(K)}
-
                 CV_scores[name][artifact]['accuracy'][i] = acc
                 CV_scores[name][artifact]['F1'][i] = F1
                 CV_scores[name][artifact]['sensitivity'][i] = sensitivity
 
     i += 1
 
+cross_val_time_end = time()
+cross_val_time = cross_val_time_end - cross_val_time_start
+print("The cross-validation took " + str(cross_val_time) + " seconds = " + str(cross_val_time/60) + " minutes")
 
+print('\n\n')
 
 def mean_confidence_interval(data, confidence=0.95):
     a = 1.0 * np.array(data)
@@ -227,25 +263,22 @@ def mean_confidence_interval(data, confidence=0.95):
     return m-h, m, m+h
 
 
-confidence = {}
-confidence_log = {}
 
+model_names = [] # will be appended to
 
-artifact_names = ['eyem', 'chew', 'shiv', 'elpp', 'musc', 'null']
-
-model_names = []
-
-initial_data = {}
+initial_data = {} # to construct dataframe
 
 # if statements are used if the dict is originally empty
+# we recursively add the rows for each model and end with overall performance
 for model in CV_scores:
     model_names.append(model)
 
-    #initialize for appending
+    #initialize for appending, momentary lists
+    confidence = {} # confidence interval
     accuracies = []
     weighted_f1s = []
 
-    for artifact in CV_scores[model]:
+    for artifact in CV_scores[model]: # each artifact
         #add sensitivity to the data
         sensitivities = CV_scores[model][artifact]['sensitivity']
 
@@ -254,53 +287,49 @@ for model in CV_scores:
         else:
             initial_data[artifact_names[artifact]] = [sensitivities.mean()]
 
-        #confidence interval
-        if model == 'knn':
-            minus, mean, plus = mean_confidence_interval(sensitivities)
+        minus, mean, plus = mean_confidence_interval(sensitivities)
 
-            confidence[artifact_names[artifact]] = [minus, mean, plus]
+        confidence[artifact_names[artifact]] = [minus, mean, plus]
 
-        accuracies.append(CV_scores[model][artifact]['accuracy'].mean())
-        weighted_f1s.append(CV_scores[model][artifact]['F1'].mean())
-
-        if model == 'lr':
-            minus, mean, plus = mean_confidence_interval(sensitivities)
-
-            confidence_log[artifact_names[artifact]] = [minus, mean, plus]
 
         accuracies.append(CV_scores[model][artifact]['accuracy'].mean())
         weighted_f1s.append(CV_scores[model][artifact]['F1'].mean())
 
-    # find average for each fold
+    #confidence
+    minus, mean, plus = mean_confidence_interval(accuracies)
+    confidence['accuracy'] = [minus, mean, plus]
+    minus, mean, plus = mean_confidence_interval(weighted_f1s)
+    confidence['weighted_f1'] = [minus, mean, plus]
+
+    df_conf = pd.DataFrame.from_dict(confidence)
+    df_conf.index = ['lower', 'mean', 'upper']
+    df_conf.style.set_caption(model)
+    print(df_conf)
+    print('\n')
+
+    # overall performance for all artifacts
     if 'accuracy' in initial_data:
         initial_data['accuracy'].append(np.mean(accuracies))
     else:
         initial_data['accuracy'] = [np.mean(accuracies)]
 
     if 'weighted_f1' in initial_data:
-            initial_data['weighted_f1'].append(np.mean(weighted_f1s))
+        initial_data['weighted_f1'].append(np.mean(weighted_f1s))
     else:
         initial_data['weighted_f1'] = [np.mean(weighted_f1s)]
 
-cross_val_time_end = time()
-cross_val_time = cross_val_time_end - cross_val_time_start
-print("The cross-validation took " + str(cross_val_time) + "seconds = " + str(cross_val_time/60) + "minutes")
 
-df_eval = pd.DataFrame.from_dict(initial_data)
-df_eval.index = model_names
-
-
-df_conf = pd.DataFrame.from_dict(confidence)
-df_conf.index = ['lower', 'mean', 'upper']
 
 #display all dataframe
 pd.set_option("display.max_rows", None, "display.max_columns", None)
 
+df_eval = pd.DataFrame.from_dict(initial_data)
+df_eval.index = model_names
+df_eval.style.set_caption("Overview")
 print(df_eval)
 
-print('\n')
-print('Based on KNN')
-print(df_conf)
+print('\n\n')
+
 
 stop = 0
 
