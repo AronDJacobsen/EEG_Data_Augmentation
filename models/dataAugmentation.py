@@ -84,19 +84,19 @@ def smote(X, y, multi):
 
 
 
-def rand_undersample(X, y, arg, multi):
+def rand_undersample(X, y, arg, state, multi):
 
     if multi:
         lb = preprocessing.LabelBinarizer()
         y = np.argmax(y, axis=1)
-        under = RandomUnderSampler(sampling_strategy=arg)
+        under = RandomUnderSampler(sampling_strategy=arg, random_state = state)
         X_under, y_under = under.fit_resample(X, y)
         y_under = lb.fit_transform(y_under)
     else:
         #undersample majority
         #balance_b = Counter(y) # for binary
         # https://machinelearningmastery.com/random-oversampling-and-undersampling-for-imbalanced-classification/
-        under = RandomUnderSampler(sampling_strategy=arg)
+        under = RandomUnderSampler(sampling_strategy=arg, random_state = state)
         X_under, y_under = under.fit_resample(X, y)
         # how is the balance now?
 
