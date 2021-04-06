@@ -7,6 +7,7 @@ from sklearn import metrics
 from sklearn.metrics import f1_score
 from sklearn.metrics import roc_auc_score
 from sklearn.metrics import confusion_matrix
+from sklearn.utils import shuffle
 from time import time
 
 # importing models
@@ -27,11 +28,11 @@ from sklearn.pipeline import make_pipeline
 
 
 class models:
-    def __init__(self, X_train, y_train, X_test, y_test):
+    def __init__(self, X_train,y_train, X_test, y_test):
 
         self.X_train = X_train
-        self.X_test = X_test
         self.y_train = y_train
+        self.X_test = X_test
         self.y_test = y_test
         self.target_names = ["absent", "present"] # "shiv", "elpp", "musc", "null"]
 
@@ -39,11 +40,14 @@ class models:
 
     def scores(self, y_pred):
 
+        '''
+        sensitivity before
+        cm1 = confusion_matrix(self.y_test, y_pred, labels=[0, 1])
+        sensitivity = cm1[0,0] / (cm1[0,0]+cm1[0,1])
+        '''
+
         # zero_division sets it to 0 as default
         f1_s = f1_score(self.y_test, y_pred, average='weighted', zero_division = 0)
-
-        #cm1 = confusion_matrix(self.y_test, y_pred, labels=[0, 1])
-        #sensitivity = cm1[0,0] / (cm1[0,0]+cm1[0,1])
 
         conf_matrix = confusion_matrix(self.y_test, y_pred, labels=[0, 1])
 
@@ -51,14 +55,19 @@ class models:
         TN = conf_matrix[0][0]
         FP = conf_matrix[0][1]
         FN = conf_matrix[1][0]
-        sensitivity = (TP / float(TP + FN))
 
         accuracy = (TP + TN) / (TP + TN + FP + FN)
-        accuracy, f1_s, sensitivity = np.round([accuracy, f1_s, sensitivity], 4)
+
+        sensitivity = (TP / float(TP + FN))
+
+        # rounding digits
+        accuracy, f1_s, sensitivity = np.round([accuracy, f1_s, sensitivity], 5)
         return accuracy, f1_s, sensitivity
 
 
     def baseline(self):
+
+        '''
         np.unique(self.y_test, return_counts=True)[1][0] / len(self.y_test)
 
         #baseline error
@@ -71,6 +80,10 @@ class models:
         #y_pred = np.array([most_occurence for _ in y_test])
         #f1_s = f1_score(y_test, y_pred)
         # f1_s = float('nan')
+        '''
+
+        y_pred = shuffle(self.y_test, random_state=7) # shuffling list
+
         accuracy, f1_s, sensitivity = models.scores(self, y_pred)
 
 
@@ -115,8 +128,12 @@ class models:
 
 
 
-    def RF(self, n_estimators):
-        model = RandomForestClassifier(n_estimators = n_estimators)
+    def RF(self, n_estimators, criterion, max_depth):
+        if np.isreal(criterion):
+            args = ["gini", "entropy"]
+            criterion = args[criterion]
+
+        model = RandomForestClassifier(n_estimators = n_estimators, criterion=criterion, max_depth = max_depth)
         model.fit(self.X_train, self.y_train)
         y_pred = model.predict(self.X_test)
 
@@ -125,11 +142,11 @@ class models:
         return accuracy, f1_s, sensitivity
 
     def LDA(self, solver):
+
         if np.isreal(solver):
-            vars = ['svd', 'lsqr']
-            model = LDA(solver = vars[solver-1])
-        else:
-            model = LDA(solver = solver)
+            args = ['svd', 'lsqr', 'eigen']
+            solver = args[solver]
+        model = LDA(solver = solver)
         model.fit(self.X_train, self.y_train)
         y_pred = model.predict(self.X_test)
 
@@ -138,8 +155,16 @@ class models:
         return accuracy, f1_s, sensitivity
 
 
-    def MLP(self, hidden_layer_sizes):
-        model = MLPClassifier(hidden_layer_sizes = hidden_layer_sizes)
+    def MLP(self, hidden_layer_sizes, solver, learning_rate, alpha):
+
+        if np.isreal(solver):
+            args = ['lbfgs','sgd','adam']
+            solver = args[solver]
+        if np.isreal(learning_rate):
+            args = ['constant','adaptive']
+            learning_rate = args[learning_rate]
+
+        model = MLPClassifier(max_iter = 3000,hidden_layer_sizes=hidden_layer_sizes, solver=solver, learning_rate=learning_rate, alpha=alpha)
         model.fit(self.X_train, self.y_train)
         y_pred = model.predict(self.X_test)
 
@@ -148,8 +173,8 @@ class models:
         return accuracy, f1_s, sensitivity
 
 
-    def AdaBoost(self, learning_rate):
-        model = AdaBoostClassifier(learning_rate = learning_rate)
+    def AdaBoost(self, learning_rate, n_estimators):
+        model = AdaBoostClassifier(learning_rate = learning_rate, n_estimators = n_estimators)
         model.fit(self.X_train, self.y_train)
         y_pred = model.predict(self.X_test)
 

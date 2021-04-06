@@ -154,26 +154,27 @@ def LoadPickles(pickle_path, DelNan = False):
 
     return X, y, ID_frame
 
-def LoadNumpyPickles(pickle_path, X_file, y_file, ID_file, DelNan = False):
+def LoadNumpyPickles(pickle_path, file_name, windowsOS):
 
     # Your pickle should be placed in prepData folder
     os.chdir(pickle_path)
-    X = np.load(pickle_path + X_file, allow_pickle='TRUE')
-    y = np.load(pickle_path + y_file, allow_pickle='TRUE')
-    ID_frame = np.load(pickle_path + ID_file, allow_pickle='TRUE')
+    if windowsOS:
+        file = np.load(pickle_path + file_name, allow_pickle='TRUE')
+    else:
+        file = np.load(pickle_path + file_name[1:], allow_pickle='TRUE')
+    print(file_name[1:]+' loaded')
+    return file
 
+def SaveNumpyPickles(pickle_path, file_name, file, windowsOS):
 
+    # Your pickle should be placed in prepData folder
+    os.chdir(pickle_path)
+    if windowsOS:
+        np.save(pickle_path + file_name, file)
+    else:
+        np.save(pickle_path + file_name[1:], file)
 
-    # Deletes rows with NaN values.
-    if DelNan == True:
-        X, y, ID_frame = DeleteNan(X, y, ID_frame)
-
-        np.save(pickle_path + r"\X_clean.npy", X)
-        np.save(pickle_path + r"\y_clean.npy", y)
-        np.save(pickle_path + r"\ID_frame_clean.npy", ID_frame)
-        print("Successfully saved pickles without NaNs!")
-
-    return X, y, ID_frame
+    print(file_name[1:] +' saved')
 
 
 
