@@ -160,7 +160,7 @@ results = {} # fold, artifact, model, scores
 #### define no. of folds ####
 K = 5 # 80% training and 20% testing
 #setting fold details
-kf = KFold(n_splits=K, random_state=1, shuffle = True) # random state + shuffle ensured same repeated experiments
+kf = KFold(n_splits=K, random_state=0, shuffle = True) # random state + shuffle ensured same repeated experiments
 
 
 i = 0 # CV fold index
@@ -169,7 +169,7 @@ cross_val_time_start = time()
 for train_idx, test_idx in kf.split(individuals):
 #single loop
 #while i < 1:
-#    trainindv, testindv = train_test_split(individuals, test_size=0.20, random_state=2, shuffle = True)
+#    trainindv, testindv = train_test_split(individuals, test_size=0.20, random_state=0, shuffle = True)
     #   REMEMBER to # the other below
     print("\n-----------------------------------------------")
     print("Running {:d}-fold CV - fold {:d}/{:d}".format(K, i+1, K))
@@ -221,13 +221,13 @@ for train_idx, test_idx in kf.split(individuals):
         # - called new in order to not interfere with hyperopt
 
         #### creating test environment ####
-        Xtrain_new, ytrain_new = shuffle(Xtrain_new, ytrain_new, random_state=9)
-        Xtest, ytest = shuffle(Xtest, ytest, random_state=11)
+        Xtrain_new, ytrain_new = shuffle(Xtrain_new, ytrain_new, random_state=0)
+        Xtest, ytest = shuffle(Xtest, ytest, random_state=0)
         env = models(Xtrain_new, ytrain_new, Xtest, ytest)
 
         #### initializing validation data for hyperopt ####
         #TODO: Jeg tror vi bør kalde variablene noget andet, så vi ikke overwriter det vi har kaldt dem tidligere.
-        trainindv, testindv = train_test_split(HO_individuals, test_size=0.20, random_state=2, shuffle = True)
+        trainindv, testindv = train_test_split(HO_individuals, test_size=0.20, random_state=0, shuffle = True)
         # indices of these individuals from ID_frame
         HO_train_indices = [i for i, ID in enumerate(train_ID_frame) if ID in trainindv]
         HO_test_indices = [i for i, ID in enumerate(train_ID_frame) if ID in testindv]
@@ -237,8 +237,8 @@ for train_idx, test_idx in kf.split(individuals):
         # undersampling
         HO_Xtrain_new, HO_ytrain_new = rand_undersample(HO_Xtrain, HO_ytrain, arg = 'majority', state = 1, multi = False)
         # creating environment
-        HO_Xtrain_new, HO_ytrain_new = shuffle(HO_Xtrain_new, HO_ytrain_new, random_state=9)
-        HO_Xtest, HO_ytest = shuffle(Xtest, ytest, random_state=11)
+        HO_Xtrain_new, HO_ytrain_new = shuffle(HO_Xtrain_new, HO_ytrain_new, random_state=0)
+        HO_Xtest, HO_ytest = shuffle(Xtest, ytest, random_state=0)
         HO_env = models(HO_Xtrain_new, HO_ytrain_new, HO_Xtest, HO_ytest)
 
         #### initializing dict for this artifact ####
