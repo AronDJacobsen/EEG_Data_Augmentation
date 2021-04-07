@@ -175,6 +175,16 @@ class models:
 
         return accuracy, f1_s, sensitivity
 
+    def MLP_default(self):
+
+        model = MLPClassifier(max_iter = 5000)
+        model.fit(self.X_train, self.y_train)
+        y_pred = model.predict(self.X_test)
+
+        accuracy, f1_s, sensitivity = models.scores(self, y_pred)
+
+        return accuracy, f1_s, sensitivity
+
 
     def AdaBoost(self, learning_rate, n_estimators):
         model = AdaBoostClassifier(learning_rate = learning_rate, n_estimators = n_estimators)

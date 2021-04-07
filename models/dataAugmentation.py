@@ -10,8 +10,8 @@ from imblearn.under_sampling import NearMiss
 from sklearn.preprocessing import LabelEncoder
 from sklearn import preprocessing
 import pickle as pkl
-import tensorflow.compat.v1 as tf
-tf.disable_v2_behavior()
+#import tensorflow.compat.v1 as tf
+#tf.disable_v2_behavior()
 
 
 def subset(X, y, ID_frame, no_indiv):

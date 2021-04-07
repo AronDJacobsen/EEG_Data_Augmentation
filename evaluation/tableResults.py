@@ -4,16 +4,17 @@ import numpy as np
 from prepData.dataLoader import *
 import pickle
 
-#pickle_path = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia"
-pickle_path = r"/Users/Jacobsen/Documents/GitHub/EEG_epilepsia" + "/"
-windowsOS = False
+pickle_path = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia"
+#pickle_path = r"/Users/Jacobsen/Documents/GitHub/EEG_epilepsia" + "/"
+windowsOS = True
 
+experiment_name = '_pilot_lr'
 
 # fold, artifact, model, scores
-results = LoadNumpyPickles(pickle_path=pickle_path, file_name = r'\results.npy', windowsOS = windowsOS)
+results = LoadNumpyPickles(pickle_path=pickle_path, file_name = r'\results'+ experiment_name +'.npy', windowsOS = windowsOS)
 results = results[()]
 # fold, artifact, model, hyperopt iterations
-HO_trials = LoadNumpyPickles(pickle_path=pickle_path, file_name = r'\HO_trials.npy', windowsOS = windowsOS)
+HO_trials = LoadNumpyPickles(pickle_path=pickle_path, file_name = r'\ho_trials'+ experiment_name +'.npy', windowsOS = windowsOS)
 HO_trials = HO_trials[()]
 
 def mean_confidence_interval(data, confidence=0.95):

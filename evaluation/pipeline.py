@@ -101,6 +101,7 @@ spacesgd = {'alpha': hp.loguniform('alpha', np.log(0.00001), np.log(1))
 
 
 # all
+"""
 model_dict = {'baseline': ('baseline', spaceb),
               'LR' : ('LR', spacelr),
               #'AdaBoost' : ('AdaBoost', spaceab),
@@ -110,7 +111,7 @@ model_dict = {'baseline': ('baseline', spaceb),
               'LDA' : ('LDA', spacelda),
               #'MLP' : ('MLP', spacemlp),
               'SGD' : ('SGD', spacesgd)} #, 'XGBoost' : ('XGBoost', None)}
-#model_dict = {'AdaBoost' : ('AdaBoost', spaceab)}
+"""
 '''
 individual:
 
@@ -125,7 +126,11 @@ model_dict = {'MLP' : ('MLP', spacemlp)}
 model_dict = {'SGD' : ('SGD', spacesgd)}
 '''
 
+experiment_name = "_pilot_MLP_default"
+model_dict = {'MLP_default' : ('MLP_default', None)}
+
 #Pilot til Phillip:
+
 #model_dict = {'AdaBoost' : ('AdaBoost', None)}
 
 
@@ -134,7 +139,8 @@ model_dict = {'SGD' : ('SGD', spacesgd)}
 
 
 #Pilot til Albert:
-#model_dict = {'MLP' : ('MLP', None)}
+
+#model_dict = {'MLP_default' : ('MLP_default', None)}
 
 
 # Dictionary holding keys and values for all functions from the models.py file. Used to "look up" functions in the CV
@@ -308,8 +314,8 @@ print('\n\n')
 
 #### saving data ####
 # Remember to change name of pickle when doing a new experiment
-SaveNumpyPickles(pickle_path, r"\results", results, windowsOS)
-SaveNumpyPickles(pickle_path, r"\ho_trials", ho_trials, windowsOS)
+SaveNumpyPickles(pickle_path + r"\results", r"\results" + experiment_name, results, windowsOS)
+SaveNumpyPickles(pickle_path + r"\results", r"\ho_trials" + experiment_name, ho_trials, windowsOS)
 
 
 
