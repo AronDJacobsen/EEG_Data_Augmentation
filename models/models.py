@@ -58,6 +58,9 @@ class models:
 
         accuracy = (TP + TN) / (TP + TN + FP + FN)
 
+        if TP == 0 and FN == 0:
+            print("No TP or FN found.")
+            FN = 1 # Random number to account for division by zero
         sensitivity = (TP / float(TP + FN))
 
         # rounding digits
@@ -164,7 +167,7 @@ class models:
             args = ['constant','adaptive']
             learning_rate = args[learning_rate]
 
-        model = MLPClassifier(max_iter = 3000,hidden_layer_sizes=hidden_layer_sizes, solver=solver, learning_rate=learning_rate, alpha=alpha)
+        model = MLPClassifier(max_iter = 5000,hidden_layer_sizes=hidden_layer_sizes, solver=solver, learning_rate=learning_rate, alpha=alpha)
         model.fit(self.X_train, self.y_train)
         y_pred = model.predict(self.X_test)
 

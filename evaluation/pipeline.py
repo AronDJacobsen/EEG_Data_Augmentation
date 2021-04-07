@@ -24,9 +24,9 @@ from sklearn.utils import shuffle
 
 #prep_dir = r"C:\Users\Albert Kjøller\Documents\GitHub\TUAR_full_data\tempData" + "\\"
 
-#pickle_path = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia"
-pickle_path = r"/Users/Jacobsen/Documents/GitHub/EEG_epilepsia" + "/"
-windowsOS = False
+pickle_path = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia"
+#pickle_path = r"/Users/Jacobsen/Documents/GitHub/EEG_epilepsia" + "/"
+windowsOS = True
 
 # Create pickles from preprocessed data based on the paths above. Unmuted when pickles exist
 # subject_dict = createSubjectDict(prep_directory=prep_dir, windowsOS=True)
@@ -44,7 +44,7 @@ y = LoadNumpyPickles(pickle_path=pickle_path, file_name = y_file, windowsOS = wi
 ID_frame = LoadNumpyPickles(pickle_path=pickle_path, file_name = ID_file, windowsOS = windowsOS)
 
 # extract a subset for faster running time
-#X, y, ID_frame = subset(X, y, ID_frame, no_indiv=50)
+#X, y, ID_frame = subset(X, y, ID_frame, no_indiv=20)
 
 # apply the inclusion principle
 X, y, ID_frame = binary(X, y, ID_frame)
@@ -64,7 +64,7 @@ spacelr = {'C': hp.loguniform('C', np.log(0.00001), np.log(0.2))} # we can incre
 
 #adaboost,
 spaceab = {'learning_rate': hp.loguniform('learning_rate', np.log(0.0001), np.log(0.1)),
-           'n_estimators': 1 + hp.randint('n_estimators', 399)
+           'n_estimators': 1 + hp.randint('n_estimators', 199)
            } # we can increase interval
 
 #don't think it is necessary
@@ -73,20 +73,20 @@ spacegnb = None
 
 #knn, nr neighbors
 #vals = [ int for int in range(1, 500, 1) ] # remove since no number correlation
-spaceknn = {'n_neighbors': 1 + hp.randint('n_neighbors', 499)}
+spaceknn = {'n_neighbors': 1 + hp.randint('n_neighbors', 249)}
 
 #lda, solvers for shrinkage
 spacelda = {'solver': hp.choice('solver', ['svd', 'lsqr', 'eigen'])}
 
 #mlp,
-spacemlp = {'hidden_layer_sizes': 1+hp.randint('hidden_layer_sizes', 299),
+spacemlp = {'hidden_layer_sizes': 1+hp.randint('hidden_layer_sizes', 149),
             'solver' : hp.choice('solver', ['lbfgs','sgd','adam']),
             'learning_rate' : hp.choice('learning_rate', ['constant','adaptive']),
             'alpha' : hp.loguniform('alpha', np.log(0.00001), np.log(0.01))
             }
 
 #rf, trees in estimating
-spacerf = {'n_estimators': 1+hp.randint('n_estimators', 299),
+spacerf = {'n_estimators': 1+hp.randint('n_estimators', 149),
            'criterion': hp.choice('criterion', ["gini", "entropy"]),
            'max_depth': 1+hp.randint('max_depth', 100)
            }
@@ -101,12 +101,16 @@ spacesgd = {'alpha': hp.loguniform('alpha', np.log(0.00001), np.log(1))
 
 
 # all
-model_dict = {'baseline': ('baseline', spaceb), 'LR' : ('LR', spacelr),
-              'AdaBoost' : ('AdaBoost', spaceab), 'GNB' : ('GNB', spacegnb),
-              'KNN' : ('KNN', spaceknn), 'RF' : ('RF', spacerf),
-              'LDA' : ('LDA', spacelda), 'MLP' : ('MLP', spacemlp),
+model_dict = {'baseline': ('baseline', spaceb),
+              'LR' : ('LR', spacelr),
+              #'AdaBoost' : ('AdaBoost', spaceab),
+              'GNB' : ('GNB', spacegnb),
+              #'KNN' : ('KNN', spaceknn),
+              'RF' : ('RF', spacerf),
+              'LDA' : ('LDA', spacelda),
+              #'MLP' : ('MLP', spacemlp),
               'SGD' : ('SGD', spacesgd)} #, 'XGBoost' : ('XGBoost', None)}
-
+#model_dict = {'AdaBoost' : ('AdaBoost', spaceab)}
 '''
 individual:
 
@@ -121,12 +125,24 @@ model_dict = {'MLP' : ('MLP', spacemlp)}
 model_dict = {'SGD' : ('SGD', spacesgd)}
 '''
 
+#Pilot til Phillip:
+#model_dict = {'AdaBoost' : ('AdaBoost', None)}
+
+
+#Pilot til Aron:
+#model_dict = {'KNN' : ('KNN', None)}
+
+
+#Pilot til Albert:
+#model_dict = {'MLP' : ('MLP', None)}
+
+
 # Dictionary holding keys and values for all functions from the models.py file. Used to "look up" functions in the CV
 # and hyperoptimization part
 function_dict = models.__dict__
 
 #### define no. hyperopt evaluations ####
-HO_evals = 50 # for hyperopt
+HO_evals = 25 # for hyperopt
 
 #for hyperopt data to save
 def unpack(x):
@@ -170,7 +186,7 @@ for train_idx, test_idx in kf.split(individuals):
     X_train, y_train = X[train_indices,:], y[train_indices] # we keep the original and balance new later
     X_test, y_test = X[test_indices,:], y[test_indices]
 
-    #### initializing hyperopt split ####
+    #### initializing hyperopt split #### #TODO: Jeg forstår simpelthen ikke hvorfor det her er nødvendigt? De index har vi jo allerede fundet?
     train_ID_frame = ID_frame[train_indices]
     HO_individuals = np.unique(train_ID_frame) # for hyperopt split
 
@@ -197,10 +213,10 @@ for train_idx, test_idx in kf.split(individuals):
         #ytrain[5:8] = 1
         #ytest[5:8] = 1
         ##################################
-
+        #TODO: indfør en state der er generel. Ændre HO_individuals
 
         #### balancing data ####
-        # now resample majority up to minority to achive equal
+        # now resample majority down to minority to achive equal
         Xtrain_new, ytrain_new = rand_undersample(Xtrain, ytrain, arg = 'majority', state = 0, multi = False)
         # - called new in order to not interfere with hyperopt
 
@@ -210,6 +226,7 @@ for train_idx, test_idx in kf.split(individuals):
         env = models(Xtrain_new, ytrain_new, Xtest, ytest)
 
         #### initializing validation data for hyperopt ####
+        #TODO: Jeg tror vi bør kalde variablene noget andet, så vi ikke overwriter det vi har kaldt dem tidligere.
         trainindv, testindv = train_test_split(HO_individuals, test_size=0.20, random_state=2, shuffle = True)
         # indices of these individuals from ID_frame
         HO_train_indices = [i for i, ID in enumerate(train_ID_frame) if ID in trainindv]
@@ -290,6 +307,7 @@ print("The cross-validation took " + str(cross_val_time) + " seconds = " + str(c
 print('\n\n')
 
 #### saving data ####
+# Remember to change name of pickle when doing a new experiment
 SaveNumpyPickles(pickle_path, r"\results", results, windowsOS)
 SaveNumpyPickles(pickle_path, r"\ho_trials", ho_trials, windowsOS)
 
