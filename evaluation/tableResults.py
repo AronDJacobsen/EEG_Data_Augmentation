@@ -8,7 +8,8 @@ pickle_path = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia"
 #pickle_path = r"/Users/Jacobsen/Documents/GitHub/EEG_epilepsia" + "/"
 windowsOS = True
 
-experiment_name = '_pilot_lr'
+pickle_path = pickle_path + r"\results"
+experiment_name = '_pilot_SGD'
 
 # fold, artifact, model, scores
 results = LoadNumpyPickles(pickle_path=pickle_path, file_name = r'\results'+ experiment_name +'.npy', windowsOS = windowsOS)
@@ -71,7 +72,8 @@ table['avg. weighted f1'] = np.mean(f1s,axis=1)
 df_eval = pd.DataFrame.from_dict(table)
 df_eval.index = models
 print('OVERALL PERFORMANCE\n')
-print(df_eval)
+print(np.round(df_eval*100,2))
+#print(df_eval)
 
 '''
 

@@ -70,7 +70,7 @@ class models:
 
     def baseline(self):
 
-        '''
+        """
         np.unique(self.y_test, return_counts=True)[1][0] / len(self.y_test)
 
         #baseline error
@@ -83,7 +83,7 @@ class models:
         #y_pred = np.array([most_occurence for _ in y_test])
         #f1_s = f1_score(y_test, y_pred)
         # f1_s = float('nan')
-        '''
+        """
 
         y_pred = shuffle(self.y_test, random_state=7) # shuffling list
 

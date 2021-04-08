@@ -126,8 +126,8 @@ model_dict = {'MLP' : ('MLP', spacemlp)}
 model_dict = {'SGD' : ('SGD', spacesgd)}
 '''
 
-experiment_name = "_pilot_MLP_default"
-model_dict = {'MLP_default' : ('MLP_default', None)}
+experiment_name = "_pilot_MLP"
+model_dict = {'MLP' : ('MLP', spacemlp)}
 
 #Pilot til Phillip:
 
@@ -148,7 +148,7 @@ model_dict = {'MLP_default' : ('MLP_default', None)}
 function_dict = models.__dict__
 
 #### define no. hyperopt evaluations ####
-HO_evals = 25 # for hyperopt
+HO_evals = 10 # for hyperopt
 
 #for hyperopt data to save
 def unpack(x):
