@@ -144,6 +144,15 @@ class models:
 
         return accuracy, f1_s, sensitivity
 
+    def RF_default(self):
+        model = RandomForestClassifier()
+        model.fit(self.X_train, self.y_train)
+        y_pred = model.predict(self.X_test)
+
+        accuracy, f1_s, sensitivity = models.scores(self, y_pred)
+
+        return accuracy, f1_s, sensitivity
+
     def LDA(self, solver):
 
         if np.isreal(solver):

@@ -126,8 +126,8 @@ model_dict = {'MLP' : ('MLP', spacemlp)}
 model_dict = {'SGD' : ('SGD', spacesgd)}
 '''
 
-experiment_name = "_pilot_MLP"
-model_dict = {'MLP' : ('MLP', spacemlp)}
+experiment_name = "_pilot_RF_default"
+model_dict = {'RF_default' : ('RF_default', None)}
 
 #Pilot til Phillip:
 
@@ -148,7 +148,8 @@ model_dict = {'MLP' : ('MLP', spacemlp)}
 function_dict = models.__dict__
 
 #### define no. hyperopt evaluations ####
-HO_evals = 10 # for hyperopt
+HO_evals = 25 # for hyperopt
+random_state_val = 0
 
 #for hyperopt data to save
 def unpack(x):
@@ -166,7 +167,7 @@ results = {} # fold, artifact, model, scores
 #### define no. of folds ####
 K = 5 # 80% training and 20% testing
 #setting fold details
-kf = KFold(n_splits=K, random_state=0, shuffle = True) # random state + shuffle ensured same repeated experiments
+kf = KFold(n_splits=K, random_state=random_state_val, shuffle = True) # random state + shuffle ensured same repeated experiments
 
 
 i = 0 # CV fold index
@@ -175,7 +176,7 @@ cross_val_time_start = time()
 for train_idx, test_idx in kf.split(individuals):
 #single loop
 #while i < 1:
-#    trainindv, testindv = train_test_split(individuals, test_size=0.20, random_state=0, shuffle = True)
+#    trainindv, testindv = train_test_split(individuals, test_size=0.20, random_state=random_state_val, shuffle = True)
     #   REMEMBER to # the other below
     print("\n-----------------------------------------------")
     print("Running {:d}-fold CV - fold {:d}/{:d}".format(K, i+1, K))
@@ -192,7 +193,7 @@ for train_idx, test_idx in kf.split(individuals):
     X_train, y_train = X[train_indices,:], y[train_indices] # we keep the original and balance new later
     X_test, y_test = X[test_indices,:], y[test_indices]
 
-    #### initializing hyperopt split #### #TODO: Jeg forstår simpelthen ikke hvorfor det her er nødvendigt? De index har vi jo allerede fundet?
+    #### initializing hyperopt split #### #TODO: Det her er overflødigt, vi kan bare ændre HO_individuals til trainindv (tror jeg)
     train_ID_frame = ID_frame[train_indices]
     HO_individuals = np.unique(train_ID_frame) # for hyperopt split
 
@@ -219,7 +220,7 @@ for train_idx, test_idx in kf.split(individuals):
         #ytrain[5:8] = 1
         #ytest[5:8] = 1
         ##################################
-        #TODO: indfør en state der er generel. Ændre HO_individuals
+
 
         #### balancing data ####
         # now resample majority down to minority to achive equal
@@ -227,13 +228,13 @@ for train_idx, test_idx in kf.split(individuals):
         # - called new in order to not interfere with hyperopt
 
         #### creating test environment ####
-        Xtrain_new, ytrain_new = shuffle(Xtrain_new, ytrain_new, random_state=0)
-        Xtest, ytest = shuffle(Xtest, ytest, random_state=0)
+        Xtrain_new, ytrain_new = shuffle(Xtrain_new, ytrain_new, random_state=random_state_val)
+        Xtest, ytest = shuffle(Xtest, ytest, random_state=random_state_val)
         env = models(Xtrain_new, ytrain_new, Xtest, ytest)
 
         #### initializing validation data for hyperopt ####
         #TODO: Jeg tror vi bør kalde variablene noget andet, så vi ikke overwriter det vi har kaldt dem tidligere.
-        trainindv, testindv = train_test_split(HO_individuals, test_size=0.20, random_state=0, shuffle = True)
+        trainindv, testindv = train_test_split(HO_individuals, test_size=0.20, random_state=random_state_val, shuffle = True)
         # indices of these individuals from ID_frame
         HO_train_indices = [i for i, ID in enumerate(train_ID_frame) if ID in trainindv]
         HO_test_indices = [i for i, ID in enumerate(train_ID_frame) if ID in testindv]
@@ -243,8 +244,8 @@ for train_idx, test_idx in kf.split(individuals):
         # undersampling
         HO_Xtrain_new, HO_ytrain_new = rand_undersample(HO_Xtrain, HO_ytrain, arg = 'majority', state = 1, multi = False)
         # creating environment
-        HO_Xtrain_new, HO_ytrain_new = shuffle(HO_Xtrain_new, HO_ytrain_new, random_state=0)
-        HO_Xtest, HO_ytest = shuffle(Xtest, ytest, random_state=0)
+        HO_Xtrain_new, HO_ytrain_new = shuffle(HO_Xtrain_new, HO_ytrain_new, random_state=random_state_val)
+        HO_Xtest, HO_ytest = shuffle(Xtest, ytest, random_state=random_state_val)
         HO_env = models(HO_Xtrain_new, HO_ytrain_new, HO_Xtest, HO_ytest)
 
         #### initializing dict for this artifact ####
