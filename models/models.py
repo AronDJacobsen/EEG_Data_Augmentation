@@ -204,6 +204,16 @@ class models:
 
         return accuracy, f1_s, sensitivity
 
+    ### AdaBoost_default
+    def AdaBoost_default(self):
+        model = AdaBoostClassifier()
+        model.fit(self.X_train, self.y_train)
+        y_pred = model.predict(self.X_test)
+
+        accuracy, f1_s, sensitivity = models.scores(self, y_pred)
+
+        return accuracy, f1_s, sensitivity
+
     def SGD(self, alpha):
         # Default loss in SGDClassifier gives SVM
         model = make_pipeline(StandardScaler(), SGDClassifier(alpha = alpha))

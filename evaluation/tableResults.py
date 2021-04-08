@@ -4,12 +4,13 @@ import numpy as np
 from prepData.dataLoader import *
 import pickle
 
-pickle_path = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia"
+#pickle_path = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia"
 #pickle_path = r"/Users/Jacobsen/Documents/GitHub/EEG_epilepsia" + "/"
-windowsOS = True
+pickle_path = r"/Users/philliphoejbjerg/Documents/GitHub/EEG_epilepsia" + "/"
+windowsOS = False
 
-pickle_path = pickle_path + r"\results"
-experiment_name = '_pilot_SGD'
+pickle_path = pickle_path + r"results/"
+experiment_name = '_pilot_Adaboost'
 
 # fold, artifact, model, scores
 results = LoadNumpyPickles(pickle_path=pickle_path, file_name = r'\results'+ experiment_name +'.npy', windowsOS = windowsOS)
