@@ -126,8 +126,8 @@ model_dict = {'MLP' : ('MLP', spacemlp)}
 model_dict = {'SGD' : ('SGD', spacesgd)}
 '''
 
-experiment_name = "_pilot_RF_default"
-model_dict = {'RF_default' : ('RF_default', None)}
+experiment_name = "_pilot_KNN_default"
+model_dict = {'KNN_default' : ('KNN_default', None)}
 
 #Pilot til Phillip:
 
@@ -315,8 +315,8 @@ print('\n\n')
 
 #### saving data ####
 # Remember to change name of pickle when doing a new experiment
-SaveNumpyPickles(pickle_path + r"\results", r"\results" + experiment_name, results, windowsOS)
-SaveNumpyPickles(pickle_path + r"\results", r"\ho_trials" + experiment_name, ho_trials, windowsOS)
+SaveNumpyPickles(pickle_path + r"\results\performance", r"\results" + experiment_name, results, windowsOS)
+SaveNumpyPickles(pickle_path + r"\results\hyperopt", r"\ho_trials" + experiment_name, ho_trials, windowsOS)
 
 
 

@@ -21,7 +21,7 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.linear_model import SGDClassifier
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import make_pipeline
-#import xgboost as xgb
+import xgboost as xgb
 
 #import torchvision.transforms as transforms
 
@@ -129,6 +129,19 @@ class models:
 
         return accuracy, f1_s, sensitivity
 
+    def KNN_default(self): #, params):
+        #model = KNeighborsClassifier(**params)
+        #if n_neighbors < 1:
+        #    n_neighbors = 1 # TODO: hardcoded lige nu pga. en fejl hvor den fik 0 neighbours
+        model = KNeighborsClassifier()
+        model.fit(self.X_train, self.y_train)
+        y_pred = model.predict(self.X_test)
+        #accuracy = model.score(X_test, y_test)
+
+        accuracy, f1_s, sensitivity = models.scores(self, y_pred)
+
+        return accuracy, f1_s, sensitivity
+
 
 
     def RF(self, n_estimators, criterion, max_depth):
@@ -225,8 +238,8 @@ class models:
         return accuracy, f1_s, sensitivity
 
 
-    def XGBoost(self):
-        model = xgb.XGBClassifier(random_state=1, learning_rate=0.01, max_depth=5)
+    def XGBoost_default(self):
+        model = xgb.XGBClassifier()
         model.fit(self.X_train, self.y_train)
         y_pred = model.predict(self.X_test)
 

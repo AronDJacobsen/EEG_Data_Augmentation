@@ -4,14 +4,50 @@ import numpy as np
 from prepData.dataLoader import *
 import pickle
 import matplotlib.pyplot as plt
+from collections import defaultdict
+import glob
+
+def mergeResultFiles(file_path, file_name="merged", windowsOS=False):
+    #TODO: Kunne være fedt at lave, så man vælger hvilke filer der skal merges i stedet for directory
+
+    # Nested dictionary
+    all_results_dict = defaultdict(lambda: defaultdict(dict))
+
+
+    file_names = [results_file.split("\\")[-1] for results_file in glob.glob(file_path + "\\" + "**")]
+
+    for model_file in file_names:
+        results = LoadNumpyPickles(file_path + "\\", model_file, windowsOS=windowsOS)[()]
+
+        folds = list(results.keys())
+        artifacts = list(results[folds[0]].keys())
+        models = list(results[folds[0]][artifacts[0]].keys())
+
+        for fold in folds:
+            for artifact in artifacts:
+                for model in models:
+
+                    all_results_dict[fold][artifact][model] = results[fold][artifact][model]
+
+    # Save file in merged_files dir
+    results_basepath = "\\".join(file_path.split("\\")[:-1])
+
+    # Reformating dictionary to avoid lambda call - to be able to save as pickle
+    temp = defaultdict(dict)
+    for fold in all_results_dict.keys():
+        temp[fold] = all_results_dict[fold]
+
+    SaveNumpyPickles(results_basepath + r"\merged_files" ,"\\" + file_name, temp, windowsOS)
 
 
 def tableResults(pickle_path, windows_OS, experiment_name):
     # fold, artifact, model, scores
-    results = LoadNumpyPickles(pickle_path=pickle_path, file_name = r'\results'+ experiment_name +'.npy', windowsOS = windowsOS)
+    results_basepath = "\\".join(pickle_path.split("\\")[:-1])
+
+    results = LoadNumpyPickles(pickle_path=results_basepath + r"\performance", file_name = r'\results'+ experiment_name +'.npy', windowsOS = windowsOS)
     results = results[()]
     # fold, artifact, model, hyperopt iterations
-    HO_trials = LoadNumpyPickles(pickle_path=pickle_path, file_name = r'\ho_trials'+ experiment_name +'.npy', windowsOS = windowsOS)
+    HO_trials = LoadNumpyPickles(pickle_path=results_basepath + r"\hyperopt", file_name = r'\ho_trials'+ experiment_name +'.npy', windowsOS = windowsOS)
     HO_trials = HO_trials[()]
 
     def mean_confidence_interval(data, confidence=0.95):
@@ -87,12 +123,21 @@ if __name__ == '__main__':
     # pickle_path = r"/Users/Jacobsen/Documents/GitHub/EEG_epilepsia" + "/"
     windowsOS = True
 
-    pickle_path = dir + r"\results"
-    experiment_name = '_pilot_Adaboost'
+    pickle_path = dir + r"\results\performance"
+    pickle_path_merge = dir + r"\results\merged_files"
+    experiment_name = '_pilot_KNN_default'
+    experiment_name_merge = 'merged_pilot'
+
+    # Merge individual result-files
+    all_results = mergeResultFiles(file_path=pickle_path, file_name="merged_pilot", windowsOS=windowsOS)
+
+
+    performance, errors, model_names, artifact_names = tableResults(pickle_path=pickle_path_merge, windows_OS=windowsOS, experiment_name=experiment_name_merge)
 
     # Loading statistically calculated results as dictionaries
     performance, errors, model_names, artifact_names = tableResults(pickle_path=pickle_path, windows_OS=windowsOS, experiment_name=experiment_name)
 
+    #TODO: Generalize to multiple models in the dict
     # Printing tables
     df_eval = pd.DataFrame.from_dict(performance)
     df_eval.index = model_names
