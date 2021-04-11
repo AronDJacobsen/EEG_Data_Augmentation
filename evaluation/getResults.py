@@ -40,15 +40,20 @@ def mergeResultFiles(file_path, file_name="merged", windowsOS=False):
     SaveNumpyPickles(results_basepath + r"\merged_files" ,"\\" + file_name, temp, windowsOS)
 
 
-def tableResults(pickle_path, windows_OS, experiment_name):
+def tableResults(pickle_path, windows_OS, experiment_name, merged_file=False):
     # fold, artifact, model, scores
     results_basepath = "\\".join(pickle_path.split("\\")[:-1])
 
-    results = LoadNumpyPickles(pickle_path=results_basepath + r"\performance", file_name = r'\results'+ experiment_name +'.npy', windowsOS = windowsOS)
-    results = results[()]
-    # fold, artifact, model, hyperopt iterations
-    HO_trials = LoadNumpyPickles(pickle_path=results_basepath + r"\hyperopt", file_name = r'\ho_trials'+ experiment_name +'.npy', windowsOS = windowsOS)
-    HO_trials = HO_trials[()]
+    if merged_file:
+        results = LoadNumpyPickles(pickle_path=results_basepath + r"\merged_files",
+                                   file_name="\\" + experiment_name + '.npy', windowsOS=windowsOS)
+        results = results[()]
+    else:
+        results = LoadNumpyPickles(pickle_path=results_basepath + r"\performance", file_name = r"\results" + experiment_name +'.npy', windowsOS = windowsOS)
+        results = results[()]
+        # fold, artifact, model, hyperopt iterations
+        HO_trials = LoadNumpyPickles(pickle_path=results_basepath + r"\hyperopt", file_name = r'\ho_trials' + experiment_name +'.npy', windowsOS = windowsOS)
+        HO_trials = HO_trials[()]
 
     def mean_confidence_interval(data, confidence=0.95):
         a = 1.0 * np.array(data)
@@ -61,8 +66,8 @@ def tableResults(pickle_path, windows_OS, experiment_name):
 
     pd.set_option("display.max_rows", None, "display.max_columns", None)
 
-    table = {}
-    table_std = {}
+    table = defaultdict(dict) #{}
+    table_std = defaultdict(dict) #{}
 
     # want to average each fold
     #construct keys
@@ -78,7 +83,7 @@ def tableResults(pickle_path, windows_OS, experiment_name):
     f1s_std = np.zeros((len(models),len(artifacts)))
 
     for idx_art, artifact in enumerate(artifacts):
-        table[artifact] = []
+        #table[artifact] = []
         store_model = [0]*len(models)
         sensitivity_std = [0]*len(models)
 
@@ -100,9 +105,9 @@ def tableResults(pickle_path, windows_OS, experiment_name):
             acc_std[idx_mod, idx_art] = np.std(temp_acc)
             f1s_std[idx_mod, idx_art] = np.std(temp_f1)
 
-        # Store standard deviation for sensitivies for each classifier/ model
-        store_model[idx_mod] = np.mean(store_scores)
-        sensitivity_std[idx_mod] = np.std(store_scores)
+            # Store standard deviation for sensitivies for each classifier/ model
+            store_model[idx_mod] = np.mean(store_scores)
+            sensitivity_std[idx_mod] = np.std(store_scores)
 
         table[artifact] = store_model
         table_std[artifact] = sensitivity_std
@@ -118,6 +123,85 @@ def tableResults(pickle_path, windows_OS, experiment_name):
     return table, table_std, models, artifacts
 
 
+def plotPerformanceModels(performance_dict, error_dict, model_names, artifact_names, save_img=False):
+    save_path = dir + r'\Plots\Pilot'
+
+    # Plotting results
+    art = len(artifact_names)
+    performance_vals = np.array(list(performance_dict.values())[:art]).T
+    error_vals = np.array(list(error_dict.values())[:art]).T
+
+    for indv_model, name in enumerate(model_names):
+        plt.bar(x=artifact_names, height=performance_vals[indv_model,:], width=0.5, color="lightsteelblue")
+        plt.errorbar(x=artifact_names, y=performance_vals[indv_model,:], yerr=error_vals[indv_model,:], fmt='.', color='k')
+        plt.title(name)
+        plt.ylim(0, 1)
+        if save_img:
+            plt.savefig(save_path + "\\" + name)
+        plt.show()
+
+def plotPerformanceClasses(performance_dict, error_dict, model_names, artifact_names, save_img=False):
+    save_path = dir + r'\Plots\Pilot'
+
+    # Plotting results
+    art = len(artifact_names)
+    performance_vals = np.array(list(performance_dict.values())[:art])
+    error_vals = np.array(list(error_dict.values())[:art])
+
+    model_names = [name.split("_")[0] for name in model_names]
+    for indv_art, name in enumerate(artifact_names):
+        plt.bar(x=model_names, height=performance_vals[indv_art, :], width=0.5, color="lightsteelblue")
+        plt.errorbar(x=model_names, y=performance_vals[indv_art, :], yerr=error_vals[indv_art, :], fmt='.',
+                     color='k')
+        plt.title(name)
+        plt.xticks(rotation=25)
+        plt.ylim(0,1)
+        if save_img:
+            plt.savefig(save_path + "\\" + name)
+        plt.show()
+
+def plotHyperopt(pickle_path, file_name, windowsOS=False):
+
+    try:
+        results_basepath = "\\".join(pickle_path.split("\\")[:-1])
+
+        # fold, artifact, model, scores
+        results = LoadNumpyPickles(pickle_path=results_basepath + r"\performance",
+                                   file_name=r"\results" + experiment_name + '.npy', windowsOS=windowsOS)
+        results = results[()]
+
+
+        # fold, artifact, model, hyperopt iterations
+        HO_trials = LoadNumpyPickles(pickle_path=results_basepath + r"\hyperopt",
+                                   file_name=r"\ho_trials" + experiment_name + '.npy', windowsOS=windowsOS)
+        HO_trials = HO_trials[()]
+
+        # only choose one fold
+        # construct keys
+        folds = list(results.keys())
+        artifacts = list(results[folds[0]].keys())
+        models = list(results[folds[0]][artifacts[0]].keys())
+        scores = list(results[folds[0]][artifacts[0]][models[0]].keys())
+
+        single = HO_trials[folds[0]][artifacts[0]][models[0]]
+
+        #TODO: Not completely functioning! It does not show the plots
+
+        # hyperopt
+        cols = list(single.columns)
+        n = len(cols)
+        for i in range(n - 1):  # for every parameter
+            plt.scatter(single[cols[i]], single[cols[n - 1]])
+            plt.title('HyperOpt: model: {}, artifact: {}'.format(models[0], cols[i]))
+            plt.xlabel(cols[i])
+            plt.ylabel('accuracy')
+            plt.show()
+
+    except KeyError:
+        print("\n\nERROR: No Hyperopt queries used for this model!")
+
+
+
 if __name__ == '__main__':
     dir = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia"
     # pickle_path = r"/Users/Jacobsen/Documents/GitHub/EEG_epilepsia" + "/"
@@ -125,20 +209,21 @@ if __name__ == '__main__':
 
     pickle_path = dir + r"\results\performance"
     pickle_path_merge = dir + r"\results\merged_files"
-    experiment_name = '_pilot_KNN_default'
+    experiment_name = '_pilot_LR'
     experiment_name_merge = 'merged_pilot'
 
     # Merge individual result-files
     all_results = mergeResultFiles(file_path=pickle_path, file_name="merged_pilot", windowsOS=windowsOS)
 
 
-    performance, errors, model_names, artifact_names = tableResults(pickle_path=pickle_path_merge, windows_OS=windowsOS, experiment_name=experiment_name_merge)
-
     # Loading statistically calculated results as dictionaries
-    performance, errors, model_names, artifact_names = tableResults(pickle_path=pickle_path, windows_OS=windowsOS, experiment_name=experiment_name)
+    # For single files and their HO_trials
+    # performance, errors, model_names, artifact_names = tableResults(pickle_path=pickle_path, windows_OS=windowsOS, experiment_name=experiment_name, merged_file=False)
 
-    #TODO: Generalize to multiple models in the dict
-    # Printing tables
+    # For merged files
+    performance, errors, model_names, artifact_names = tableResults(pickle_path=pickle_path_merge, windows_OS=windowsOS, experiment_name=experiment_name_merge, merged_file=True)
+
+    # Print dataframes
     df_eval = pd.DataFrame.from_dict(performance)
     df_eval.index = model_names
     print('OVERALL PERFORMANCE\n')
@@ -151,15 +236,17 @@ if __name__ == '__main__':
     print(np.round(df_eval * 100, 2))
 
 
-    save_path = dir + r'\Plots\Pilot'
-    # Plotting results
-    performance_vals = np.array(list(performance.values())[:6]).reshape(-1)
-    error_vals = np.array(list(errors.values())[:6]).reshape(-1)
-    plt.bar(x=artifact_names, height=performance_vals,width=0.5, color="lightsteelblue")
-    plt.errorbar(x=artifact_names, y=performance_vals, yerr=error_vals, fmt='.',color='k')
-    plt.title(model_names[0])
-    plt.savefig(save_path + "\\" + model_names[0])
-    plt.show()
+    # Save plots or not
+    save_img = False
+
+    #Across models
+    plotPerformanceModels(performance_dict=performance, error_dict=errors, model_names=model_names, artifact_names=artifact_names, save_img=save_img)
+
+    #Across classes
+    plotPerformanceClasses(performance_dict=performance, error_dict=errors, model_names=model_names, artifact_names=artifact_names, save_img=save_img)
+
+    #Plotting Hyperopt queries
+    plotHyperopt(pickle_path=pickle_path, file_name=experiment_name, windowsOS=windowsOS)
 
 
     print("")

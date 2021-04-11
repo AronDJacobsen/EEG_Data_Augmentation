@@ -102,7 +102,7 @@ upsample_plot = False
 if upsample_plot == True:
     label_to_up = 0
     #Upsampling for visualization (only eyemovement)
-    from models.dataAugmentation import balance
+    from models.balanceData import balance
     Xnew, ynew = balance(X_for_viz, y_for_viz[:,label_to_up], 0.3, 0.05)
     new_pos = np.where(ynew == 1)[0]
     X_for_viz = np.concatenate((X_for_viz, Xnew[new_pos]))

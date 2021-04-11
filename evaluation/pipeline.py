@@ -15,7 +15,7 @@ from collections import defaultdict
 from hyperopt import fmin, tpe, hp, STATUS_OK, Trials
 from prepData.dataLoader import *
 from time import time
-from models.dataAugmentation import *
+from models.balanceData import *
 from hyperopt import fmin, tpe, hp, STATUS_OK, Trials
 import matplotlib.pyplot as plt
 import scipy.stats
