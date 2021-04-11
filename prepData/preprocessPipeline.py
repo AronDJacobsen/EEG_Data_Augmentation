@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from mne.io import read_raw_edf
 import numpy as np
 # from ../LoadFarrahTueData.loadData import jsonLoad
-import prepData.loadData as loadData
+import loadData
 # import NovelEEG.SampleCode.loadData
 from scipy import signal, stats
 import matplotlib.pyplot as plt
@@ -12,18 +12,34 @@ import matplotlib.pyplot as plt
 
 def readRawEdf(edfDict=None, saveDir='', tWindow=120, tStep=30,
                read_raw_edf_param={'preload': True, "stim_channel": "auto"}):
-    edfDict["rawData"] = read_raw_edf(saveDir+edfDict["path"][-1], **read_raw_edf_param)
-    edfDict["fS"] = edfDict["rawData"].info["sfreq"]
-    t_start = edfDict["rawData"].annotations.orig_time
-    t_last = t_start.timestamp() + edfDict["rawData"]._last_time+1/edfDict["fS"]
-    edfDict["t0"] = t_start # datetime.fromtimestamp(t_start.timestamp(), tz=timezone.utc)
-    edfDict["tN"] = datetime.fromtimestamp(t_last, tz=timezone.utc)
-    edfDict["tWindow"] = float(tWindow) # width of EEG sample window, given in (sec)
-    edfDict["tStep"] = float(tStep) # step/overlap between EEG sample windows, given in (sec)
+    try:
+        edfDict["rawData"] = read_raw_edf(saveDir+edfDict["path"][-1], **read_raw_edf_param)
+        edfDict["fS"] = edfDict["rawData"].info["sfreq"]
+        t_start = edfDict["rawData"].annotations.orig_time
+        if t_start.timestamp() <= 0:
+            edfDict["t0"] = datetime.fromtimestamp(0, tz=timezone.utc)
+            t_last = edfDict["t0"].timestamp() + edfDict["rawData"]._last_time + 1 / edfDict["fS"]
+            edfDict["tN"] = datetime.fromtimestamp(t_last, tz=timezone.utc)
+        else:
+            t_last = t_start.timestamp() + edfDict["rawData"]._last_time + 1 / edfDict["fS"]
+            edfDict["t0"] = t_start # datetime.fromtimestamp(t_start.timestamp(), tz=timezone.utc)
+            edfDict["tN"] = datetime.fromtimestamp(t_last, tz=timezone.utc)
 
-    # with open(saveDir + edfDict["path"][-1], encoding="latin-1") as fp:
-    #     first_line = fp.readline()
-    # edfDict["age"] = re.search(r"(Age:\d+)", first_line).group()
+        edfDict["tWindow"] = float(tWindow) # width of EEG sample window, given in (sec)
+        edfDict["tStep"] = float(tStep) # step/overlap between EEG sample windows, given in (sec)
+
+        header = mne.io.edf.edf._read_edf_header(fname=edfDict["rawData"].filenames[0], exclude=[])
+        id_tmp = header[0]["subject_info"]["id"]
+        with open(saveDir + edfDict["path"][-1], encoding="latin-1") as fp:
+            first_line = fp.readline()
+
+        # regex_found = re.findall(r"%s \S+" % id_tmp, first_line)
+        subject_gender = re.search(r"%s \w+" % id_tmp, first_line).group().split(" ")[1]
+        subject_age = re.search(r"%s (Age:\d+)" % id_tmp, first_line).group().split(":")[1]
+        edfDict["gender"] = subject_gender
+        edfDict["age"] = int(subject_age)
+    except:
+        print("error break plese inspect:\n %s\n~~~~~~~~~~~~" % edfDict["rawData"].filenames[0])
 
     return edfDict
 
@@ -32,8 +48,6 @@ def pipeline(MNE_raw=None, lpfq=1, hpfq=40, notchfq=50, downSam=100, type="easyc
     # Follows Makoto's_Preprocessing_Pipeline recommended for EEGlab's ICA
     # combined with Early State Preprocessing: PREP
     # Step 1 & 2: Check paths and import data -> is completed in readRawEdf
-    # Step : Downsample # TODO: error introduced after MNE -- update
-    # MNE_raw.resample(sfreq=downSam)
     #
     # To inspect the raw signal make the following calls as required
     #  MNE_raw.plot()
@@ -46,6 +60,9 @@ def pipeline(MNE_raw=None, lpfq=1, hpfq=40, notchfq=50, downSam=100, type="easyc
     MNE_raw.set_montage(mne.channels.make_standard_montage(kind=type, head_size=0.095), on_missing="warn")
     # Step 6 utilizing data knowledge for line-noise removal
     MNE_raw.notch_filter(freqs=notchfq, notch_widths=5)
+
+    # Step : Downsample # TODO: error introduced after MNE -- update
+    MNE_raw.resample(sfreq=downSam) # Main reason: standardizing for all subjects
 
     # Step 7 inference statistics to annotate bad channels
     # TODO: "BADS" code from MNEi & PREP
@@ -88,7 +105,7 @@ def spectrogramMake(MNE_raw=None, t0=0, tWindow=120, crop_fq=45, FFToverlap=None
         # plt.ylim(0,45)
         # plt.show()
 
-    return torch.tensor(normSxx) # for np delete torch.tensor
+    return torch.tensor(normSxx, dtype=torch.float16) # for np delete torch.tensor
 
 # Segment EEG into designated windows
 def slidingWindow(EEG_series=None, t_max=0, tStep=1, FFToverlap=None, crop_fq=45, annoDir=None,
@@ -133,13 +150,13 @@ def slidingWindow(EEG_series=None, t_max=0, tStep=1, FFToverlap=None, crop_fq=45
 
     # save in RAM, disk or not
     if localSave["sliceSave"]:
-        idDir = EEG_series["rawData"].filenames[0].split('/')[-1].split('.')[0]
-        if not os.path.exists(localSave["saveDir"] + "tempData/"):
-            os.mkdir(localSave["saveDir"] + "tempData/")
-        if not os.path.exists(localSave["saveDir"] + "tempData/" + idDir):
-            os.mkdir(localSave["saveDir"] + "tempData/" + idDir)
+        idDir = EEG_series["rawData"].filenames[0].split('\\')[-1].split('.')[0]
+        if not os.path.exists(localSave["saveDir"] + "tempData\\"):
+            os.mkdir(localSave["saveDir"] + "tempData\\")
+        if not os.path.exists(localSave["saveDir"] + "tempData\\" + idDir):
+            os.mkdir(localSave["saveDir"] + "tempData\\" + idDir)
         for k, v in window_EEG.items():
-            torch.save(v, localSave["saveDir"] + "tempData/%s/%s.pt" % (idDir, k)) # for np del torch.save
+            torch.save(v, localSave["saveDir"] + "tempData\\%s\\%s.pt" % (idDir, k)) # for np del torch.save
     if not localSave["sliceSave"] or localSave["local_return"] is True:
         windowOut = window_EEG.copy()
     else:
@@ -158,6 +175,8 @@ def TUH_rename_ch(MNE_raw=False):
         if re.search(reSTR, i) and re.search(reSTR, i).group() in reLowC:
             lowC = i[0:5]+i[5].lower()+i[6:]
             mne.channels.rename_channels(MNE_raw.info, {i: re.findall(reSTR, lowC)[0]})
+        elif i == "PHOTIC-REF":
+            mne.channels.rename_channels(MNE_raw.info, {i: "PHOTIC"})
         elif re.search(reSTR, i):
             mne.channels.rename_channels(MNE_raw.info, {i: re.findall(reSTR, i)[0]})
         else:
@@ -190,5 +209,4 @@ def completePrep(tWin=120, tStep=30, localSave={"sliceSave":False, "saveDir":os.
     return edfDict
 # THIS FUNCTION IS CURRENTLY BROKEN!
 
-# ############ TODO:
-#
+# ##

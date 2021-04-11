@@ -3,7 +3,7 @@ import numpy as np
 from collections import defaultdict
 import matplotlib.pyplot as plt
 import prepData.loadData as loadData
-from prepData.preprocessPipeline2 import TUH_rename_ch, readRawEdf, pipeline, spectrogramMake, slidingWindow
+from prepData.preprocessPipeline import TUH_rename_ch, readRawEdf, pipeline, spectrogramMake, slidingWindow
 
 def processRawData(data_path, save_path, file_selected, windowsOS=False):
     # Redefining so we don't have to change variables through all of the function
