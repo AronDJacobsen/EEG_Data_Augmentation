@@ -6,7 +6,6 @@ random.seed(10)
 ###########################
 
 
-from models.modelFitting_vol2 import *
 from sklearn.model_selection import cross_val_score, KFold
 from models.models import models
 import numpy as np
@@ -21,6 +20,7 @@ import matplotlib.pyplot as plt
 import scipy.stats
 from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
+import pandas as pd
 
 #prep_dir = r"C:\Users\Albert Kjøller\Documents\GitHub\TUAR_full_data\tempData" + "\\"
 
@@ -64,7 +64,7 @@ spacelr = {'C': hp.loguniform('C', np.log(0.00001), np.log(0.2))} # we can incre
 
 #adaboost,
 spaceab = {'learning_rate': hp.loguniform('learning_rate', np.log(0.0001), np.log(0.1)),
-           'n_estimators': 1 + hp.randint('n_estimators', 199)
+           'n_estimators': hp.randint('n_estimators', 1, 201)
            } # we can increase interval
 
 #don't think it is necessary
@@ -73,22 +73,22 @@ spacegnb = None
 
 #knn, nr neighbors
 #vals = [ int for int in range(1, 500, 1) ] # remove since no number correlation
-spaceknn = {'n_neighbors': 1 + hp.randint('n_neighbors', 249)}
+spaceknn = {'n_neighbors': hp.randint('n_neighbors', 1, 251)}
 
 #lda, solvers for shrinkage
 spacelda = {'solver': hp.choice('solver', ['svd', 'lsqr', 'eigen'])}
 
 #mlp,
-spacemlp = {'hidden_layer_sizes': 1+hp.randint('hidden_layer_sizes', 149),
+spacemlp = {'hidden_layer_sizes': hp.randint('hidden_layer_sizes', 1, 151),
             'solver' : hp.choice('solver', ['lbfgs','sgd','adam']),
             'learning_rate' : hp.choice('learning_rate', ['constant','adaptive']),
             'alpha' : hp.loguniform('alpha', np.log(0.00001), np.log(0.01))
             }
 
 #rf, trees in estimating
-spacerf = {'n_estimators': 1+hp.randint('n_estimators', 149),
+spacerf = {'n_estimators': hp.randint('n_estimators', 1, 151),
            'criterion': hp.choice('criterion', ["gini", "entropy"]),
-           'max_depth': 1+hp.randint('max_depth', 100)
+           'max_depth': hp.randint('max_depth', 1, 101)
            }
 
 #sgd,
@@ -126,8 +126,8 @@ model_dict = {'MLP' : ('MLP', spacemlp)}
 model_dict = {'SGD' : ('SGD', spacesgd)}
 '''
 
-experiment_name = "_pilot_KNN_default"
-model_dict = {'KNN_default' : ('KNN_default', None)}
+experiment_name = "_pilot_AdaBoost"
+model_dict = {'AdaBoost' : ('AdaBoost', spaceab)}
 
 #Pilot til Phillip:
 
@@ -148,7 +148,7 @@ model_dict = {'KNN_default' : ('KNN_default', None)}
 function_dict = models.__dict__
 
 #### define no. hyperopt evaluations ####
-HO_evals = 25 # for hyperopt
+HO_evals = 5 # for hyperopt
 random_state_val = 0
 
 #for hyperopt data to save
