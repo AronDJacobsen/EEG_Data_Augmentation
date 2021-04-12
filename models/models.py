@@ -21,20 +21,22 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.linear_model import SGDClassifier
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import make_pipeline
-import xgboost as xgb
+#import xgboost as xgb
 
 #import torchvision.transforms as transforms
 
 
 
 class models:
-    def __init__(self, X_train,y_train, X_test, y_test):
+    def __init__(self, X_train,y_train, X_test, y_test, state):
 
         self.X_train = X_train
         self.y_train = y_train
         self.X_test = X_test
         self.y_test = y_test
         self.target_names = ["absent", "present"] # "shiv", "elpp", "musc", "null"]
+
+        self.state = state
 
         super(models, self)
 
@@ -68,7 +70,7 @@ class models:
         return accuracy, f1_s, sensitivity
 
 
-    def baseline(self):
+    def baseline(self, state):
 
         """
         np.unique(self.y_test, return_counts=True)[1][0] / len(self.y_test)
@@ -85,7 +87,7 @@ class models:
         # f1_s = float('nan')
         """
 
-        y_pred = shuffle(self.y_test, random_state=7) # shuffling list
+        y_pred = shuffle(self.y_test, random_state=self.state) # shuffling list
 
         accuracy, f1_s, sensitivity = models.scores(self, y_pred)
 

@@ -22,11 +22,13 @@ from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
 import pandas as pd
 
+from collections import Counter
+
 #prep_dir = r"C:\Users\Albert Kjøller\Documents\GitHub\TUAR_full_data\tempData" + "\\"
 
-pickle_path = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia"
-#pickle_path = r"/Users/Jacobsen/Documents/GitHub/EEG_epilepsia" + "/"
-windowsOS = True
+#pickle_path = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia"
+pickle_path = r"/Users/Jacobsen/Documents/GitHub/EEG_epilepsia" + "/"
+windowsOS = False
 
 # Create pickles from preprocessed data based on the paths above. Unmuted when pickles exist
 # subject_dict = createSubjectDict(prep_directory=prep_dir, windowsOS=True)
@@ -44,7 +46,8 @@ y = LoadNumpyPickles(pickle_path=pickle_path, file_name = y_file, windowsOS = wi
 ID_frame = LoadNumpyPickles(pickle_path=pickle_path, file_name = ID_file, windowsOS = windowsOS)
 
 # extract a subset for faster running time
-#X, y, ID_frame = subset(X, y, ID_frame, no_indiv=20)
+X, y, ID_frame = subset(X, y, ID_frame, no_indiv=30)
+fast_run = True
 
 # apply the inclusion principle
 X, y, ID_frame = binary(X, y, ID_frame)
@@ -126,8 +129,8 @@ model_dict = {'MLP' : ('MLP', spacemlp)}
 model_dict = {'SGD' : ('SGD', spacesgd)}
 '''
 
-experiment_name = "_pilot_AdaBoost"
-model_dict = {'AdaBoost' : ('AdaBoost', spaceab)}
+experiment_name = "_pilot_LR" # added to saving files
+model_dict = {'LR' : ('LR', spacelr)}
 
 #Pilot til Phillip:
 
@@ -158,7 +161,7 @@ def unpack(x):
     return np.nan
 
 #### define classes ####
-artifact_names = ['eyem', 'chew', 'shiv', 'elpp', 'musc', 'null']
+artifact_names = ['eyem', 'chew']# 'shiv', 'elpp', 'musc', 'null']
 classes = len(artifact_names)
 
 ho_trials = {} # fold, artifact, model, hyperopt iterations
@@ -170,148 +173,201 @@ K = 5 # 80% training and 20% testing
 kf = KFold(n_splits=K, random_state=random_state_val, shuffle = True) # random state + shuffle ensured same repeated experiments
 
 
-i = 0 # CV fold index
-cross_val_time_start = time()
-
-for train_idx, test_idx in kf.split(individuals):
-#single loop
-#while i < 1:
-#    trainindv, testindv = train_test_split(individuals, test_size=0.20, random_state=random_state_val, shuffle = True)
-    #   REMEMBER to # the other below
-    print("\n-----------------------------------------------")
-    print("Running {:d}-fold CV - fold {:d}/{:d}".format(K, i+1, K))
-    print("-----------------------------------------------")
+#### define augmentation ####
+smote_ratio = [1, 1.5, 2]#, 2.5, 3]
 
 
-    #### initializing data ####
-    #their IDs
-    trainindv = individuals[train_idx]
-    testindv = individuals[test_idx]
-    #their indexes in train and test
-    train_indices = [ i for i, ID in enumerate(ID_frame) if ID in trainindv]
-    test_indices = [i for i, ID in enumerate(ID_frame) if ID in testindv]
-    X_train, y_train = X[train_indices,:], y[train_indices] # we keep the original and balance new later
-    X_test, y_test = X[test_indices,:], y[test_indices]
+for ratio in smote_ratio:
+    print("\n####---------------------------------------####")
+    print("Running a", ratio-1, "ratio of (augmented / real)")
+    print("####---------------------------------------####")
 
-    #### initializing hyperopt split #### #TODO: Det her er overflødigt, vi kan bare ændre HO_individuals til trainindv (tror jeg)
-    train_ID_frame = ID_frame[train_indices]
-    HO_individuals = np.unique(train_ID_frame) # for hyperopt split
+    i = 0 # CV fold index
+    cross_val_time_start = time()
 
-    #### initializing dict for this fold ####
-    ho_trials[i] = {} # for this fold
-    results[i] = {}
+    #### initializing dict for this ratio ####
+    ho_trials[ratio] = {} # for this fold
+    results[ratio] = {}
 
-    #### for each artifact ####
-    for artifact in range(classes):
+    for train_idx, test_idx in kf.split(individuals):
+    #single loop
+    #while i < 1:
+    #    trainindv, testindv = train_test_split(individuals, test_size=0.20, random_state=random_state_val, shuffle = True)
+        #   REMEMBER to # the other below
+        print("\n-----------------------------------------------")
+        print("Running {:d}-fold CV - fold {:d}/{:d}".format(K, i+1, K))
+        print("-----------------------------------------------")
 
-        print("\nTraining on the class: " + artifact_names[artifact] + "\n")
 
         #### initializing data ####
-        # only include the artifact of interest
-        #new name for the ones with current artifact
-        Xtrain = X_train # only to keep things similar
-        Xtest = X_test # only to keep things similar
-        ytrain = y_train[:, artifact]
-        ytest = y_test[:, artifact]
+        #their IDs
+        trainindv = individuals[train_idx]
+        testindv = individuals[test_idx]
+        #their indexes in train and test
+        train_indices = [ i for i, ID in enumerate(ID_frame) if ID in trainindv]
+        test_indices = [i for i, ID in enumerate(ID_frame) if ID in testindv]
+        X_train, y_train = X[train_indices,:], y[train_indices] # we keep the original and balance new later
+        X_test, y_test = X[test_indices,:], y[test_indices]
+
+        #### initializing hyperopt split #### #TODO: Det her er overflødigt, vi kan bare ændre HO_individuals til trainindv (tror jeg)
+        train_ID_frame = ID_frame[train_indices]
+        HO_individuals = np.unique(train_ID_frame) # for hyperopt split
+
+        #### initializing dict for this fold ####
+        ho_trials[ratio][i] = {} # for this fold
+        results[ratio][i] = {}
+
+        #### for each artifact ####
+        for artifact in range(classes):
+
+            print("\nTraining on the class: " + artifact_names[artifact] + "\n")
+
+            #### initializing data ####
+            # only include the artifact of interest
+            #new name for the ones with current artifact
+            Xtrain = X_train # only to keep things similar
+            Xtest = X_test # only to keep things similar
+            ytrain = y_train[:, artifact]
+            ytest = y_test[:, artifact]
 
 
-        ##################################
-        # on small runs
-        #ytrain[5:8] = 1
-        #ytest[5:8] = 1
-        ##################################
+            ##################################
+            # on small runs
+            #ytrain[5:8] = 1
+            #ytest[5:8] = 1
+            ##################################
+
+            if fast_run:
+                ytrain[:3] = 1
+                ytest[:3] = 1
 
 
-        #### balancing data ####
-        # now resample majority down to minority to achive equal
-        Xtrain_new, ytrain_new = rand_undersample(Xtrain, ytrain, arg = 'majority', state = 0, multi = False)
-        # - called new in order to not interfere with hyperopt
+            #### balancing data ####
+            # now resample majority down to minority to achive equal
+            # - new name in order to not interfere with hyperopt
+            if ratio == 1: # if no augmentation
+                Xtrain_new, ytrain_new = rand_undersample(Xtrain, ytrain, arg = 'majority', state = random_state_val, multi = False)
+            else:
+                # for class 0 (artifact) we downsample to no. obs. for artifact * ratio(to smote up)
+                label_size = Counter(ytrain)
+                major = max(label_size, key = label_size.get)
+                decrease = label_size[1 - major] * ratio
+                label_size[major] = int( np.round( decrease, decimals = 0 ) )
+                Xtrain_new, ytrain_new = rand_undersample(Xtrain, ytrain, arg = label_size, state = random_state_val, multi = False)
+                Xtrain_new, ytrain_new = smote(Xtrain_new, ytrain_new, multi = False, state = random_state_val)
 
-        #### creating test environment ####
-        Xtrain_new, ytrain_new = shuffle(Xtrain_new, ytrain_new, random_state=random_state_val)
-        Xtest, ytest = shuffle(Xtest, ytest, random_state=random_state_val)
-        env = models(Xtrain_new, ytrain_new, Xtest, ytest)
 
-        #### initializing validation data for hyperopt ####
-        #TODO: Jeg tror vi bør kalde variablene noget andet, så vi ikke overwriter det vi har kaldt dem tidligere.
-        trainindv, testindv = train_test_split(HO_individuals, test_size=0.20, random_state=random_state_val, shuffle = True)
-        # indices of these individuals from ID_frame
-        HO_train_indices = [i for i, ID in enumerate(train_ID_frame) if ID in trainindv]
-        HO_test_indices = [i for i, ID in enumerate(train_ID_frame) if ID in testindv]
-        #constructing sets
-        HO_Xtrain, HO_ytrain = Xtrain[HO_train_indices,:], ytrain[HO_train_indices] # we keep the original and balance new later
-        HO_Xtest, HO_ytest = Xtrain[HO_test_indices,:], ytrain[HO_test_indices]
-        # undersampling
-        HO_Xtrain_new, HO_ytrain_new = rand_undersample(HO_Xtrain, HO_ytrain, arg = 'majority', state = 1, multi = False)
-        # creating environment
-        HO_Xtrain_new, HO_ytrain_new = shuffle(HO_Xtrain_new, HO_ytrain_new, random_state=random_state_val)
-        HO_Xtest, HO_ytest = shuffle(Xtest, ytest, random_state=random_state_val)
-        HO_env = models(HO_Xtrain_new, HO_ytrain_new, HO_Xtest, HO_ytest)
+            #### creating test environment ####
+            Xtrain_new, ytrain_new = shuffle(Xtrain_new, ytrain_new, random_state=random_state_val)
+            Xtest, ytest = shuffle(Xtest, ytest, random_state=random_state_val)
 
-        #### initializing dict for this artifact ####
-        ho_trials[i][artifact_names[artifact]] = {} # for this artifact
-        results[i][artifact_names[artifact]] = {}
 
-        #### for each model ####
-        for key in model_dict:
-            #https://medium.com/district-data-labs/parameter-tuning-with-hyperopt-faa86acdfdce
-            #https://towardsdatascience.com/hyperparameter-optimization-in-python-part-2-hyperopt-5f661db91324
-            #http://hyperopt.github.io/hyperopt/getting-started/search_spaces/
-            start_time = time()
+            env = models(Xtrain_new, ytrain_new, Xtest, ytest, state = random_state_val)
 
-            name, space = model_dict[key]
+            #### initializing validation data for hyperopt ####
+            #TODO: Jeg tror vi bør kalde variablene noget andet, så vi ikke overwriter det vi har kaldt dem tidligere.
+            trainindv, testindv = train_test_split(HO_individuals, test_size=0.20, random_state=random_state_val, shuffle = True)
+            # indices of these individuals from ID_frame
+            HO_train_indices = [i for i, ID in enumerate(train_ID_frame) if ID in trainindv]
+            HO_test_indices = [i for i, ID in enumerate(train_ID_frame) if ID in testindv]
+            #constructing sets
+            HO_Xtrain, HO_ytrain = Xtrain[HO_train_indices,:], ytrain[HO_train_indices] # we keep the original and balance new later
+            HO_Xtest, HO_ytest = Xtrain[HO_test_indices,:], ytrain[HO_test_indices]
 
-            #### HyperOpt ####
-            if space is not None: # if hyperopt is defined
+
+            if fast_run:
+                HO_ytrain[:2] = 1
+                HO_ytest[:2] = 1
+
+            #### initializing validation data for hyperopt ####
+
+            if ratio == 1: # if no augmentation
+                HO_Xtrain_new, HO_ytrain_new = rand_undersample(HO_Xtrain, HO_ytrain, arg = 'majority', state = random_state_val, multi = False)
+            else:
+                label_size = Counter(HO_ytrain)
+                major = max(label_size, key = label_size.get)
+                decrease = label_size[1 - major] * ratio
+                label_size[major] = int( np.round( decrease, decimals = 0 ) )
+
+                HO_Xtrain_new, HO_ytrain_new = rand_undersample(HO_Xtrain, HO_ytrain, arg = label_size, state = random_state_val, multi = False)
+                HO_Xtrain_new, HO_ytrain_new = smote(HO_Xtrain_new, HO_ytrain_new, multi = False, state = random_state_val)
+
+
+
+
+            HO_Xtrain_new, HO_ytrain_new = shuffle(HO_Xtrain_new, HO_ytrain_new, random_state=random_state_val)
+            HO_Xtest, HO_ytest = shuffle(Xtest, ytest, random_state=random_state_val)
+
+
+
+            HO_env = models(HO_Xtrain_new, HO_ytrain_new, HO_Xtest, HO_ytest, state = random_state_val)
+
+            #### initializing dict for this artifact ####
+            ho_trials[ratio][i][artifact_names[artifact]] = {} # for this artifact
+            results[ratio][i][artifact_names[artifact]] = {}
+
+            #### for each model ####
+            for key in model_dict:
+                #https://medium.com/district-data-labs/parameter-tuning-with-hyperopt-faa86acdfdce
+                #https://towardsdatascience.com/hyperparameter-optimization-in-python-part-2-hyperopt-5f661db91324
+                #http://hyperopt.github.io/hyperopt/getting-started/search_spaces/
+                start_time = time()
+
+                name, space = model_dict[key]
+
+                #### HyperOpt ####
+                if space is not None: # if hyperopt is defined
+
+                    #### initializing dict for this model ####
+                    ho_trials[ratio][i][artifact_names[artifact]][key] = {} # for this model
+
+
+                    print('HyperOpt on: ', key) # print model name
+
+                    trials = Trials()
+
+                    def objective(params):
+                        accuracy, f1_s, sensitivity = function_dict[name](HO_env, **params) # hyperopt environment
+                        #it minimizes
+                        return -sensitivity
+
+                    best = fmin(fn=objective, space=space, algo=tpe.suggest, max_evals=HO_evals, trials=trials)
+
+                    #### saving evaluations ####
+                    ho_trials[ratio][i][artifact_names[artifact]][key] = pd.DataFrame([pd.Series(t["misc"]["vals"]).apply(unpack) for t in trials])
+                    ho_trials[ratio][i][artifact_names[artifact]][key]["sensitivity"] = [-t["result"]["loss"] for t in trials]
+                    print('best parameter/s:', best)
+                    #define best found function
+                    f = function_dict[name](env, **best) # now test environment
+
+                #without hyperopt
+                else: # sapce is none
+                    f = function_dict[name](env)
+                end_time = time()
+                took_time = (end_time - start_time)
+
+                print(key + ": \t" + str(f) + ". Time: {:f} seconds".format(took_time))
+
+                acc, F1, sensitivity = f
 
                 #### initializing dict for this model ####
-                ho_trials[i][artifact_names[artifact]][key] = {} # for this model
+                results[ratio][i][artifact_names[artifact]][key] = {}
+                #### saving results ####
+                results[ratio][i][artifact_names[artifact]][key]['accuracy'] = acc
+                results[ratio][i][artifact_names[artifact]][key]['weighted_F1'] = F1
+                results[ratio][i][artifact_names[artifact]][key]['sensitivity'] = sensitivity
+
+        # new fold
+        i += 1
 
 
-                print('HyperOpt on: ', key) # print model name
+    cross_val_time_end = time()
+    cross_val_time = cross_val_time_end - cross_val_time_start
+    print("The cross-validation took " + str(cross_val_time) + " seconds = " + str(cross_val_time/60) + " minutes")
 
-                trials = Trials()
+    print('\n\n')
 
-                def objective(params):
-                    accuracy, f1_s, sensitivity = function_dict[name](HO_env, **params) # hyperopt environment
-                    #it minimizes
-                    return -sensitivity
-
-                best = fmin(fn=objective, space=space, algo=tpe.suggest, max_evals=HO_evals, trials=trials)
-
-                #### saving evaluations ####
-                ho_trials[i][artifact_names[artifact]][key] = pd.DataFrame([pd.Series(t["misc"]["vals"]).apply(unpack) for t in trials])
-                ho_trials[i][artifact_names[artifact]][key]["sensitivity"] = [-t["result"]["loss"] for t in trials]
-                print('best parameter/s:', best)
-                #define best found function
-                f = function_dict[name](env, **best) # now test environment
-
-            #without hyperopt
-            else: # sapce is none
-                f = function_dict[name](env)
-            end_time = time()
-            took_time = (end_time - start_time)
-
-            print(key + ": \t" + str(f) + ". Time: {:f} seconds".format(took_time))
-
-            acc, F1, sensitivity = f
-
-            #### initializing dict for this model ####
-            results[i][artifact_names[artifact]][key] = {}
-            #### saving results ####
-            results[i][artifact_names[artifact]][key]['accuracy'] = acc
-            results[i][artifact_names[artifact]][key]['weighted_F1'] = F1
-            results[i][artifact_names[artifact]][key]['sensitivity'] = sensitivity
-
-    # new fold
-    i += 1
-
-
-cross_val_time_end = time()
-cross_val_time = cross_val_time_end - cross_val_time_start
-print("The cross-validation took " + str(cross_val_time) + " seconds = " + str(cross_val_time/60) + " minutes")
-
-print('\n\n')
+stop = 0
 
 #### saving data ####
 # Remember to change name of pickle when doing a new experiment
