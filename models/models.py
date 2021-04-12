@@ -70,7 +70,7 @@ class models:
         return accuracy, f1_s, sensitivity
 
 
-    def baseline(self, state):
+    def baseline_perm(self):
 
         """
         np.unique(self.y_test, return_counts=True)[1][0] / len(self.y_test)
@@ -93,6 +93,29 @@ class models:
 
 
         return accuracy, f1_s, sensitivity
+
+    def baseline_major(self):
+
+
+        np.unique(self.y_test, return_counts=True)[1][0] / len(self.y_test)
+
+        #baseline error
+        into_list = self.y_train.tolist()
+        uniques = np.unique(into_list, return_counts=True)
+        majority_class = np.argmax(uniques[1])
+        y_pred = [majority_class] * len(self.y_test)
+
+        #f1 doesn't work, we don't have true positives since we only predict 0
+        #y_pred = np.array([most_occurence for _ in y_test])
+        #f1_s = f1_score(y_test, y_pred)
+        # f1_s = float('nan')
+
+
+        accuracy, f1_s, sensitivity = models.scores(self, y_pred)
+
+
+        return accuracy, f1_s, sensitivity
+
 
 
     def LR(self, C):
@@ -182,16 +205,14 @@ class models:
         return accuracy, f1_s, sensitivity
 
 
-    def MLP(self, hidden_layer_sizes, solver, learning_rate, alpha):
+    def MLP(self, hidden_layer_sizes, learning_rate, alpha):
 
-        if np.isreal(solver):
-            args = ['lbfgs','sgd','adam']
-            solver = args[solver]
+
         if np.isreal(learning_rate):
             args = ['constant','adaptive']
             learning_rate = args[learning_rate]
 
-        model = MLPClassifier(max_iter = 5000,hidden_layer_sizes=hidden_layer_sizes, solver=solver, learning_rate=learning_rate, alpha=alpha)
+        model = MLPClassifier(max_iter = 5000,hidden_layer_sizes=hidden_layer_sizes, learning_rate=learning_rate, alpha=alpha)
         model.fit(self.X_train, self.y_train)
         y_pred = model.predict(self.X_test)
 

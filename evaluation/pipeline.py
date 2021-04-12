@@ -46,8 +46,8 @@ y = LoadNumpyPickles(pickle_path=pickle_path, file_name = y_file, windowsOS = wi
 ID_frame = LoadNumpyPickles(pickle_path=pickle_path, file_name = ID_file, windowsOS = windowsOS)
 
 # extract a subset for faster running time
-X, y, ID_frame = subset(X, y, ID_frame, no_indiv=30)
-fast_run = True
+#X, y, ID_frame = subset(X, y, ID_frame, no_indiv=30)
+fast_run = False
 
 # apply the inclusion principle
 X, y, ID_frame = binary(X, y, ID_frame)
@@ -67,7 +67,7 @@ spacelr = {'C': hp.loguniform('C', np.log(0.00001), np.log(0.2))} # we can incre
 
 #adaboost,
 spaceab = {'learning_rate': hp.loguniform('learning_rate', np.log(0.0001), np.log(0.1)),
-           'n_estimators': hp.randint('n_estimators', 1, 201)
+           'n_estimators': hp.randint('n_estimators', 1, 101)
            } # we can increase interval
 
 #don't think it is necessary
@@ -76,14 +76,13 @@ spacegnb = None
 
 #knn, nr neighbors
 #vals = [ int for int in range(1, 500, 1) ] # remove since no number correlation
-spaceknn = {'n_neighbors': hp.randint('n_neighbors', 1, 251)}
+spaceknn = {'n_neighbors': hp.randint('n_neighbors', 1, 101)}
 
 #lda, solvers for shrinkage
 spacelda = {'solver': hp.choice('solver', ['svd', 'lsqr', 'eigen'])}
 
 #mlp,
 spacemlp = {'hidden_layer_sizes': hp.randint('hidden_layer_sizes', 1, 151),
-            'solver' : hp.choice('solver', ['lbfgs','sgd','adam']),
             'learning_rate' : hp.choice('learning_rate', ['constant','adaptive']),
             'alpha' : hp.loguniform('alpha', np.log(0.00001), np.log(0.01))
             }
@@ -91,7 +90,7 @@ spacemlp = {'hidden_layer_sizes': hp.randint('hidden_layer_sizes', 1, 151),
 #rf, trees in estimating
 spacerf = {'n_estimators': hp.randint('n_estimators', 1, 151),
            'criterion': hp.choice('criterion', ["gini", "entropy"]),
-           'max_depth': hp.randint('max_depth', 1, 101)
+           'max_depth': hp.randint('max_depth', 1, 76)
            }
 
 #sgd,
@@ -104,8 +103,9 @@ spacesgd = {'alpha': hp.loguniform('alpha', np.log(0.00001), np.log(1))
 
 
 # all
-"""
-model_dict = {'baseline': ('baseline', spaceb),
+'''
+model_dict = {'baseline_perm': ('baseline_perm', spaceb),
+              'baseline_major': ('baseline_major', spaceb),
               'LR' : ('LR', spacelr),
               #'AdaBoost' : ('AdaBoost', spaceab),
               'GNB' : ('GNB', spacegnb),
@@ -114,11 +114,14 @@ model_dict = {'baseline': ('baseline', spaceb),
               'LDA' : ('LDA', spacelda),
               #'MLP' : ('MLP', spacemlp),
               'SGD' : ('SGD', spacesgd)} #, 'XGBoost' : ('XGBoost', None)}
-"""
-'''
+
+---
+
 individual:
 
-model_dict = {'baseline': ('baseline', spaceb)}
+model_dict = {'baseline_perm': ('baseline_perm', spaceb)}
+model_dict = {'baseline_major': ('baseline_major', spaceb)}
+---
 model_dict = {'LR' : ('LR', spacelr)}
 model_dict = {'AdaBoost' : ('AdaBoost', spaceab)}
 model_dict = {'GNB' : ('GNB', spacegnb)}
@@ -129,30 +132,27 @@ model_dict = {'MLP' : ('MLP', spacemlp)}
 model_dict = {'SGD' : ('SGD', spacesgd)}
 '''
 
+
+#### define model to be evaluated and filename ####
 experiment_name = "_pilot_LR" # added to saving files
 model_dict = {'LR' : ('LR', spacelr)}
 
-#Pilot til Phillip:
+#### define augmentation ####
+smote_ratio = [1, 1.5, 2, 2.5, 3]
 
-#model_dict = {'AdaBoost' : ('AdaBoost', None)}
-
-
-#Pilot til Aron:
-#model_dict = {'KNN' : ('KNN', None)}
-
-
-#Pilot til Albert:
-
-#model_dict = {'MLP_default' : ('MLP_default', None)}
+#### define no. hyperopt evaluations ####
+HO_evals = 5 # for hyperopt
 
 
 # Dictionary holding keys and values for all functions from the models.py file. Used to "look up" functions in the CV
 # and hyperoptimization part
 function_dict = models.__dict__
 
-#### define no. hyperopt evaluations ####
-HO_evals = 5 # for hyperopt
 random_state_val = 0
+
+#### define classes ####
+artifact_names = ['eyem', 'chew', 'shiv', 'elpp', 'musc', 'null']
+classes = len(artifact_names)
 
 #for hyperopt data to save
 def unpack(x):
@@ -160,21 +160,14 @@ def unpack(x):
         return x[0]
     return np.nan
 
-#### define classes ####
-artifact_names = ['eyem', 'chew']# 'shiv', 'elpp', 'musc', 'null']
-classes = len(artifact_names)
-
 ho_trials = {} # fold, artifact, model, hyperopt iterations
 results = {} # fold, artifact, model, scores
+
 
 #### define no. of folds ####
 K = 5 # 80% training and 20% testing
 #setting fold details
 kf = KFold(n_splits=K, random_state=random_state_val, shuffle = True) # random state + shuffle ensured same repeated experiments
-
-
-#### define augmentation ####
-smote_ratio = [1, 1.5, 2]#, 2.5, 3]
 
 
 for ratio in smote_ratio:
@@ -363,11 +356,10 @@ for ratio in smote_ratio:
 
     cross_val_time_end = time()
     cross_val_time = cross_val_time_end - cross_val_time_start
-    print("The cross-validation took " + str(cross_val_time) + " seconds = " + str(cross_val_time/60) + " minutes")
-
+    print("The cross-validation for ratio" + str(ratio) + " took " + str(np.round(cross_val_time, 3)) + " seconds = " + str(np.round(cross_val_time/60, 3)) + " minutes")
     print('\n\n')
+    results[ratio]['time'] = cross_val_time
 
-stop = 0
 
 #### saving data ####
 # Remember to change name of pickle when doing a new experiment
