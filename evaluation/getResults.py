@@ -6,6 +6,7 @@ import pickle
 import matplotlib.pyplot as plt
 from collections import defaultdict
 import glob
+import pandas as pd
 
 def mergeResultFiles(file_path, file_name="merged", windowsOS=False):
     #TODO: Kunne være fedt at lave, så man vælger hvilke filer der skal merges i stedet for directory
@@ -209,19 +210,19 @@ if __name__ == '__main__':
 
     pickle_path = dir + r"\results\performance"
     pickle_path_merge = dir + r"\results\merged_files"
-    experiment_name = '_pilot_LR'
+    experiment_name = '_smote_easy_models'
     experiment_name_merge = 'merged_pilot'
 
     # Merge individual result-files
-    all_results = mergeResultFiles(file_path=pickle_path, file_name="merged_pilot", windowsOS=windowsOS)
+    #all_results = mergeResultFiles(file_path=pickle_path, file_name="merged_pilot", windowsOS=windowsOS)
 
 
     # Loading statistically calculated results as dictionaries
     # For single files and their HO_trials
-    # performance, errors, model_names, artifact_names = tableResults(pickle_path=pickle_path, windows_OS=windowsOS, experiment_name=experiment_name, merged_file=False)
+    performance, errors, model_names, artifact_names = tableResults(pickle_path=pickle_path, windows_OS=windowsOS, experiment_name=experiment_name, merged_file=False)
 
     # For merged files
-    performance, errors, model_names, artifact_names = tableResults(pickle_path=pickle_path_merge, windows_OS=windowsOS, experiment_name=experiment_name_merge, merged_file=True)
+    #performance, errors, model_names, artifact_names = tableResults(pickle_path=pickle_path_merge, windows_OS=windowsOS, experiment_name=experiment_name_merge, merged_file=True)
 
     # Print dataframes
     df_eval = pd.DataFrame.from_dict(performance)
