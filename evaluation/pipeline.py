@@ -26,9 +26,9 @@ from collections import Counter
 
 #prep_dir = r"C:\Users\Albert Kjøller\Documents\GitHub\TUAR_full_data\tempData" + "\\"
 
-#pickle_path = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia"
-pickle_path = r"/Users/Jacobsen/Documents/GitHub/EEG_epilepsia" + "/"
-windowsOS = False
+pickle_path = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia"
+#pickle_path = r"/Users/Jacobsen/Documents/GitHub/EEG_epilepsia" + "/"
+windowsOS = True
 
 # Create pickles from preprocessed data based on the paths above. Unmuted when pickles exist
 # subject_dict = createSubjectDict(prep_directory=prep_dir, windowsOS=True)
@@ -134,14 +134,17 @@ model_dict = {'SGD' : ('SGD', spacesgd)}
 
 
 #### define model to be evaluated and filename ####
-experiment_name = "_pilot_LR" # added to saving files
-model_dict = {'LR' : ('LR', spacelr)}
+experiment_name = "_pilot_with_SMOTE_easy_models" # added to saving files
+model_dict = {'baseline_perm': ('baseline_perm', spaceb),
+              'baseline_major': ('baseline_major', spaceb),
+              'LR' : ('LR', spacelr),
+              'GNB': ('GNB', spacegnb)}
 
 #### define augmentation ####
 smote_ratio = [1, 1.5, 2, 2.5, 3]
 
 #### define no. hyperopt evaluations ####
-HO_evals = 5 # for hyperopt
+HO_evals = 50 # for hyperopt
 
 
 # Dictionary holding keys and values for all functions from the models.py file. Used to "look up" functions in the CV
