@@ -58,17 +58,18 @@ def tableResults(pickle_path, windows_OS, experiment_name, merged_file=False, wi
     else:
         slash = "/"
 
-    results_basepath = slash.join(pickle_path.split(slash)[:-1])
+    results_basepath = slash.join(pickle_path.split(slash)[:-2])
+    exp = pickle_path.split(slash)[-1]
 
     if merged_file:
-        results_all = LoadNumpyPickles(pickle_path=results_basepath + slash + "merged_files",
+        results_all = LoadNumpyPickles(pickle_path=results_basepath + slash + "merged_files" + slash + exp,
                                    file_name=slash + experiment_name + '.npy', windowsOS=windowsOS)
         results_all = results_all[()]
     else:
-        results_all = LoadNumpyPickles(pickle_path=results_basepath + slash + "performance", file_name = slash + "results" + experiment_name +'.npy', windowsOS = windowsOS)
+        results_all = LoadNumpyPickles(pickle_path=results_basepath + slash + "performance"+ slash + exp, file_name = slash + "results" + experiment_name +'.npy', windowsOS = windowsOS)
         results_all = results_all[()]
         # fold, artifact, model, hyperopt iterations
-        HO_trials = LoadNumpyPickles(pickle_path=results_basepath + slash + "hyperopt", file_name = slash + 'ho_trials' + experiment_name +'.npy', windowsOS = windowsOS)
+        HO_trials = LoadNumpyPickles(pickle_path=results_basepath + slash + "hyperopt" + slash + exp, file_name = slash + 'ho_trials' + experiment_name +'.npy', windowsOS = windowsOS)
         HO_trials = HO_trials[()]
 
     def mean_confidence_interval(data, confidence=0.95):
@@ -260,20 +261,24 @@ if __name__ == '__main__':
     pickle_path = dir + slash + "results" + slash + "performance" + slash + experiment
     pickle_path_merge = dir + slash + "results" + slash + "merged_files" + slash + experiment
 
+    merged_file = True
     experiment_name = '_smote_SGD'
-    experiment_name_merge = 'merged_pilot'
+    experiment_name_merge = 'smote_first_merge'
+
+    if merged_file:
+        experiment_name = experiment_name_merge
 
     # Merge individual result-files
-    mergeResultFiles(file_path=pickle_path, file_name="smote_first_merge", windowsOS=windowsOS)
+    #mergeResultFiles(file_path=pickle_path, file_name="smote_first_merge", windowsOS=windowsOS)
 
 
     # Loading statistically calculated results as dictionaries
     # For single files and their HO_trials
     # List of dictionaries of results. Each entry in the list is a results dictionary for one SMOTE ratio
-    performance_list, errors_list, model_names, artifact_names, SMOTE_ratios = tableResults(pickle_path=pickle_path, windows_OS=windowsOS, experiment_name=experiment_name, merged_file=False, windowsOS=windowsOS)
+    performance_list, errors_list, model_names, artifact_names, SMOTE_ratios = tableResults(pickle_path=pickle_path, windows_OS=windowsOS, experiment_name=experiment_name, merged_file=merged_file, windowsOS=windowsOS)
 
     # Save plots or not
-    save_img = True
+    save_img = False
 
     # For merged files
     #performance, errors, model_names, artifact_names = tableResults(pickle_path=pickle_path_merge, windows_OS=windowsOS, experiment_name=experiment_name_merge, merged_file=True)
@@ -284,17 +289,17 @@ if __name__ == '__main__':
         # Print dataframes
         df_eval = pd.DataFrame.from_dict(performance)
         df_eval.index = model_names
-        print('OVERALL PERFORMANCE')
+        print('\n\n\nOVERALL PERFORMANCE')
         print("SMOTE RATIO:" + str(ratio-1) +"\n")
         print(np.round(df_eval * 100, 2))
         # print(df_eval)
-
+        """
         df_eval = pd.DataFrame.from_dict(errors)
         df_eval.index = model_names
         print('\nSTANDARD DEVIATIONS')
         print("SMOTE RATIO:" + str(ratio-1)+"\n")
         print(np.round(df_eval * 100, 2))
-
+        """
         #Across models
         plotPerformanceModels(performance_dict=performance, error_dict=errors, model_names=model_names, artifact_names=artifact_names, ratio=ratio, save_img=save_img, windowsOS=windowsOS)
 
