@@ -162,7 +162,7 @@ def LoadNumpyPickles(pickle_path, file_name, windowsOS):
     return file
 
 def SaveNumpyPickles(pickle_path, file_name, file, windowsOS):
-    a = 1
+
     # Your pickle should be placed in prepData folder
     os.chdir(pickle_path)
     if windowsOS:

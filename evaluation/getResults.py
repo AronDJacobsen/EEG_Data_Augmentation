@@ -17,31 +17,35 @@ def mergeResultFiles(file_path, file_name="merged", windowsOS=False):
         slash = "/"
 
     # Nested dictionary
-    all_results_dict = defaultdict(lambda: defaultdict(dict))
+    all_results_dict = defaultdict(lambda: defaultdict(lambda: defaultdict(dict)))
 
 
     file_names = [results_file.split(slash)[-1] for results_file in glob.glob(file_path + slash + "**")]
 
     for model_file in file_names:
         results = LoadNumpyPickles(file_path + slash, model_file, windowsOS=windowsOS)[()]
+        smote_ratios = list(results.keys())
+        folds = [key for key in results[smote_ratios[0]].keys() if type(key) == int]
+        artifacts = list(results[smote_ratios[0]][folds[0]].keys())
+        models = list(results[smote_ratios[0]][folds[0]][artifacts[0]].keys())
 
-        folds = list(results.keys())
-        artifacts = list(results[folds[0]].keys())
-        models = list(results[folds[0]][artifacts[0]].keys())
+        for ratio in smote_ratios:
+            for fold in folds:
+                for artifact in artifacts:
+                    for model in models:
 
-        for fold in folds:
-            for artifact in artifacts:
-                for model in models:
-
-                    all_results_dict[fold][artifact][model] = results[fold][artifact][model]
+                        all_results_dict[ratio][fold][artifact][model] = results[ratio][fold][artifact][model]
 
     # Save file in merged_files dir
     results_basepath = slash.join(file_path.split(slash)[:-2])
 
     # Reformating dictionary to avoid lambda call - to be able to save as pickle
     temp = defaultdict(dict)
-    for fold in all_results_dict.keys():
-        temp[fold] = all_results_dict[fold]
+    smote_ratios = list(all_results_dict.keys())
+    for ratio in all_results_dict.keys():
+        for fold in all_results_dict[smote_ratios[0]].keys():
+            print(fold)
+            temp[ratio][fold] = all_results_dict[ratio][fold]
 
     exp = file_path.split(slash)[-1]
     SaveNumpyPickles(results_basepath + slash + "merged_files" + slash + exp, slash + file_name, temp, windowsOS)
