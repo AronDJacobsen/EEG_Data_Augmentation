@@ -365,7 +365,7 @@ for ratio in smote_ratio:
 
 
 #### saving data ####
-# Remember to change name of pickle when doing a new experiment
+# Remember to change name of pickle when doing a new first_pilot
 SaveNumpyPickles(pickle_path + r"\results\performance", r"\results" + experiment_name, results, windowsOS)
 SaveNumpyPickles(pickle_path + r"\results\hyperopt", r"\ho_trials" + experiment_name, ho_trials, windowsOS)
 

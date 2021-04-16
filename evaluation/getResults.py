@@ -11,14 +11,19 @@ import pandas as pd
 def mergeResultFiles(file_path, file_name="merged", windowsOS=False):
     #TODO: Kunne være fedt at lave, så man vælger hvilke filer der skal merges i stedet for directory
 
+    if windowsOS:
+        slash = "\\"
+    else:
+        slash = "/"
+
     # Nested dictionary
     all_results_dict = defaultdict(lambda: defaultdict(dict))
 
 
-    file_names = [results_file.split("/")[-1] for results_file in glob.glob(file_path + "/" + "**")]
+    file_names = [results_file.split(slash)[-1] for results_file in glob.glob(file_path + slash + "**")]
 
     for model_file in file_names:
-        results = LoadNumpyPickles(file_path + "/", model_file, windowsOS=windowsOS)[()]
+        results = LoadNumpyPickles(file_path + slash, model_file, windowsOS=windowsOS)[()]
 
         folds = list(results.keys())
         artifacts = list(results[folds[0]].keys())
@@ -31,29 +36,35 @@ def mergeResultFiles(file_path, file_name="merged", windowsOS=False):
                     all_results_dict[fold][artifact][model] = results[fold][artifact][model]
 
     # Save file in merged_files dir
-    results_basepath = "/".join(file_path.split("/")[:-1])
+    results_basepath = slash.join(file_path.split(slash)[:-2])
 
     # Reformating dictionary to avoid lambda call - to be able to save as pickle
     temp = defaultdict(dict)
     for fold in all_results_dict.keys():
         temp[fold] = all_results_dict[fold]
 
-    SaveNumpyPickles(results_basepath + r"/merged_files" ,"/" + file_name, temp, windowsOS)
+    exp = file_path.split(slash)[-1]
+    SaveNumpyPickles(results_basepath + slash + "merged_files" + slash + exp, slash + file_name, temp, windowsOS)
 
 
-def tableResults(pickle_path, windows_OS, experiment_name, merged_file=False):
+def tableResults(pickle_path, windows_OS, experiment_name, merged_file=False, windowsOS=False):
     # fold, artifact, model, scores
-    results_basepath = "/".join(pickle_path.split("/")[:-1])
+    if windowsOS:
+        slash = "\\"
+    else:
+        slash = "/"
+
+    results_basepath = slash.join(pickle_path.split(slash)[:-1])
 
     if merged_file:
-        results_all = LoadNumpyPickles(pickle_path=results_basepath + r"/merged_files",
-                                   file_name="/" + experiment_name + '.npy', windowsOS=windowsOS)
+        results_all = LoadNumpyPickles(pickle_path=results_basepath + slash + "merged_files",
+                                   file_name=slash + experiment_name + '.npy', windowsOS=windowsOS)
         results_all = results_all[()]
     else:
-        results_all = LoadNumpyPickles(pickle_path=results_basepath + r"/performance", file_name = r"/results" + experiment_name +'.npy', windowsOS = windowsOS)
+        results_all = LoadNumpyPickles(pickle_path=results_basepath + slash + "performance", file_name = slash + "results" + experiment_name +'.npy', windowsOS = windowsOS)
         results_all = results_all[()]
         # fold, artifact, model, hyperopt iterations
-        HO_trials = LoadNumpyPickles(pickle_path=results_basepath + r"/hyperopt", file_name = r'/ho_trials' + experiment_name +'.npy', windowsOS = windowsOS)
+        HO_trials = LoadNumpyPickles(pickle_path=results_basepath + slash + "hyperopt", file_name = slash + 'ho_trials' + experiment_name +'.npy', windowsOS = windowsOS)
         HO_trials = HO_trials[()]
 
     def mean_confidence_interval(data, confidence=0.95):
@@ -133,8 +144,14 @@ def tableResults(pickle_path, windows_OS, experiment_name, merged_file=False):
     return table_list, table_std_list, models, artifacts, SMOTE_ratios
 
 
-def plotPerformanceModels(performance_dict, error_dict, model_names, artifact_names, ratio, save_img=False):
-    save_path = dir + r'/Plots/Pilot'
+def plotPerformanceModels(performance_dict, error_dict, model_names, artifact_names, ratio, save_img=False, windowsOS=False):
+
+    if windowsOS:
+        slash = "\\"
+    else:
+        slash = "/"
+
+    save_path = dir + slash + 'Plots' + slash + 'Pilot'
 
     # Plotting results
     art = len(artifact_names)
@@ -147,11 +164,17 @@ def plotPerformanceModels(performance_dict, error_dict, model_names, artifact_na
         plt.title(name + " - SMOTE RATIO:" + str(ratio-1))
         plt.ylim(0, 1)
         if save_img:
-            plt.savefig(("{}/{}_SMOTE_{}.png").format(save_path, name, ratio-1))
+            plt.savefig(("{}{:s}{}_SMOTE_{}.png").format(save_path, slash, name, ratio-1))
         plt.show()
 
-def plotPerformanceClasses(performance_dict, error_dict, model_names, artifact_names, ratio, save_img=False):
-    save_path = dir + r'/Plots/Pilot'
+def plotPerformanceClasses(performance_dict, error_dict, model_names, artifact_names, ratio, save_img=False, windowsOS=False):
+
+    if windowsOS:
+        slash = "\\"
+    else:
+        slash = "/"
+
+    save_path = dir + slash +'Plots' + slash + 'Pilot'
 
     # Plotting results
     art = len(artifact_names)
@@ -167,23 +190,28 @@ def plotPerformanceClasses(performance_dict, error_dict, model_names, artifact_n
         plt.xticks(rotation=25)
         plt.ylim(0,1)
         if save_img:
-            plt.savefig(("{}/{}_SMOTE_{}.png").format(save_path, name, ratio-1))
+            plt.savefig(("{}{:s}{}_SMOTE_{}.png").format(save_path, slash, name, ratio-1))
         plt.show()
 
 def plotHyperopt(pickle_path, file_name, windowsOS=False):
 
+    if windowsOS:
+        slash = "\\"
+    else:
+        slash = "/"
+
     try:
-        results_basepath = "/".join(pickle_path.split("/")[:-1])
+        results_basepath = slash.join(pickle_path.split(slash)[:-1])
 
         # fold, artifact, model, scores
-        results = LoadNumpyPickles(pickle_path=results_basepath + r"/performance",
-                                   file_name=r"/results" + experiment_name + '.npy', windowsOS=windowsOS)
+        results = LoadNumpyPickles(pickle_path=results_basepath + slash + "performance",
+                                   file_name=slash+"results" + experiment_name + '.npy', windowsOS=windowsOS)
         results = results[()]
 
 
         # fold, artifact, model, hyperopt iterations
-        HO_trials = LoadNumpyPickles(pickle_path=results_basepath + r"/hyperopt",
-                                   file_name=r"/ho_trials" + experiment_name + '.npy', windowsOS=windowsOS)
+        HO_trials = LoadNumpyPickles(pickle_path=results_basepath + slash + "hyperopt",
+                                   file_name=slash + "ho_trials" + experiment_name + '.npy', windowsOS=windowsOS)
         HO_trials = HO_trials[()]
 
         # only choose one fold
@@ -214,23 +242,31 @@ def plotHyperopt(pickle_path, file_name, windowsOS=False):
 
 if __name__ == '__main__':
     dir = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia"
-    dir = "/Users/philliphoejbjerg/Documents/GitHub/EEG_epilepsia"
+    #dir = "/Users/philliphoejbjerg/Documents/GitHub/EEG_epilepsia"
     # pickle_path = r"/Users/Jacobsen/Documents/GitHub/EEG_epilepsia" + "/"
     windowsOS = True
 
-    pickle_path = dir + r"/results/performance"
-    pickle_path_merge = dir + r"/results/merged_files"
+    if windowsOS:
+        slash = "\\"
+    else:
+        slash = "/"
+
+    experiment = "smote"
+
+    pickle_path = dir + slash + "results" + slash + "performance" + slash + experiment
+    pickle_path_merge = dir + slash + "results" + slash + "merged_files" + slash + experiment
+
     experiment_name = '_smote_SGD'
     experiment_name_merge = 'merged_pilot'
 
     # Merge individual result-files
-    #all_results = mergeResultFiles(file_path=pickle_path, file_name="merged_pilot", windowsOS=windowsOS)
+    mergeResultFiles(file_path=pickle_path, file_name="smote_first_merge", windowsOS=windowsOS)
 
 
     # Loading statistically calculated results as dictionaries
     # For single files and their HO_trials
     # List of dictionaries of results. Each entry in the list is a results dictionary for one SMOTE ratio
-    performance_list, errors_list, model_names, artifact_names, SMOTE_ratios = tableResults(pickle_path=pickle_path, windows_OS=windowsOS, experiment_name=experiment_name, merged_file=False)
+    performance_list, errors_list, model_names, artifact_names, SMOTE_ratios = tableResults(pickle_path=pickle_path, windows_OS=windowsOS, experiment_name=experiment_name, merged_file=False, windowsOS=windowsOS)
 
     # Save plots or not
     save_img = True
@@ -256,10 +292,10 @@ if __name__ == '__main__':
         print(np.round(df_eval * 100, 2))
 
         #Across models
-        plotPerformanceModels(performance_dict=performance, error_dict=errors, model_names=model_names, artifact_names=artifact_names, ratio=ratio, save_img=save_img)
+        plotPerformanceModels(performance_dict=performance, error_dict=errors, model_names=model_names, artifact_names=artifact_names, ratio=ratio, save_img=save_img, windowsOS=windowsOS)
 
         #Across classes
-        plotPerformanceClasses(performance_dict=performance, error_dict=errors, model_names=model_names, artifact_names=artifact_names, ratio=ratio, save_img=save_img)
+        plotPerformanceClasses(performance_dict=performance, error_dict=errors, model_names=model_names, artifact_names=artifact_names, ratio=ratio, save_img=save_img, windowsOS=windowsOS)
 
         #Plotting Hyperopt queries
         #TODO: BROKEN!
