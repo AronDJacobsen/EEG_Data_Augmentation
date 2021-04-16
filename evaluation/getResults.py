@@ -15,10 +15,10 @@ def mergeResultFiles(file_path, file_name="merged", windowsOS=False):
     all_results_dict = defaultdict(lambda: defaultdict(dict))
 
 
-    file_names = [results_file.split("\\")[-1] for results_file in glob.glob(file_path + "\\" + "**")]
+    file_names = [results_file.split("/")[-1] for results_file in glob.glob(file_path + "/" + "**")]
 
     for model_file in file_names:
-        results = LoadNumpyPickles(file_path + "\\", model_file, windowsOS=windowsOS)[()]
+        results = LoadNumpyPickles(file_path + "/", model_file, windowsOS=windowsOS)[()]
 
         folds = list(results.keys())
         artifacts = list(results[folds[0]].keys())
@@ -31,29 +31,29 @@ def mergeResultFiles(file_path, file_name="merged", windowsOS=False):
                     all_results_dict[fold][artifact][model] = results[fold][artifact][model]
 
     # Save file in merged_files dir
-    results_basepath = "\\".join(file_path.split("\\")[:-1])
+    results_basepath = "/".join(file_path.split("/")[:-1])
 
     # Reformating dictionary to avoid lambda call - to be able to save as pickle
     temp = defaultdict(dict)
     for fold in all_results_dict.keys():
         temp[fold] = all_results_dict[fold]
 
-    SaveNumpyPickles(results_basepath + r"\merged_files" ,"\\" + file_name, temp, windowsOS)
+    SaveNumpyPickles(results_basepath + r"/merged_files" ,"/" + file_name, temp, windowsOS)
 
 
 def tableResults(pickle_path, windows_OS, experiment_name, merged_file=False):
     # fold, artifact, model, scores
-    results_basepath = "\\".join(pickle_path.split("\\")[:-1])
+    results_basepath = "/".join(pickle_path.split("/")[:-1])
 
     if merged_file:
-        results = LoadNumpyPickles(pickle_path=results_basepath + r"\merged_files",
-                                   file_name="\\" + experiment_name + '.npy', windowsOS=windowsOS)
-        results = results[()]
+        results_all = LoadNumpyPickles(pickle_path=results_basepath + r"/merged_files",
+                                   file_name="/" + experiment_name + '.npy', windowsOS=windowsOS)
+        results_all = results_all[()]
     else:
-        results = LoadNumpyPickles(pickle_path=results_basepath + r"\performance", file_name = r"\results" + experiment_name +'.npy', windowsOS = windowsOS)
-        results = results[()]
+        results_all = LoadNumpyPickles(pickle_path=results_basepath + r"/performance", file_name = r"/results" + experiment_name +'.npy', windowsOS = windowsOS)
+        results_all = results_all[()]
         # fold, artifact, model, hyperopt iterations
-        HO_trials = LoadNumpyPickles(pickle_path=results_basepath + r"\hyperopt", file_name = r'\ho_trials' + experiment_name +'.npy', windowsOS = windowsOS)
+        HO_trials = LoadNumpyPickles(pickle_path=results_basepath + r"/hyperopt", file_name = r'/ho_trials' + experiment_name +'.npy', windowsOS = windowsOS)
         HO_trials = HO_trials[()]
 
     def mean_confidence_interval(data, confidence=0.95):
@@ -63,69 +63,78 @@ def tableResults(pickle_path, windows_OS, experiment_name, merged_file=False):
         h = se * scipy.stats.t.ppf((1 + confidence) / 2., n-1)
         return m-h, m, m+h
 
+    table_list = []
+    table_std_list = []
+
+    for ratio in results_all:
+        results = results_all[ratio]
+
+        pd.set_option("display.max_rows", None, "display.max_columns", None)
+
+        table = defaultdict(dict) #{}
+        table_std = defaultdict(dict) #{}
+
+        # want to average each fold
+        #construct keys
+        folds = [key for key in results.keys() if type(key)==int]
+        artifacts = list(results[folds[0]].keys())
+        models = list(results[folds[0]][artifacts[0]].keys())
+        scores = list(results[folds[0]][artifacts[0]][models[0]].keys())
+
+        # row-wise models, column-wise artifacts
+        acc = np.zeros((len(models),len(artifacts)))
+        acc_std = np.zeros((len(models),len(artifacts)))
+        f1s = np.zeros((len(models),len(artifacts)))
+        f1s_std = np.zeros((len(models),len(artifacts)))
+
+        for idx_art, artifact in enumerate(artifacts):
+            #table[artifact] = []
+            store_model = [0]*len(models)
+            sensitivity_std = [0]*len(models)
+
+            for idx_mod, model in enumerate(models):
+
+                store_scores = []
+
+                temp_acc = []
+                temp_f1 = []
+                for fold in folds:
+                    store_scores.append(results[fold][artifact][model]['sensitivity'])
+                    temp_acc.append(results[fold][artifact][model]['accuracy'])
+                    temp_f1.append(results[fold][artifact][model]['weighted_F1'])
+
+                acc[idx_mod,idx_art] = np.mean(temp_acc)
+                f1s[idx_mod,idx_art] = np.mean(temp_f1)
+
+                # Standard deviation for acc. and F1 on each artifact
+                acc_std[idx_mod, idx_art] = np.std(temp_acc)
+                f1s_std[idx_mod, idx_art] = np.std(temp_f1)
+
+                # Store standard deviation for sensitivies for each classifier/ model
+                store_model[idx_mod] = np.mean(store_scores)
+                sensitivity_std[idx_mod] = np.std(store_scores)
+
+            table[artifact] = store_model
+            table_std[artifact] = sensitivity_std
 
 
-    pd.set_option("display.max_rows", None, "display.max_columns", None)
+        table['avg. accuracy'] = np.mean(acc,axis=1)
+        table['avg. weighted f1'] = np.mean(f1s,axis=1)
 
-    table = defaultdict(dict) #{}
-    table_std = defaultdict(dict) #{}
+        # Mean standard deviation
+        table_std['avg. accuracy'] = np.mean(acc_std, axis=1)
+        table_std['avg. weighted f1'] = np.mean(f1s_std, axis=1)
 
-    # want to average each fold
-    #construct keys
-    folds = list(results.keys())
-    artifacts = list(results[folds[0]].keys())
-    models = list(results[folds[0]][artifacts[0]].keys())
-    scores = list(results[folds[0]][artifacts[0]][models[0]].keys())
+        table_list.append(table)
+        table_std_list.append(table_std)
 
-    # row-wise models, column-wise artifacts
-    acc = np.zeros((len(models),len(artifacts)))
-    acc_std = np.zeros((len(models),len(artifacts)))
-    f1s = np.zeros((len(models),len(artifacts)))
-    f1s_std = np.zeros((len(models),len(artifacts)))
+    SMOTE_ratios = list(results_all.keys())
 
-    for idx_art, artifact in enumerate(artifacts):
-        #table[artifact] = []
-        store_model = [0]*len(models)
-        sensitivity_std = [0]*len(models)
-
-        for idx_mod, model in enumerate(models):
-
-            store_scores = []
-
-            temp_acc = []
-            temp_f1 = []
-            for fold in folds:
-                store_scores.append(results[fold][artifact][model]['sensitivity'])
-                temp_acc.append(results[fold][artifact][model]['accuracy'])
-                temp_f1.append(results[fold][artifact][model]['weighted_F1'])
-
-            acc[idx_mod,idx_art] = np.mean(temp_acc)
-            f1s[idx_mod,idx_art] = np.mean(temp_f1)
-
-            # Standard deviation for acc. and F1 on each artifact
-            acc_std[idx_mod, idx_art] = np.std(temp_acc)
-            f1s_std[idx_mod, idx_art] = np.std(temp_f1)
-
-            # Store standard deviation for sensitivies for each classifier/ model
-            store_model[idx_mod] = np.mean(store_scores)
-            sensitivity_std[idx_mod] = np.std(store_scores)
-
-        table[artifact] = store_model
-        table_std[artifact] = sensitivity_std
+    return table_list, table_std_list, models, artifacts, SMOTE_ratios
 
 
-    table['avg. accuracy'] = np.mean(acc,axis=1)
-    table['avg. weighted f1'] = np.mean(f1s,axis=1)
-
-    # Mean standard deviation
-    table_std['avg. accuracy'] = np.mean(acc_std, axis=1)
-    table_std['avg. weighted f1'] = np.mean(f1s_std, axis=1)
-
-    return table, table_std, models, artifacts
-
-
-def plotPerformanceModels(performance_dict, error_dict, model_names, artifact_names, save_img=False):
-    save_path = dir + r'\Plots\Pilot'
+def plotPerformanceModels(performance_dict, error_dict, model_names, artifact_names, ratio, save_img=False):
+    save_path = dir + r'/Plots/Pilot'
 
     # Plotting results
     art = len(artifact_names)
@@ -135,14 +144,14 @@ def plotPerformanceModels(performance_dict, error_dict, model_names, artifact_na
     for indv_model, name in enumerate(model_names):
         plt.bar(x=artifact_names, height=performance_vals[indv_model,:], width=0.5, color="lightsteelblue")
         plt.errorbar(x=artifact_names, y=performance_vals[indv_model,:], yerr=error_vals[indv_model,:], fmt='.', color='k')
-        plt.title(name)
+        plt.title(name + " - SMOTE RATIO:" + str(ratio-1))
         plt.ylim(0, 1)
         if save_img:
-            plt.savefig(save_path + "\\" + name)
+            plt.savefig(("{}/{}_SMOTE_{}.png").format(save_path, name, ratio-1))
         plt.show()
 
-def plotPerformanceClasses(performance_dict, error_dict, model_names, artifact_names, save_img=False):
-    save_path = dir + r'\Plots\Pilot'
+def plotPerformanceClasses(performance_dict, error_dict, model_names, artifact_names, ratio, save_img=False):
+    save_path = dir + r'/Plots/Pilot'
 
     # Plotting results
     art = len(artifact_names)
@@ -154,27 +163,27 @@ def plotPerformanceClasses(performance_dict, error_dict, model_names, artifact_n
         plt.bar(x=model_names, height=performance_vals[indv_art, :], width=0.5, color="lightsteelblue")
         plt.errorbar(x=model_names, y=performance_vals[indv_art, :], yerr=error_vals[indv_art, :], fmt='.',
                      color='k')
-        plt.title(name)
+        plt.title(name + " - SMOTE RATIO:" + str(ratio-1))
         plt.xticks(rotation=25)
         plt.ylim(0,1)
         if save_img:
-            plt.savefig(save_path + "\\" + name)
+            plt.savefig(("{}/{}_SMOTE_{}.png").format(save_path, name, ratio-1))
         plt.show()
 
 def plotHyperopt(pickle_path, file_name, windowsOS=False):
 
     try:
-        results_basepath = "\\".join(pickle_path.split("\\")[:-1])
+        results_basepath = "/".join(pickle_path.split("/")[:-1])
 
         # fold, artifact, model, scores
-        results = LoadNumpyPickles(pickle_path=results_basepath + r"\performance",
-                                   file_name=r"\results" + experiment_name + '.npy', windowsOS=windowsOS)
+        results = LoadNumpyPickles(pickle_path=results_basepath + r"/performance",
+                                   file_name=r"/results" + experiment_name + '.npy', windowsOS=windowsOS)
         results = results[()]
 
 
         # fold, artifact, model, hyperopt iterations
-        HO_trials = LoadNumpyPickles(pickle_path=results_basepath + r"\hyperopt",
-                                   file_name=r"\ho_trials" + experiment_name + '.npy', windowsOS=windowsOS)
+        HO_trials = LoadNumpyPickles(pickle_path=results_basepath + r"/hyperopt",
+                                   file_name=r"/ho_trials" + experiment_name + '.npy', windowsOS=windowsOS)
         HO_trials = HO_trials[()]
 
         # only choose one fold
@@ -205,12 +214,13 @@ def plotHyperopt(pickle_path, file_name, windowsOS=False):
 
 if __name__ == '__main__':
     dir = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia"
+    dir = "/Users/philliphoejbjerg/Documents/GitHub/EEG_epilepsia"
     # pickle_path = r"/Users/Jacobsen/Documents/GitHub/EEG_epilepsia" + "/"
     windowsOS = True
 
-    pickle_path = dir + r"\results\performance"
-    pickle_path_merge = dir + r"\results\merged_files"
-    experiment_name = '_smote_easy_models'
+    pickle_path = dir + r"/results/performance"
+    pickle_path_merge = dir + r"/results/merged_files"
+    experiment_name = '_smote_SGD'
     experiment_name_merge = 'merged_pilot'
 
     # Merge individual result-files
@@ -219,35 +229,41 @@ if __name__ == '__main__':
 
     # Loading statistically calculated results as dictionaries
     # For single files and their HO_trials
-    performance, errors, model_names, artifact_names = tableResults(pickle_path=pickle_path, windows_OS=windowsOS, experiment_name=experiment_name, merged_file=False)
+    # List of dictionaries of results. Each entry in the list is a results dictionary for one SMOTE ratio
+    performance_list, errors_list, model_names, artifact_names, SMOTE_ratios = tableResults(pickle_path=pickle_path, windows_OS=windowsOS, experiment_name=experiment_name, merged_file=False)
+
+    # Save plots or not
+    save_img = True
 
     # For merged files
     #performance, errors, model_names, artifact_names = tableResults(pickle_path=pickle_path_merge, windows_OS=windowsOS, experiment_name=experiment_name_merge, merged_file=True)
+    for i, ratio in enumerate(SMOTE_ratios):
+        performance = performance_list[i]
+        errors = errors_list[i]
 
-    # Print dataframes
-    df_eval = pd.DataFrame.from_dict(performance)
-    df_eval.index = model_names
-    print('OVERALL PERFORMANCE\n')
-    print(np.round(df_eval * 100, 2))
-    # print(df_eval)
+        # Print dataframes
+        df_eval = pd.DataFrame.from_dict(performance)
+        df_eval.index = model_names
+        print('OVERALL PERFORMANCE')
+        print("SMOTE RATIO:" + str(ratio-1) +"\n")
+        print(np.round(df_eval * 100, 2))
+        # print(df_eval)
 
-    df_eval = pd.DataFrame.from_dict(errors)
-    df_eval.index = model_names
-    print('\nSTANDARD DEVIATIONS\n')
-    print(np.round(df_eval * 100, 2))
+        df_eval = pd.DataFrame.from_dict(errors)
+        df_eval.index = model_names
+        print('\nSTANDARD DEVIATIONS')
+        print("SMOTE RATIO:" + str(ratio-1)+"\n")
+        print(np.round(df_eval * 100, 2))
 
+        #Across models
+        plotPerformanceModels(performance_dict=performance, error_dict=errors, model_names=model_names, artifact_names=artifact_names, ratio=ratio, save_img=save_img)
 
-    # Save plots or not
-    save_img = False
+        #Across classes
+        plotPerformanceClasses(performance_dict=performance, error_dict=errors, model_names=model_names, artifact_names=artifact_names, ratio=ratio, save_img=save_img)
 
-    #Across models
-    plotPerformanceModels(performance_dict=performance, error_dict=errors, model_names=model_names, artifact_names=artifact_names, save_img=save_img)
-
-    #Across classes
-    plotPerformanceClasses(performance_dict=performance, error_dict=errors, model_names=model_names, artifact_names=artifact_names, save_img=save_img)
-
-    #Plotting Hyperopt queries
-    plotHyperopt(pickle_path=pickle_path, file_name=experiment_name, windowsOS=windowsOS)
+        #Plotting Hyperopt queries
+        #TODO: BROKEN!
+        #plotHyperopt(pickle_path=pickle_path, file_name=experiment_name, windowsOS=windowsOS)
 
 
     print("")
