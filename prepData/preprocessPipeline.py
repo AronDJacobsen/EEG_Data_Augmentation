@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from mne.io import read_raw_edf
 import numpy as np
 # from ../LoadFarrahTueData.loadData import jsonLoad
-import loadData
+from prepData.loadData import *
 # import NovelEEG.SampleCode.loadData
 from scipy import signal, stats
 import matplotlib.pyplot as plt
