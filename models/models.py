@@ -131,7 +131,7 @@ class models:
 
     def GNB(self):
         model = GaussianNB()
-        model.fit(self.X_train, self.y_train)
+        model.fit(self.X_train, self.y_train)#, np.unique(self.y_train))
         y_pred = model.predict(self.X_test)
 
         accuracy, f1_s, sensitivity = models.scores(self, y_pred)
