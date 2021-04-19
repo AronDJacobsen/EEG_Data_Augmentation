@@ -134,11 +134,9 @@ model_dict = {'SGD' : ('SGD', spacesgd)}
 
 
 #### define model to be evaluated and filename ####
-experiment_name = "_pilot_with_SMOTE_easy_models" # added to saving files
-model_dict = {'baseline_perm': ('baseline_perm', spaceb),
-              'baseline_major': ('baseline_major', spaceb),
-              'LR' : ('LR', spacelr),
-              'GNB': ('GNB', spacegnb)}
+experiment = 'smote'
+experiment_name = "_smote_GNB" # added to saving files
+model_dict = {'GNB': ('GNB', spacegnb)}
 
 #### define augmentation ####
 smote_ratio = [1, 1.5, 2, 2.5, 3]
@@ -154,7 +152,7 @@ function_dict = models.__dict__
 random_state_val = 0
 
 #### define classes ####
-artifact_names = ['eyem', 'chew', 'shiv', 'elpp', 'musc', 'null']
+artifact_names = ['null'] #['eyem', 'chew', 'shiv', 'elpp', 'musc', 'null']
 classes = len(artifact_names)
 
 #for hyperopt data to save
@@ -366,8 +364,8 @@ for ratio in smote_ratio:
 
 #### saving data ####
 # Remember to change name of pickle when doing a new first_pilot
-SaveNumpyPickles(pickle_path + r"\results\performance", r"\results" + experiment_name, results, windowsOS)
-SaveNumpyPickles(pickle_path + r"\results\hyperopt", r"\ho_trials" + experiment_name, ho_trials, windowsOS)
+SaveNumpyPickles(pickle_path + r"\results\performance" + "\\" + experiment, r"\results" + experiment_name, results, windowsOS)
+SaveNumpyPickles(pickle_path + r"\results\hyperopt" + "\\" + experiment, r"\ho_trials" + experiment_name, ho_trials, windowsOS)
 
 
 
