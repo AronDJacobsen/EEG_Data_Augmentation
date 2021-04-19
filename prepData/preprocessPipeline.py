@@ -5,6 +5,7 @@ from mne.io import read_raw_edf
 import numpy as np
 # from ../LoadFarrahTueData.loadData import jsonLoad
 from prepData.loadData import *
+import prepData.loadData as loadData
 # import NovelEEG.SampleCode.loadData
 from scipy import signal, stats
 import matplotlib.pyplot as plt

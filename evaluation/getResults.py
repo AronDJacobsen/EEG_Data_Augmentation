@@ -186,7 +186,6 @@ def plotPerformanceClasses(performance_dict, error_dict, model_names, artifact_n
     performance_vals = np.array(list(performance_dict.values())[:art])
     error_vals = np.array(list(error_dict.values())[:art])
 
-    model_names = [name.split("_")[0] for name in model_names]
     for indv_art, name in enumerate(artifact_names):
         plt.bar(x=model_names, height=performance_vals[indv_art, :], width=0.5, color="lightsteelblue")
         plt.errorbar(x=model_names, y=performance_vals[indv_art, :], yerr=error_vals[indv_art, :], fmt='.',
@@ -256,20 +255,22 @@ if __name__ == '__main__':
     else:
         slash = "/"
 
+    merged_file = True
+
     experiment = "smote"
+    experiment_name = '_smote_SGD'
+    experiment_name_merge = 'smote_first_merge'
+
 
     pickle_path = dir + slash + "results" + slash + "performance" + slash + experiment
     pickle_path_merge = dir + slash + "results" + slash + "merged_files" + slash + experiment
 
-    merged_file = True
-    experiment_name = '_smote_SGD'
-    experiment_name_merge = 'smote_first_merge'
 
     if merged_file:
         experiment_name = experiment_name_merge
 
-    # Merge individual result-files
-    #mergeResultFiles(file_path=pickle_path, file_name="smote_first_merge", windowsOS=windowsOS)
+        # Merge individual result-files
+        mergeResultFiles(file_path=pickle_path, file_name="smote_first_merge", windowsOS=windowsOS)
 
 
     # Loading statistically calculated results as dictionaries
@@ -278,7 +279,7 @@ if __name__ == '__main__':
     performance_list, errors_list, model_names, artifact_names, SMOTE_ratios = tableResults(pickle_path=pickle_path, windows_OS=windowsOS, experiment_name=experiment_name, merged_file=merged_file, windowsOS=windowsOS)
 
     # Save plots or not
-    save_img = False
+    save_img = True
 
     # For merged files
     #performance, errors, model_names, artifact_names = tableResults(pickle_path=pickle_path_merge, windows_OS=windowsOS, experiment_name=experiment_name_merge, merged_file=True)
