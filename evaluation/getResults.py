@@ -33,8 +33,10 @@ def mergeResultFiles(file_path, file_name="merged", windowsOS=False):
             for fold in folds:
                 for artifact in artifacts:
                     for model in models:
-
-                        all_results_dict[ratio][fold][artifact][model] = results[ratio][fold][artifact][model]
+                        if model == 'baseline_major':
+                            pass
+                        else:
+                            all_results_dict[ratio][fold][artifact][model] = results[ratio][fold][artifact][model]
 
     # Save file in merged_files dir
     results_basepath = slash.join(file_path.split(slash)[:-2])
@@ -47,9 +49,10 @@ def mergeResultFiles(file_path, file_name="merged", windowsOS=False):
             temp[ratio][fold] = all_results_dict[ratio][fold]
 
     exp = file_path.split(slash)[-1]
+    print("\nNew file created!")
     SaveNumpyPickles(results_basepath + slash + "merged_files" + slash + exp, slash + file_name, temp, windowsOS)
 
-def manipulateFile(file_path, file_name="merged", windowsOS=False):
+def manipulateFile(file_path, file_name="merged", experiment="", main_file="", sec_file="", windowsOS=False):
     # TODO: Kunne være fedt at lave, så man vælger hvilke filer der skal merges i stedet for directory
 
     if windowsOS:
@@ -61,6 +64,9 @@ def manipulateFile(file_path, file_name="merged", windowsOS=False):
     all_results_dict = defaultdict(lambda: defaultdict(lambda: defaultdict(dict)))
 
     file_names = [results_file.split(slash)[-1] for results_file in glob.glob(file_path + slash + "**")]
+
+    if file_names[0] != main_file:
+        file_names = file_names[::-1]
 
     for model_file in file_names:
         results = LoadNumpyPickles(file_path + slash, model_file, windowsOS=windowsOS)[()]
@@ -85,8 +91,9 @@ def manipulateFile(file_path, file_name="merged", windowsOS=False):
         for fold in all_results_dict[smote_ratios[0]].keys():
             temp[ratio][fold] = all_results_dict[ratio][fold]
 
-    exp = file_path.split(slash)[-1]
-    SaveNumpyPickles(results_basepath + slash + "merged_files" + slash + exp, slash + file_name, temp, windowsOS)
+    exp = experiment
+    print("\nNew file created!")
+    SaveNumpyPickles(results_basepath + slash + "performance" + slash + exp, slash + file_name, temp, windowsOS)
 
 
 def tableResults(pickle_path, windows_OS, experiment_name, merged_file=False, windowsOS=False):
@@ -187,7 +194,7 @@ def tableResults(pickle_path, windows_OS, experiment_name, merged_file=False, wi
     return table_list, table_std_list, models, artifacts, SMOTE_ratios
 
 
-def plotPerformanceModels(performance_dict, error_dict, model_names, artifact_names, ratio, save_img=False, windowsOS=False):
+def plotPerformanceModels(performance_dict, error_dict, experiment, model_names, artifact_names, ratio, save_img=False, windowsOS=False):
 
     if windowsOS:
         slash = "\\"
@@ -217,7 +224,7 @@ def plotPerformanceClasses(performance_dict, error_dict, experiment, model_names
     else:
         slash = "/"
 
-    save_path = dir + slash +'Plots' + slash + experiment
+    save_path = dir + slash + 'Plots' + slash + experiment
 
     # Plotting results
     art = len(artifact_names)
@@ -281,7 +288,7 @@ def plotHyperopt(pickle_path, file_name, windowsOS=False):
         print("\n\nERROR: No Hyperopt queries used for this model!")
 
 
-def plotResultsSMOTE(performance_list, errors_list, experiment, model_names, artifact_names, ratio, save_img=False, windowsOS=False):
+def plotResultsSMOTE(performance_list, errors_list, experiment, model_names, artifact_names, SMOTE_ratios, save_img=False, windowsOS=False):
     if windowsOS:
         slash = "\\"
     else:
@@ -289,48 +296,50 @@ def plotResultsSMOTE(performance_list, errors_list, experiment, model_names, art
 
     save_path = dir + slash +'Plots' + slash + experiment
 
-    colorlist = ["lightsteelblue", "lightslategrey", "lightcoral", "red", "blue"]
+    colorlist = ["lightslategrey", "lightsteelblue", "darkcyan", "firebrick", "lightcoral"]
     # Plotting results
     art = len(artifact_names)
     for indv_art, name in enumerate(artifact_names):
-        if name != "baseline_major":
-            for i in range(len(performance_list)):
-                performance_dict = performance_list[i]
-                error_dict = errors_list[i]
+        for i in range(len(performance_list)):
+            performance_dict = performance_list[i]
+            error_dict = errors_list[i]
 
-                performance_vals = np.array(list(performance_dict.values())[:art])
-                error_vals = np.array(list(error_dict.values())[:art])
+            performance_vals = np.array(list(performance_dict.values())[:art])
+            error_vals = np.array(list(error_dict.values())[:art])
 
-                X_axis = np.arange(len(model_names)) - 0.3
+            X_axis = np.arange(len(model_names)) - 0.3
 
 
-                #if name == "eyem":
-                plt.bar(x=X_axis + 0.15 * i, height=performance_vals[indv_art, :], width=0.15, color=colorlist[i],
-                        label="SMOTE = " + str(SMOTE_ratios[i]))
-                plt.errorbar(x=X_axis + 0.15 * i, y=performance_vals[indv_art, :], yerr=error_vals[indv_art, :],
-                             fmt='.',
-                             color='k')
-                #else:
-                #    plt.bar(x=X_axis + 0.15 * i, height=performance_vals[indv_art, :], width=0.15, color=colorlist[i])
-                #    plt.errorbar(x=X_axis + 0.15 * i, y=performance_vals[indv_art, :], yerr=error_vals[indv_art, :], fmt='.',
-                #                 color='k')
+            plt.bar(x=X_axis + 0.15 * i, height=performance_vals[indv_art, :], width=0.15, color=colorlist[i],
+                    label="SMOTE = " + str(SMOTE_ratios[i]))
+            plt.errorbar(x=X_axis + 0.15 * i, y=performance_vals[indv_art, :], yerr=error_vals[indv_art, :],
+                         fmt='.',
+                         color='k')
 
-            plt.xticks(np.arange(len(model_names)), model_names, rotation=25)
-            plt.ylim(0,1)
-            plt.title("Sensitiviy scores across models and SMOTEs on the '{:s}'-class".format(name))
-            plt.xlabel("Model")
-            plt.ylabel("Sensitivity")
-            plt.legend()
 
-            if save_img:
-                try:
-                    os.makedirs(save_path)
-                    print("New directory created!")
-                except FileExistsError:
-                    print("Directory is already created!")
+        for i, model in enumerate(model_names):
+            if model == 'baseline_perm':
+                model_names[i] = "base-\nline"
+            elif model == 'AdaBoost':
+                model_names[i] = "Ada-\nBoost"
 
-                plt.savefig(("{}{:s}{}_{}.png").format(save_path, slash, name, experiment))
-            plt.show()
+        plt.xticks(np.arange(len(model_names)), model_names, rotation=0)
+        plt.ylim(0,1)
+        plt.title("Sensitiviy scores across models and SMOTEs on the '{:s}'-class".format(name))
+        plt.xlabel("Model")
+        plt.ylabel("Sensitivity")
+        plt.legend(loc='center right', bbox_to_anchor=(1.36, 0.5))
+        plt.subplots_adjust(bottom=0.2, right=0.775)
+
+        if save_img:
+            try:
+                os.makedirs(save_path)
+                print("New directory created!")
+            except FileExistsError:
+                pass
+
+            plt.savefig(("{}{:s}{}_{}.png").format(save_path, slash, name, experiment))
+        plt.show()
 
 
 if __name__ == '__main__':
@@ -354,6 +363,9 @@ if __name__ == '__main__':
     pickle_path = dir + slash + "results" + slash + "performance" + slash + experiment
     pickle_path_merge = dir + slash + "results" + slash + "merged_files" + slash + experiment
 
+    GNB = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia\results\performance\GNB_for_merge"
+    manipulateFile(file_path=GNB, file_name="results_smote_LR_GNB_baselines", main_file="results_smote_easy_models.npy",
+                   sec_file="results_smote_GNB_null.npy", windowsOS=windowsOS, experiment=experiment)
 
     if merged_file:
         experiment_name = experiment_name_merge
@@ -366,9 +378,14 @@ if __name__ == '__main__':
     # For single files and their HO_trials
     # List of dictionaries of results. Each entry in the list is a results dictionary for one SMOTE ratio
     performance_list, errors_list, model_names, artifact_names, SMOTE_ratios = tableResults(pickle_path=pickle_path, windows_OS=windowsOS, experiment_name=experiment_name, merged_file=merged_file, windowsOS=windowsOS)
+    SMOTE_ratios.sort()
 
     # Save plots or not
     save_img = True
+
+    plotResultsSMOTE(performance_list=performance_list, errors_list=errors_list, experiment=experiment,
+                     model_names=model_names, artifact_names=artifact_names, SMOTE_ratios=SMOTE_ratios, save_img=save_img,
+                     windowsOS=windowsOS)
 
     # For merged files
     #performance, errors, model_names, artifact_names = tableResults(pickle_path=pickle_path_merge, windows_OS=windowsOS, experiment_name=experiment_name_merge, merged_file=True)
@@ -391,17 +408,15 @@ if __name__ == '__main__':
         print(np.round(df_eval * 100, 2))
         """
 
-        plotResultsSMOTE(performance_list=performance_list, errors_list=errors_list, experiment=experiment,
-                         model_names=model_names, artifact_names=artifact_names, ratio=ratio, save_img=save_img,
-                         windowsOS=windowsOS)
+        # Individual plotting commands! For now outcommented.
 
-        GNB = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia\results\performance\GNB_for_merge"
-        manipulateFile(file_path=GNB, file_name="results_smote_LR_GNB_baselines", windowsOS=windowsOS)
         #Across models
-        plotPerformanceModels(performance_dict=performance, error_dict=errors, experiment=experiment, model_names=model_names, artifact_names=artifact_names, ratio=ratio, save_img=save_img, windowsOS=windowsOS)
+        #plotPerformanceModels(performance_dict=performance, error_dict=errors, experiment=experiment, model_names=model_names, artifact_names=artifact_names, ratio=ratio, save_img=save_img, windowsOS=windowsOS)
 
         #Across classes
-        plotPerformanceClasses(performance_dict=performance, experiment=experiment, error_dict=errors, model_names=model_names, artifact_names=artifact_names, ratio=ratio, save_img=save_img, windowsOS=windowsOS)
+        #plotPerformanceClasses(performance_dict=performance, experiment=experiment, error_dict=errors, model_names=model_names, artifact_names=artifact_names, ratio=ratio, save_img=save_img, windowsOS=windowsOS)
+
+
 
         #Plotting Hyperopt queries
         #TODO: BROKEN!
