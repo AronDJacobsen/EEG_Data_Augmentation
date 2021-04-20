@@ -5,6 +5,7 @@ from collections import defaultdict
 import prepData.loadData as loadData
 from prepData.preprocessPipeline import TUH_rename_ch, readRawEdf, pipeline, spectrogramMake, slidingWindow
 from scipy.signal import butter, lfilter, freqz
+from prepData.dataLoader import *
 
 ### BUTTERWORTH LOWPASS FILTERS TAKEN FROM
 # https://stackoverflow.com/questions/25191620/creating-lowpass-filter-in-scipy-understanding-methods-and-units
@@ -111,21 +112,22 @@ def generateNoisyData(data_path, save_path, file_selected, variance, use_covaria
 
         # NOISE ADDITION START SETUP!
         orig_object = proc_subject["rawData"]
-        fig = orig_object.plot()
-        if save_fig:
-            base = ("\\").join(os.getcwd().split("\\")[:-1])
-            freq_str = str(cutoff_freq).split(".")[0]
-            figure_name = base + r"\Plots\NoiseAddition_visualization\clean.png"
-            fig.savefig(figure_name)
-
         raw_signals = proc_subject["rawData"].get_data()
         n_chan, n_obs = raw_signals.shape
         noisy_signals = np.empty((n_chan, n_obs))
 
         covar = mne.compute_raw_covariance(orig_object)
 
-        covar.plot(orig_object.info, proj=True)
-        covar.plot_topomap(orig_object.info, proj=True)
+        if save_fig:
+            fig = orig_object.plot()
+
+            base = ("\\").join(os.getcwd().split("\\")[:-1])
+            freq_str = str(cutoff_freq).split(".")[0]
+            figure_name = base + r"\Plots\NoiseAddition_visualization\clean.png"
+            fig.savefig(figure_name)
+
+            covar.plot(orig_object.info, proj=True)
+            covar.plot_topomap(orig_object.info, proj=True)
 
         if use_covariance:
             Sigma = covar.data * variance #TODO: Giver det mening med variance her?
@@ -159,9 +161,10 @@ def generateNoisyData(data_path, save_path, file_selected, variance, use_covaria
 
 
         orig_object._data = noisy_signals
-        fig = orig_object.plot(title="Cutoff freq: " + str(cutoff_freq))
 
         if save_fig:
+            fig = orig_object.plot(title="Cutoff freq: " + str(cutoff_freq))
+
             base = ("\\").join(os.getcwd().split("\\")[:-1])
             freq_str = str(cutoff_freq).split(".")[0]
             figure_name = base + r"\Plots\NoiseAddition_visualization\freq{}_var{}.png".format(freq_str, variance)
@@ -189,6 +192,10 @@ def generateNoisyData(data_path, save_path, file_selected, variance, use_covaria
           "\n~~~~~~~~~~~~~~~~~~~~\n"
           % (int((toc - tic) / 60), int((toc - tic) % 60), len(subjects), subjects[subject_ID][edf]["tWindow"],
              subjects[subject_ID][edf]["tStep"]))
+
+    filepath = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia"
+    SaveNumpyPickles(filepath, r"\subjects_var{}_cutoff{}".format(variance, cutoff_freq), subjects, windowsOS=True)
+    PicklePrepData(subjects, r"C:\Users\Albert Kjøller\Documents\GitHub\TUAR_full_data\tempData", filepath, windowsOS=True)
 
 
 if __name__ == '__main__':
@@ -248,6 +255,8 @@ if __name__ == '__main__':
     # CALLING THE PREPROCESSING to get noisy preprocessed data files
     # Max cutoff_freq is half the sample rate!
     cutoff_freq = None
+
+    # How much should the covariance have as impact
     variance = 1
     use_covar = True
     save_fig = False
