@@ -185,7 +185,6 @@ def generateNoisyData(data_path, save_path, file_selected, variance, use_covaria
 
 
     toc = time.time()
-    mne.simulation.add_noise(proc_subject["rawData"], )
 
     print("\n~~~~~~~~~~~~~~~~~~~~\n"
           "it took %imin:%is to run preprocess-pipeline for %i patients\n with window length [%.2fs] and t_step [%.2fs]"

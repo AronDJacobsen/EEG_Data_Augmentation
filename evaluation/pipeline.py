@@ -137,6 +137,7 @@ model_dict = {'SGD' : ('SGD', spacesgd)}
 experiment = 'smote'
 experiment_name = "_smote_GNB" # added to saving files
 model_dict = {'GNB': ('GNB', spacegnb)}
+# model_dict = {'LR': ('LR', None)}
 
 #### define augmentation ####
 smote_ratio = [1, 1.5, 2, 2.5, 3]
