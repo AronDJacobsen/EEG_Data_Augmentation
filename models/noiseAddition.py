@@ -1,9 +1,11 @@
 import os, time, mne, shutil, glob
 import numpy as np
+import matplotlib.pyplot as plt
 from collections import defaultdict
 import prepData.loadData as loadData
 from prepData.preprocessPipeline import TUH_rename_ch, readRawEdf, pipeline, spectrogramMake, slidingWindow
 from scipy.signal import butter, lfilter, freqz
+from prepData.dataLoader import *
 
 ### BUTTERWORTH LOWPASS FILTERS TAKEN FROM
 # https://stackoverflow.com/questions/25191620/creating-lowpass-filter-in-scipy-understanding-methods-and-units
@@ -16,13 +18,13 @@ def butter_lowpass(cutoff, fs, order=5):
 
 def butter_lowpass_filter(data, cutoff, fs, order=5):
     b, a = butter_lowpass(cutoff, fs, order=order)
-    y = lfilter(b, a, data)
+    y = lfilter(b, a, data, axis=1)
     return y
 
 
 ####
 
-def generateNoisyData(data_path, save_path, file_selected, windowsOS=False, cutoff_freq=None, sample_rate=150, order=5):
+def generateNoisyData(data_path, save_path, file_selected, variance, use_covariance=False, windowsOS=False, cutoff_freq=None, sample_rate=150, order=5, save_fig=False):
     # Redefining so we don't have to change variables through all of the function
     TUAR_dir = data_path
     save_dir = save_path
@@ -58,36 +60,9 @@ def generateNoisyData(data_path, save_path, file_selected, windowsOS=False, cuto
         #                  'BURSTS', 'SUPPR']})
 
 
-        # NOISE ADDITION STEP!
-        orig_object = proc_subject["rawData"]
-        raw_signals = proc_subject["rawData"].get_data()
-        n_chan, n_obs = raw_signals.shape
-        noisy_signals = np.empty((n_chan, n_obs))
 
-
-        # TODO: Zero mean with variance as parameter - maybe covariance?
-        for i, chan_signal in enumerate(raw_signals):
-            mean = 0
-            std = np.std(chan_signal)
-            white_noise = np.random.normal(mean, std, n_obs)
-
-            if cutoff_freq is not None:
-                # TODO: Lav lav-pass filtrering af white noise. TJEK OM DET VIRKER!
-                colored_noise = butter_lowpass_filter(white_noise, cutoff_freq, sample_rate, order)
-                noise = colored_noise
-
-            else:
-                noise = white_noise
-
-            # GAUSSIAN NOISE FUNCTION I MNE (KAN NOK IKKE HÅNDTERE COLORED NOISE
-            noisy_signals[i] = chan_signal + noise
-
-        orig_object._data = noisy_signals
-        proc_subject["rawData"] = orig_object
-
-        # TODO: CHANGE FILE NAME!
-        # Create directories for saving noisy files similarly to normal files
-        filename = orig_object.filenames[0]
+        # Create directories for saving noisy files similarly to normal files in another directory
+        filename = proc_subject["rawData"].filenames[0]
         filename = filename.split("\\")
         folder_pos = [i for i, m in enumerate(filename) if m == "TUH_EEG_CORPUS"][0]
         orig_path = ("\\").join(filename[:-1])
@@ -109,8 +84,8 @@ def generateNoisyData(data_path, save_path, file_selected, windowsOS=False, cuto
 
         proc_subject['path'] = [("\\").join(filename[folder_pos:])]
 
-        proc_subject = readRawEdf(proc_subject, saveDir=save_dir, tWindow=1, tStep=1 * .25,  # 75% temporalt overlap
-                                  read_raw_edf_param={'preload': True})  # ,
+        #proc_subject = readRawEdf(proc_subject, saveDir=save_dir, tWindow=1, tStep=1 * .25,  # 75% temporalt overlap
+        #                          read_raw_edf_param={'preload': True})  # ,
 
         # find data labels
         labelPath = subjects[subject_ID][edf]['path'][-1].split(".edf")[0]
@@ -133,6 +108,72 @@ def generateNoisyData(data_path, save_path, file_selected, windowsOS=False, cuto
         # downSampling must be above the filter frequency in FIR to avoid aliasing
         pipeline(proc_subject["rawData"], type="standard_1005", notchfq=60, downSam=150) # TO avoid aliasing for the FIR-filter
 
+
+
+        # NOISE ADDITION START SETUP!
+        orig_object = proc_subject["rawData"]
+        raw_signals = proc_subject["rawData"].get_data()
+        n_chan, n_obs = raw_signals.shape
+        noisy_signals = np.empty((n_chan, n_obs))
+
+        covar = mne.compute_raw_covariance(orig_object)
+
+        if save_fig:
+            fig = orig_object.plot()
+
+            base = ("\\").join(os.getcwd().split("\\")[:-1])
+            freq_str = str(cutoff_freq).split(".")[0]
+            figure_name = base + r"\Plots\NoiseAddition_visualization\clean.png"
+            fig.savefig(figure_name)
+
+            covar.plot(orig_object.info, proj=True)
+            covar.plot_topomap(orig_object.info, proj=True)
+
+        if use_covariance:
+            Sigma = covar.data * variance #TODO: Giver det mening med variance her?
+            N = Sigma.shape[0]
+            white_noise = np.random.multivariate_normal(np.zeros(N), Sigma, n_obs).T
+
+
+            # TODO: Tjek om AXIS er korrekt i butter_lowpass_filter når man kalder lfilter
+            if cutoff_freq is not None:
+                colored_noise = butter_lowpass_filter(white_noise, cutoff_freq, sample_rate, order)
+                noise = colored_noise
+
+            else:
+                noise = white_noise
+
+            noisy_signals = raw_signals + noise
+
+        else:
+            for i, chan_signal in enumerate(raw_signals):
+                mean = 0
+                std = np.sqrt(variance)
+                white_noise = np.random.normal(mean, std, n_obs)
+
+                if cutoff_freq is not None:
+                    colored_noise = butter_lowpass_filter(white_noise, cutoff_freq, sample_rate, order)
+                    noise = colored_noise
+                else:
+                    noise = white_noise
+
+                noisy_signals[i] = chan_signal + noise
+
+
+        orig_object._data = noisy_signals
+
+        if save_fig:
+            fig = orig_object.plot(title="Cutoff freq: " + str(cutoff_freq))
+
+            base = ("\\").join(os.getcwd().split("\\")[:-1])
+            freq_str = str(cutoff_freq).split(".")[0]
+            figure_name = base + r"\Plots\NoiseAddition_visualization\freq{}_var{}.png".format(freq_str, variance)
+            fig.savefig(figure_name)
+
+        proc_subject["rawData"] = orig_object
+
+
+
         # Generate output windows for (X,y) as (tensor, label)
         proc_subject["preprocessing_output"] = slidingWindow(proc_subject, t_max=proc_subject["rawData"].times.max(),
                                                              tStep=proc_subject["tStep"], FFToverlap=0.75, crop_fq=24,
@@ -144,13 +185,16 @@ def generateNoisyData(data_path, save_path, file_selected, windowsOS=False, cuto
 
 
     toc = time.time()
-    mne.simulation.add_noise(proc_subject["rawData"], )
 
     print("\n~~~~~~~~~~~~~~~~~~~~\n"
           "it took %imin:%is to run preprocess-pipeline for %i patients\n with window length [%.2fs] and t_step [%.2fs]"
           "\n~~~~~~~~~~~~~~~~~~~~\n"
           % (int((toc - tic) / 60), int((toc - tic) % 60), len(subjects), subjects[subject_ID][edf]["tWindow"],
              subjects[subject_ID][edf]["tStep"]))
+
+    filepath = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia"
+    SaveNumpyPickles(filepath, r"\subjects_var{}_cutoff{}".format(variance, cutoff_freq), subjects, windowsOS=True)
+    PicklePrepData(subjects, r"C:\Users\Albert Kjøller\Documents\GitHub\TUAR_full_data\tempData", filepath, windowsOS=True)
 
 
 if __name__ == '__main__':
@@ -186,20 +230,35 @@ if __name__ == '__main__':
     # Which files should be processed - a subset or all?
     TUAR_data = loadData.findEdf(path=TUAR_dir, selectOpt=False, saveDir=save_dir, windowsOS=windowsOS)
 
-    # Choose which files we wish to augment!
-    # TODO: How will we do this? Randomly select EDF's or choose over subjects?
-    # TODO: I believe it should only train on this augmented data? Maybe we will just create a folder with preprocessed
-    # TODO: data (like tempData) and draw on the files for specific ID's when training? I think files_selected can be passed
-    # on to the noisyData-function.
-
     # Select EDF-files to be augmented with noise addition.
-    how_many = 10
-
-    EDF_files = list(TUAR_data.keys())
-    np.random.choice(EDF_files, how_many)
     files_selected = TUAR_data.copy()
 
+    EDFs = np.array(list(files_selected.keys()))
+
+    # Choose one EDF for visualization of noise
+    # N = len(EDFs)
+    N = 1
+    use_subset = False
+
+    if use_subset:
+        files_selected_sub = defaultdict(dict)
+        np.random.seed = 20
+        chosen = np.random.choice(len(EDFs), N)
+        chosen = [0]
+
+        for key in list(EDFs[chosen]):
+            files_selected_sub[key] = files_selected[key]
+
+        files_selected = files_selected_sub
 
     # CALLING THE PREPROCESSING to get noisy preprocessed data files
-    # TODO: Determine the sample_rate and the order of the Butterworth-filter!
-    generateNoisyData(TUAR_dir, save_dir, files_selected, windowsOS=windowsOS, cutoff_freq=30.0, sample_rate=150, order=5)
+    # Max cutoff_freq is half the sample rate!
+    cutoff_freq = None
+
+    # How much should the covariance have as impact
+    variance = 1
+    use_covar = True
+    save_fig = False
+
+    # TODO: Add edf-name to the plot!
+    generateNoisyData(TUAR_dir, save_dir, files_selected, variance=variance, use_covariance=use_covar, windowsOS=windowsOS, cutoff_freq=cutoff_freq, sample_rate=150, order=5, save_fig=save_fig)

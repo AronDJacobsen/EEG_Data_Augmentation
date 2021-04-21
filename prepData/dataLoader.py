@@ -170,7 +170,7 @@ def SaveNumpyPickles(pickle_path, file_name, file, windowsOS):
     else:
         np.save(pickle_path + file_name[1:], file)
 
-    print(file_name[1:] +' saved')
+    print(file_name[1:] +' saved\n')
 
 
 
