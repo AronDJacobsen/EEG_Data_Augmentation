@@ -1,5 +1,7 @@
 import numpy as np
+import random
 import torch
+from sklearn.preprocessing import OneHotEncoder
 
 #TODO: Link til hvor vi har fundet koden!
 
@@ -7,7 +9,7 @@ import torch
 def mixup(X, y, ratio, alpha=0.4):
     '''Returns mixed inputs, pairs of targets, and lambda'''
     size = X.shape[0]
-    mixup_size = round(size * (ratio - 1))
+    mixup_size = round(size * ratio)
 
     # List of lambda-values
     lam = np.random.beta(alpha, alpha, mixup_size)
@@ -15,17 +17,14 @@ def mixup(X, y, ratio, alpha=0.4):
     idxs = list(range(0, size))
 
     list1_idx = random.choices(idxs, k = mixup_size)
-    list2_idx = random.sample(idxs, k = mixup_size)
+    list2_idx = random.choices(idxs, k = mixup_size)
 
     mixed_X = np.multiply(lam,X[list1_idx, :].T).T + np.multiply( (1-lam) ,X[list2_idx, :].T).T
     mixed_y = np.multiply(lam,y[list1_idx, :].T).T + np.multiply( (1-lam) ,y[list2_idx, :].T).T
 
-
-    #rand_sample = np.random.sample(mixup_size)
-    rand_sample = np.random.sample(100)
-
     # Create matrix of zeros:
     labels = np.zeros(mixed_y.shape)
+
     for i in range(mixup_size):
         # Two mixup-ed idxs
         ids = np.argsort(mixed_y[i, :])[-2:]
@@ -34,7 +33,7 @@ def mixup(X, y, ratio, alpha=0.4):
 
 
 
-    # Remember to concatenate
+    # Remember to concatenate outside of function
     return mixed_X, labels, lam
 
 
