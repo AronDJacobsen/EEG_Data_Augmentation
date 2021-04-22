@@ -37,7 +37,7 @@ windowsOS = True
 #loading data - define which pickles to load (with NaNs or without)
 
 X_file = r"\X_clean.npy"    #X_file = r"\X.npy"
-y_file = r"\y_clean.npy"    #y_file = r"\y.npy"
+y_file = r"\y_clean.npy"    #y_file = r"\y_clean.npy"
 ID_file = r"\ID_frame_clean.npy"   #ID_file = r"\ID_frame.npy"
 
 

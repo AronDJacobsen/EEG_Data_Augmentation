@@ -38,11 +38,11 @@ from models.mixup import mixup
 from collections import Counter
 
 #prep_dir = r"C:\Users\Albert Kjøller\Documents\GitHub\TUAR_full_data\tempData" + "\\"
-#pickle_path = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia"
+pickle_path = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia"
 #pickle_path = r"/Users/Jacobsen/Documents/GitHub/EEG_epilepsia" + "/"
-pickle_path = r"/Users/philliphoejbjerg/Documents/GitHub/EEG_epilepsia" + "/"
+#pickle_path = r"/Users/philliphoejbjerg/Documents/GitHub/EEG_epilepsia" + "/"
 
-windowsOS = False
+windowsOS = True
 
 # Create pickles from preprocessed data based on the paths above. Unmuted when pickles exist
 # subject_dict = createSubjectDict(prep_directory=prep_dir, windowsOS=True)
@@ -51,7 +51,7 @@ windowsOS = False
 #loading data - define which pickles to load (with NaNs or without)
 
 X_file = r"\X_clean.npy"    #X_file = r"\X.npy"
-y_file = r"\y_clean.npy"    #y_file = r"\y.npy"
+y_file = r"\y_clean.npy"    #y_file = r"\y_clean.npy"
 ID_file = r"\ID_frame_clean.npy"   #ID_file = r"\ID_frame.npy"
 
 
@@ -59,12 +59,14 @@ X = LoadNumpyPickles(pickle_path=pickle_path, file_name = X_file, windowsOS = wi
 y = LoadNumpyPickles(pickle_path=pickle_path, file_name = y_file, windowsOS = windowsOS)
 ID_frame = LoadNumpyPickles(pickle_path=pickle_path, file_name = ID_file, windowsOS = windowsOS)
 
+
 # extract a subset for faster running time
 #X, y, ID_frame = subset(X, y, ID_frame, no_indiv=30)
 fast_run = False
 
 # apply the inclusion principle
 X, y, ID_frame = binary(X, y, ID_frame)
+
 
 # the split data
 individuals = np.unique(ID_frame)
@@ -148,8 +150,9 @@ model_dict = {'SGD' : ('SGD', spacesgd)}
 
 
 #### define model to be evaluated and filename ####
-experiment = 'DataAug'
+experiment = 'DataAug_GAN_LR'
 experiment_name = "_DataAug_GAN" # added to saving files
+noise_experiment = None  #r"\whitenoise_covarOne"
 # --> Should be named either GAN / Noise / MixUp, after _ in name.
 # So that the following line will work:
 # if experiment_name.split("_")[-1] == 'GAN':
@@ -157,8 +160,22 @@ experiment_name = "_DataAug_GAN" # added to saving files
 model_dict = {'LR_default': ('LR_default', None)}
 
 #### define augmentation ####
-smote_ratio = np.array([0, 0.5, 1, 1.5, 2]) + 1 # np.array([0, 0.5, 1, 1.5, 2]) + 1 # Changed to be more in line with report
+smote_ratio = np.array([0]) + 1#np.array([0, 0.5, 1, 1.5, 2]) + 1 # np.array([0, 0.5, 1, 1.5, 2]) + 1 # Changed to be more in line with report
 DataAug_ratio = np.array([0, 0.5, 1, 1.5, 2])
+
+
+pickle_path_aug = pickle_path+r"\augmentation_pickles"
+
+#TODO: Optimér noise augmentation, så den kan tage flere noise-addition måder (white_noise og colored) og køre samtidig.
+
+if noise_experiment != None:
+    # Load noise augmentation file
+    X_noise = LoadNumpyPickles(pickle_path=pickle_path_aug + noise_experiment, file_name = X_file, windowsOS = windowsOS)
+    y_noise = LoadNumpyPickles(pickle_path=pickle_path_aug + noise_experiment, file_name = y_file, windowsOS = windowsOS)
+    ID_frame_noise = LoadNumpyPickles(pickle_path=pickle_path_aug + noise_experiment, file_name = ID_file, windowsOS = windowsOS)
+
+    X_noise, y_noise, ID_frame_noise = binary(X_noise, y_noise, ID_frame_noise)
+
 
 #### define no. hyperopt evaluations ####
 HO_evals = 5 # for hyperopt
@@ -188,6 +205,8 @@ results = {} # fold, artifact, model, scores
 K = 5 # 80% training and 20% testing
 #setting fold details
 kf = KFold(n_splits=K, random_state=random_state_val, shuffle = True) # random state + shuffle ensured same repeated experiments
+
+
 
 for aug_ratio in DataAug_ratio:
     print("\n####---------------------------------------####")
@@ -297,6 +316,7 @@ for aug_ratio in DataAug_ratio:
                         Xtrain_new = np.concatenate( (Xtrain_new, GAN_class0, GAN_class1) )
                         ytrain_new = np.concatenate( (ytrain_new, np.zeros(class_size), np.ones(class_size)) )
 
+
                     if experiment_name.split("_")[-1] == "MixUp":
 
                         # Onehot-encoding for mixup to work
@@ -310,6 +330,32 @@ for aug_ratio in DataAug_ratio:
 
                         Xtrain_new = np.concatenate( (Xtrain_new, mix_X) )
                         ytrain_new = np.concatenate( (ytrain_new, mix_y) )
+
+
+                    if experiment_name.split("_")[-1] == "Noise":
+
+                        # Balance noisy data
+                        label_size = Counter(y_noise[:,artifact])
+                        major = max(label_size, key=label_size.get)
+                        decrease = label_size[1 - major]
+                        label_size[major] = int(np.round(decrease, decimals=0))
+                        X_noise_new, y_noise_new = rand_undersample(X_noise, y_noise[:,artifact], arg=label_size,
+                                                                  state=random_state_val, multi=False)
+
+                        # Find new points
+                        N_noise = X_noise_new.shape[0]
+                        N_clean = Xtrain_new.shape[0]
+                        n_new_points = int(aug_ratio * N_clean)
+                        noise_idxs = np.random.choice(N_noise, n_new_points)
+
+
+                        # Select noisy data
+                        noise_X = X_noise_new[noise_idxs,:]
+                        noise_y = y_noise_new[noise_idxs]
+
+                        # Concatenate
+                        Xtrain_new = np.concatenate( (Xtrain_new, noise_X) )
+                        ytrain_new = np.concatenate( (ytrain_new, noise_y) )
 
 
                 #### creating test environment ####
