@@ -43,8 +43,7 @@ def PicklePrepData(subjects_dict, prep_directory, save_path, windowsOS = False):
 
     # Looping through all session-folders to get the filepaths to all the preprocessed windows.
     if windowsOS:
-        pt_inputs = [pt_dir for ID in subjects_dict for session in subjects_dict[ID].keys() for pt_dir in
-                     glob.glob(prep_directory + session + "\\" + "**")]
+        pt_inputs = [pt_dir for ID in subjects_dict for session in subjects_dict[ID].keys() for pt_dir in glob.glob(prep_directory + session + "\\" + "**")]
     else:
         pt_inputs = [pt_dir for ID in subjects_dict for session in subjects_dict[ID].keys() for pt_dir in glob.glob(prep_directory + session + "/"+ "**")]
 

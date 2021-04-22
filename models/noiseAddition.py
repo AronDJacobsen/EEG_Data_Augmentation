@@ -193,8 +193,8 @@ def generateNoisyData(data_path, save_path, file_selected, variance, use_covaria
              subjects[subject_ID][edf]["tStep"]))
 
     filepath = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia"
-    SaveNumpyPickles(filepath, r"\subjects_var{}_cutoff{}".format(variance, cutoff_freq), subjects, windowsOS=True)
-    PicklePrepData(subjects, r"C:\Users\Albert Kjøller\Documents\GitHub\TUAR_full_data\tempData", filepath, windowsOS=True)
+    #SaveNumpyPickles(filepath, r"\subjects_var{}_cutoff{}".format(variance, cutoff_freq), subjects, windowsOS=True)
+    #PicklePrepData(subjects, r"C:\Users\Albert Kjøller\Documents\GitHub\TUAR_full_data\tempData", filepath, windowsOS=True)
 
 
 if __name__ == '__main__':
@@ -253,7 +253,7 @@ if __name__ == '__main__':
 
     # CALLING THE PREPROCESSING to get noisy preprocessed data files
     # Max cutoff_freq is half the sample rate!
-    cutoff_freq = None
+    cutoff_freq = 30.0
 
     # How much should the covariance have as impact
     variance = 1

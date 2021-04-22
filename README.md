@@ -1,4 +1,4 @@
-# 02466 (DTU): Project work on TUH EEG Artifact classification 
+# 02466 (DTU - AI and Data): Project work on TUH EEG Artifact classification 
 
 
 This project investigates...
@@ -47,6 +47,7 @@ and are created similarly to the SMOTE / balancing pipeline.
 
 
 ### Results
+Her
 #TODO: Create the correct npy results-files (merged)
 Our results are saved as numpy-pickles using a function from the "prepData.dataLoader"-script.
 All results are found using a random seed set to 0 and can be reconstructed by reading the "paper/article"
