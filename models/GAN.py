@@ -70,7 +70,7 @@ def discriminator(x, n_units=128, reuse=False, alpha=0.01):
         return out, logits
 
 
-def GAN(X, NtoGenerate, z_size = 100, g_hidden_size = 128, d_hidden_size = 128, alpha = 0.01, smooth = 0.1, learning_rate = 0.0002): # Should be used on each of the binary classes.
+def GAN(X, NtoGenerate, z_size = 100, g_hidden_size = 128, d_hidden_size = 128, alpha = 0.01, smooth = 0.1, learning_rate = 0.0002, epochs=100): # Should be used on each of the binary classes.
     # X[np.where(y[:, 1] == 1)]
 
     # Hyperparameters
@@ -122,7 +122,7 @@ def GAN(X, NtoGenerate, z_size = 100, g_hidden_size = 128, d_hidden_size = 128, 
 
     # TRAINING
     batch_size = 100 # TODO: Might have to be different size according to the size of the class (This determines amount of generated data)
-    epochs = 100
+
     samples = []
     losses = []
     saver = tf.train.Saver(var_list=g_vars)

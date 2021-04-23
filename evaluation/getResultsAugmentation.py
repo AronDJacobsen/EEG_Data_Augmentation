@@ -369,7 +369,7 @@ def plotResultsAugmentation(performance_list, errors_list, experiment, model_nam
 
         plt.xticks(np.arange(len(model_names)), model_names, rotation=0)
         plt.ylim(0,1)
-        plt.title("Sensitiviy with {:s} augmentation on the '{:s}'-class - {:d}".format(aug_technique, name, SMOTE_ratios[j]))
+        plt.title("Sensitiviy with {:s} augmentation on the '{:s}'-class - SMOTE = {:d}".format(aug_technique, name, SMOTE_ratios[j]-1))
         plt.xlabel("Model")
         plt.ylabel("Sensitivity")
         plt.legend(loc='center right', bbox_to_anchor=(1.36, 0.5))
@@ -399,8 +399,8 @@ if __name__ == '__main__':
 
     merged_file = False
 
-    experiment = "DataAug_GAN_LR"
-    experiment_name = '_DataAug_GAN' # end by either _Noise, _GAN or _MixUp
+    experiment = "DataAug_GAN_LR" # "DataAug_white_noiseAdd_LR"
+    experiment_name = '_DataAug_GAN' # end by either _Noise (_color_Noise), _GAN or _MixUp
     experiment_name_merge = 'smote_first_merge'
 
     Aug_technique = "GAN"

@@ -197,3 +197,38 @@ def DeleteNan(X, y, ID_frame):
         print("Deleted {:d} NaNs from the data.".format(len(NanList)))
 
     return X, y, ID_frame
+
+def DeleteNanNoise(X, y, ID_frame, X_noise, y_noise, ID_frame_noise, save_path, windowsOS=False):
+    # NanList in decreasing order, shows window-index with NaN.
+    NanList = []
+    for i in range(len(X)):
+        print("Searching for NaNs: {:d}/{:d}".format(i+1, len(X)))
+        windowVals = np.isnan(X[i])
+
+        if np.any(windowVals==True):
+
+            NanList.append(i)
+
+    # TODO: DelNan - no Nans in current data
+    # NanList = [47698, 47687, 47585, 47569, 47490, 47475, 47436, 47409, 47339, 35919, 35914, 35759, 14819, 14815, 14802, 14787, 14786, 14781, 14776, 14770, 14765, 14758, 14752, 14745, 14741, 14726, 14717, 2246, 2242, 2064]
+    if len(NanList) == 0:
+        print("No NaNs found!")
+    else:
+        mask = np.ones(X.shape[0], dtype=bool)
+        mask[NanList] = False
+
+        X               = X[mask]
+        y               = y[mask]
+        ID_frame        = ID_frame[mask]
+
+        X_noise         = X_noise[mask]
+        y_noise         = y_noise[mask]
+        ID_frame_noise  = ID_frame_noise[mask]
+
+
+        print("Deleted {:d} NaNs from the data.".format(len(NanList)))
+        SaveNumpyPickles(save_path, r"\X_clean", X_noise, windowsOS=windowsOS)
+        SaveNumpyPickles(save_path, r"\y_clean", y_noise, windowsOS=windowsOS)
+        SaveNumpyPickles(save_path, r"\ID_frame_clean", ID_frame_noise, windowsOS=windowsOS)
+
+    return X, y, ID_frame, X_noise, y_noise, ID_frame_noise

@@ -150,9 +150,9 @@ model_dict = {'SGD' : ('SGD', spacesgd)}
 
 
 #### define model to be evaluated and filename ####
-experiment = 'DataAug_white_noiseAdd_LR' #'DataAug_color_noiseAdd_LR'
-experiment_name = "_DataAug_white_Noise" #"_DataAug_color_Noise" added to saving files
-noise_experiment = r"\whitenoise_covarOne" # r"\colornoise30Hz_covarOne" #
+experiment = 'DataAug_color_noiseAdd_LR' # 'DataAug_white_noiseAdd_LR'
+experiment_name = "_DataAug_color_Noise" # "_DataAug_white_Noise" added to saving files
+noise_experiment = r"\colornoise30Hz_covarOne" # r"\whitenoise_covarOne"
 # --> Should be named either GAN / Noise / MixUp, after _ in name.
 # So that the following line will work:
 # if experiment_name.split("_")[-1] == 'GAN':
