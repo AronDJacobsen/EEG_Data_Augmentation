@@ -153,7 +153,7 @@ function_dict = models.__dict__
 random_state_val = 0
 
 #### define classes ####
-artifact_names = ['null'] #['eyem', 'chew', 'shiv', 'elpp', 'musc', 'null']
+artifact_names = ['eyem', 'chew', 'shiv', 'elpp', 'musc', 'null']
 classes = len(artifact_names)
 
 #for hyperopt data to save

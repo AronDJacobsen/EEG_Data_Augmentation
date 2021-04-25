@@ -32,7 +32,6 @@ import pandas as pd
 
 from models.GAN import GAN
 from models.mixup import mixup
-from models.mixup import mixup
 
 
 from collections import Counter
@@ -361,6 +360,8 @@ for aug_ratio in DataAug_ratio:
                         # Concatenate
                         Xtrain_new = np.concatenate( (Xtrain_new, noise_X) )
                         ytrain_new = np.concatenate( (ytrain_new, noise_y) )
+
+                        #TODO: Investigate noise plots - call function
 
                 # TODO: Data augmentation for hyperopt
 
