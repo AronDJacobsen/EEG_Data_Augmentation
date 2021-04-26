@@ -546,13 +546,20 @@ for aug_ratio in DataAug_ratio:
 if windowsOS:
     os.makedirs(pickle_path + r"\results\performance" + "\\" + experiment, exist_ok=True)
     os.makedirs(pickle_path + r"\results\hyperopt" + "\\" + experiment, exist_ok=True)
+    os.makedirs(pickle_path + r"\results\y_true" + "\\" + experiment, exist_ok=True)
+
     SaveNumpyPickles(pickle_path + r"\results\performance" + "\\" + experiment, r"\results" + experiment_name, results, windowsOS)
     SaveNumpyPickles(pickle_path + r"\results\hyperopt" + "\\" + experiment, r"\ho_trials" + experiment_name, ho_trials, windowsOS)
+    SaveNumpyPickles(pickle_path + r"\results\y_true" + "\\" + experiment, r"\y_true" + experiment_name, y_true_dict, windowsOS)
+
 
 else:
     os.makedirs(pickle_path + r"results/performance" + "/" + experiment, exist_ok=True)
     os.makedirs(pickle_path + r"results/hyperopt" + "/" + experiment, exist_ok=True)
+    os.makedirs(pickle_path + r"\results\y_true" + "/" + experiment, exist_ok=True)
+
     SaveNumpyPickles(pickle_path + r"results/performance" + "/" + experiment, r"/results" + experiment_name, results, windowsOS=False)
     SaveNumpyPickles(pickle_path + r"results/hyperopt" + "/" + experiment, r"/ho_trials" + experiment_name, ho_trials, windowsOS=False)
+    SaveNumpyPickles(pickle_path + r"\results\y_true" + "/" + experiment, r"\y_true" + experiment_name, y_true_dict, windowsOS=False)
 
 
