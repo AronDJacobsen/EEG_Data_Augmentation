@@ -160,7 +160,7 @@ noise_experiment = None #r"\whitenoise_covarOne" # r"\colornoise30Hz_covarOne" #
 model_dict = {'LR' : ('LR', spacelr)}
 
 #### define augmentation ####
-smote_ratio = np.array([0]) + 1#np.array([0, 0.5, 1, 1.5, 2]) + 1 # np.array([0, 0.5, 1, 1.5, 2]) + 1 # Changed to be more in line with report
+smote_ratio = np.array([0, 0.5, 1, 1.5, 2]) + 1 # np.array([0, 0.5, 1, 1.5, 2]) + 1 # Changed to be more in line with report
 DataAug_ratio = np.array([0])#, 0.5, 1, 1.5, 2])
 GAN_epochs = 20
 clean_files = False
@@ -181,7 +181,7 @@ if noise_experiment != None:
         X, y, ID_frame, X_noise, y_noise, ID_frame_noise = DeleteNanNoise(X, y, ID_frame, X_noise,y_noise, ID_frame_noise, save_path=pickle_path_aug + noise_experiment, windowsOS=windowsOS)
 
 #### define no. hyperopt evaluations ####
-HO_evals = 1 # for hyperopt
+HO_evals = 50 # for hyperopt
 
 
 # Dictionary holding keys and values for all functions from the models.py file. Used to "look up" functions in the CV
