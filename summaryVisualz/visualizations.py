@@ -216,37 +216,6 @@ def investigateAugmentation(X, y, X_aug, y_aug, colors, artifact, method, view_c
         fig.show()
 
 
-def investigateGAN(X, y, ID_frame):
-
-    pass
-
-def investigateMixUp(X, y, X_mixup, y_mixup, colors, artifact, method):
-    n_components = 3
-    pca, scaler = runPCA(X, y, n_components=n_components)
-    Xstd = scaler.transform(X)
-    y_std = y
-
-    X_with_noise = np.concatenate((X_under, noise_X))
-    y_labels = np.concatenate((["Original"] * len(y), ["Augmented"] * len(y_noise)))
-
-    X_noise_pca = scaler.transform(X_with_noise)
-    pca_scores_Noise = pca.fit_transform(X_noise_pca)
-
-    fig = plt.figure(figsize=(10, 12))
-    ax1 = plt.subplot(2, 1, 1)
-    plotPCAScatter(pca.fit_transform(Xstd), pca, ["Original"] * len(y_std), colors, artifact, method)
-    ax2 = plt.subplot(2, 1, 2, sharex=ax1, sharey=ax1)
-    plotPCAScatter(pca_scores_Noise, pca, y_labels, colors[::-1], artifact, method)
-    fig.show()
-
-
-
-def savePickleGAN():
-    pass
-
-def savePickleMixUp():
-    pass
-
 
 
 if __name__ == '__main__':

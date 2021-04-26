@@ -9,13 +9,14 @@
 
 #### initializing seed ####
 import random
-random.seed(10)
+import numpy as np
+random.seed(0)
+np.random.seed(0)
 ###########################
 
 
 from sklearn.model_selection import cross_val_score, KFold
 from models.models import models
-import numpy as np
 import matplotlib.pyplot as plt
 from collections import defaultdict
 from hyperopt import fmin, tpe, hp, STATUS_OK, Trials
@@ -149,22 +150,22 @@ model_dict = {'SGD' : ('SGD', spacesgd)}
 
 
 #### define model to be evaluated and filename ####
-experiment = 'DataAug_white_noiseAdd_LR' #'DataAug_color_noiseAdd_LR'
-experiment_name = "_DataAug_white_Noise" #"_DataAug_color_Noise" added to saving files
-noise_experiment = r"\whitenoise_covarOne" # r"\colornoise30Hz_covarOne" #
+experiment = 'smote_f2_LR_test' #'DataAug_color_noiseAdd_LR'
+experiment_name = "_smote_f2_LR_test" #"_DataAug_color_Noise" added to saving files. For augmentation end with "_Noise" or so.
+noise_experiment = None #r"\whitenoise_covarOne" # r"\colornoise30Hz_covarOne" #
 # --> Should be named either GAN / Noise / MixUp, after _ in name.
 # So that the following line will work:
 # if experiment_name.split("_")[-1] == 'GAN':
 
-model_dict = {'LR_default': ('LR_default', None)}
+model_dict = {'LR' : ('LR', spacelr)}
 
 #### define augmentation ####
 smote_ratio = np.array([0]) + 1#np.array([0, 0.5, 1, 1.5, 2]) + 1 # np.array([0, 0.5, 1, 1.5, 2]) + 1 # Changed to be more in line with report
-DataAug_ratio = np.array([0, 0.5, 1, 1.5, 2])
+DataAug_ratio = np.array([0])#, 0.5, 1, 1.5, 2])
 GAN_epochs = 20
 clean_files = False
 
-pickle_path_aug = pickle_path+r"\augmentation_pickles"
+pickle_path_aug = pickle_path + r"\augmentation_pickles"
 
 #TODO: Optimér noise augmentation, så den kan tage flere noise-addition måder (white_noise og colored) og køre samtidig.
 
@@ -180,7 +181,7 @@ if noise_experiment != None:
         X, y, ID_frame, X_noise, y_noise, ID_frame_noise = DeleteNanNoise(X, y, ID_frame, X_noise,y_noise, ID_frame_noise, save_path=pickle_path_aug + noise_experiment, windowsOS=windowsOS)
 
 #### define no. hyperopt evaluations ####
-HO_evals = 5 # for hyperopt
+HO_evals = 1 # for hyperopt
 
 
 # Dictionary holding keys and values for all functions from the models.py file. Used to "look up" functions in the CV
@@ -400,7 +401,67 @@ for aug_ratio in DataAug_ratio:
                     HO_Xtrain_new, HO_ytrain_new = rand_undersample(HO_Xtrain, HO_ytrain, arg = label_size, state = random_state_val, multi = False)
                     HO_Xtrain_new, HO_ytrain_new = smote(HO_Xtrain_new, HO_ytrain_new, multi = False, state = random_state_val)
 
+                if aug_ratio != 0:
 
+                    if experiment_name.split("_")[-1] == 'GAN':
+
+                        class_size = int(sum(HO_ytrain_new)) # Sum of all the ones. Since data is balanced, the other class is same size
+
+                        # Existing data for class 0 and 1 (Since not yet shuffled)
+                        class0 = HO_Xtrain_new[:class_size]
+                        class1 = HO_Xtrain_new[class_size:]
+
+                        # GAN-augmented data, generated from existing data of each class.
+                        GAN_class0 = GAN(class0, NtoGenerate = int(aug_ratio * class_size), epochs=GAN_epochs)
+                        print("GAN class 0 complete")
+                        GAN_class1 = GAN(class1, NtoGenerate = int(aug_ratio * class_size), epochs=GAN_epochs)
+                        print("GAN class 1 complete")
+
+                        HO_Xtrain_new = np.concatenate( (HO_Xtrain_new, GAN_class0, GAN_class1) )
+                        HO_ytrain_new = np.concatenate( (HO_ytrain_new, np.zeros(int(aug_ratio * class_size)), np.ones(int(aug_ratio * class_size))) )
+
+
+                    if experiment_name.split("_")[-1] == "MixUp":
+
+                        # Onehot-encoding for mixup to work
+                        y_onehot_encoded = OneHotEncoder(sparse=False).fit_transform(HO_ytrain_new.reshape(len(HO_ytrain_new), 1))
+
+                        # Running mixup
+                        mix_X, mix_y, _ = mixup(HO_Xtrain_new, y_onehot_encoded, ratio)
+
+                        # Undoing the onehot-encoding
+                        mix_y = np.argmax(mix_y, axis=1)
+
+                        HO_Xtrain_new = np.concatenate( (HO_Xtrain_new, mix_X) )
+                        HO_ytrain_new = np.concatenate( (HO_ytrain_new, mix_y) )
+
+
+                    if experiment_name.split("_")[-1] == "Noise":
+                        X_noise_new = X_noise[HO_train_indices, :]
+                        y_noise_new = y_noise[HO_train_indices, :]
+
+                        # Balance noisy data
+                        label_size = Counter(y_noise_new[:,artifact])
+                        major = max(label_size, key=label_size.get)
+                        decrease = label_size[1 - major]
+                        label_size[major] = int(np.round(decrease, decimals=0))
+                        X_noise_new, y_noise_new = rand_undersample(X_noise_new, y_noise_new[:,artifact], arg=label_size,
+                                                                  state=random_state_val, multi=False)
+
+                        # Find new points
+                        N_noise = X_noise_new.shape[0]
+                        N_clean = HO_Xtrain_new.shape[0]
+                        n_new_points = int(aug_ratio * N_clean)
+                        noise_idxs = np.random.choice(N_noise, n_new_points)
+
+
+                        # Select noisy data
+                        noise_X = X_noise_new[noise_idxs,:]
+                        noise_y = y_noise_new[noise_idxs]
+
+                        # Concatenate
+                        HO_Xtrain_new = np.concatenate( (HO_Xtrain_new, noise_X) )
+                        HO_ytrain_new = np.concatenate( (HO_ytrain_new, noise_y) )
 
 
                 HO_Xtrain_new, HO_ytrain_new = shuffle(HO_Xtrain_new, HO_ytrain_new, random_state=random_state_val)
@@ -435,7 +496,7 @@ for aug_ratio in DataAug_ratio:
                         trials = Trials()
 
                         def objective(params):
-                            accuracy, f1_s, sensitivity = function_dict[name](HO_env, **params) # hyperopt environment
+                            accuracy, f2_s, sensitivity, y_pred = function_dict[name](HO_env, **params) # hyperopt environment
                             #it minimizes
                             return -sensitivity
 
@@ -456,13 +517,14 @@ for aug_ratio in DataAug_ratio:
 
                     print(key + ": \t" + str(f) + ". Time: {:f} seconds".format(took_time))
 
-                    acc, F1, sensitivity = f
+                    acc, F2, sensitivity, y_pred = f
 
                     #### initializing dict for this model ####
                     results[aug_ratio][ratio][i][artifact_names[artifact]][key] = {}
                     #### saving results[aug_ratio] ####
+                    results[aug_ratio][ratio][i][artifact_names[artifact]][key]['y_pred'] = y_pred
                     results[aug_ratio][ratio][i][artifact_names[artifact]][key]['accuracy'] = acc
-                    results[aug_ratio][ratio][i][artifact_names[artifact]][key]['weighted_F1'] = F1
+                    results[aug_ratio][ratio][i][artifact_names[artifact]][key]['weighted_F2'] = F2
                     results[aug_ratio][ratio][i][artifact_names[artifact]][key]['sensitivity'] = sensitivity
 
             # new fold

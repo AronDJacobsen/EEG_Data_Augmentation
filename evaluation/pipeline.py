@@ -134,16 +134,15 @@ model_dict = {'SGD' : ('SGD', spacesgd)}
 
 
 #### define model to be evaluated and filename ####
-experiment = 'smote'
-experiment_name = "_smote_GNB" # added to saving files
-model_dict = {'GNB': ('GNB', spacegnb)}
-# model_dict = {'LR': ('LR', None)}
+experiment = 'smote_f2'
+experiment_name = "_smote_LR_f2" # added to saving files
+model_dict = {'LR' : ('LR', spacelr)}
 
 #### define augmentation ####
-smote_ratio = [1, 1.5, 2, 2.5, 3]
+smote_ratio = [1]#, 1.5, 2, 2.5, 3]
 
 #### define no. hyperopt evaluations ####
-HO_evals = 50 # for hyperopt
+HO_evals = 1 # for hyperopt
 
 
 # Dictionary holding keys and values for all functions from the models.py file. Used to "look up" functions in the CV
@@ -171,7 +170,7 @@ K = 5 # 80% training and 20% testing
 #setting fold details
 kf = KFold(n_splits=K, random_state=random_state_val, shuffle = True) # random state + shuffle ensured same repeated experiments
 
-
+y_true_dict = defaultdict(dict)
 for ratio in smote_ratio:
     print("\n####---------------------------------------####")
     print("Running a", ratio-1, "ratio of (augmented / real)")
@@ -183,6 +182,7 @@ for ratio in smote_ratio:
     #### initializing dict for this ratio ####
     ho_trials[ratio] = {} # for this fold
     results[ratio] = {}
+
 
     for train_idx, test_idx in kf.split(individuals):
     #single loop
@@ -322,9 +322,9 @@ for ratio in smote_ratio:
                     trials = Trials()
 
                     def objective(params):
-                        accuracy, f1_s, sensitivity = function_dict[name](HO_env, **params) # hyperopt environment
+                        accuracy, f2_s, sensitivity, y_pred = function_dict[name](HO_env, **params) # hyperopt environment
                         #it minimizes
-                        return -sensitivity
+                        return -f2_s
 
                     best = fmin(fn=objective, space=space, algo=tpe.suggest, max_evals=HO_evals, trials=trials)
 
@@ -343,14 +343,20 @@ for ratio in smote_ratio:
 
                 print(key + ": \t" + str(f) + ". Time: {:f} seconds".format(took_time))
 
-                acc, F1, sensitivity = f
+                acc, f2_s, sensitivity, y_pred = f
 
                 #### initializing dict for this model ####
                 results[ratio][i][artifact_names[artifact]][key] = {}
                 #### saving results ####
+                results[ratio][i][artifact_names[artifact]][key]['y_pred'] = y_pred
                 results[ratio][i][artifact_names[artifact]][key]['accuracy'] = acc
-                results[ratio][i][artifact_names[artifact]][key]['weighted_F1'] = F1
+                results[ratio][i][artifact_names[artifact]][key]['weighted_F2'] = f2_s
                 results[ratio][i][artifact_names[artifact]][key]['sensitivity'] = sensitivity
+
+
+            if ratio == 0:
+                y_true_dict[i][artifact_names[artifact]] = env.y_test
+
 
         # new fold
         i += 1
@@ -363,10 +369,27 @@ for ratio in smote_ratio:
     results[ratio]['time'] = cross_val_time
 
 
+
 #### saving data ####
 # Remember to change name of pickle when doing a new first_pilot
-SaveNumpyPickles(pickle_path + r"\results\performance" + "\\" + experiment, r"\results" + experiment_name, results, windowsOS)
-SaveNumpyPickles(pickle_path + r"\results\hyperopt" + "\\" + experiment, r"\ho_trials" + experiment_name, ho_trials, windowsOS)
+
+
+if windowsOS:
+    os.makedirs(pickle_path + r"\results\performance" + "\\" + experiment, exist_ok=True)
+    os.makedirs(pickle_path + r"\results\hyperopt" + "\\" + experiment, exist_ok=True)
+    os.makedirs(pickle_path + r"\results\y_true" + "\\" + experiment, exist_ok=True)
+    SaveNumpyPickles(pickle_path + r"\results\performance" + "\\" + experiment, r"\results" + experiment_name, results, windowsOS)
+    SaveNumpyPickles(pickle_path + r"\results\hyperopt" + "\\" + experiment, r"\ho_trials" + experiment_name, ho_trials, windowsOS)
+    SaveNumpyPickles(pickle_path + r"\results\y_true" + "\\" + experiment, r"\y_true" + experiment_name, y_true_dict, windowsOS)
+
+else:
+    os.makedirs(pickle_path + r"results/performance" + "/" + experiment, exist_ok=True)
+    os.makedirs(pickle_path + r"results/hyperopt" + "/" + experiment, exist_ok=True)
+    os.makedirs(pickle_path + r"\results\y_true" + "/" + experiment, exist_ok=True)
+    SaveNumpyPickles(pickle_path + r"results/performance" + "/" + experiment, r"/results" + experiment_name, results, windowsOS=False)
+    SaveNumpyPickles(pickle_path + r"results/hyperopt" + "/" + experiment, r"/ho_trials" + experiment_name, ho_trials, windowsOS=False)
+    SaveNumpyPickles(pickle_path + r"\results\y_true" + "/" + experiment, r"\y_true" + experiment_name, y_true_dict, windowsOS=False)
+
 
 
 

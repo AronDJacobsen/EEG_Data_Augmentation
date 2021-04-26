@@ -4,7 +4,7 @@ import random
 import torch
 from torch.autograd import Variable
 from sklearn import metrics
-from sklearn.metrics import f1_score
+from sklearn.metrics import fbeta_score
 from sklearn.metrics import roc_auc_score
 from sklearn.metrics import confusion_matrix
 from sklearn.utils import shuffle
@@ -49,7 +49,7 @@ class models:
         '''
 
         # zero_division sets it to 0 as default
-        f1_s = f1_score(self.y_test, y_pred, average='weighted', zero_division = 0)
+        f2_s = fbeta_score(self.y_test, y_pred, average='weighted', beta = 2.0, zero_division = 0)
 
         conf_matrix = confusion_matrix(self.y_test, y_pred, labels=[0, 1])
 
@@ -66,8 +66,8 @@ class models:
         sensitivity = (TP / float(TP + FN))
 
         # rounding digits
-        accuracy, f1_s, sensitivity = np.round([accuracy, f1_s, sensitivity], 5)
-        return accuracy, f1_s, sensitivity
+        accuracy, f2_s, sensitivity = np.round([accuracy, f2_s, sensitivity], 5)
+        return accuracy, f2_s, sensitivity
 
 
     def baseline_perm(self):
@@ -83,16 +83,16 @@ class models:
 
         #f1 doesn't work, we don't have true positives since we only predict 0
         #y_pred = np.array([most_occurence for _ in y_test])
-        #f1_s = f1_score(y_test, y_pred)
-        # f1_s = float('nan')
+        #f2_s = f2_score(y_test, y_pred)
+        # f2_s = float('nan')
         """
 
         y_pred = shuffle(self.y_test, random_state=self.state) # shuffling list
 
-        accuracy, f1_s, sensitivity = models.scores(self, y_pred)
+        accuracy, f2_s, sensitivity = models.scores(self, y_pred)
 
 
-        return accuracy, f1_s, sensitivity
+        return accuracy, f2_s, sensitivity, y_pred
 
     def baseline_major(self):
 
@@ -107,16 +107,17 @@ class models:
 
         #f1 doesn't work, we don't have true positives since we only predict 0
         #y_pred = np.array([most_occurence for _ in y_test])
-        #f1_s = f1_score(y_test, y_pred)
-        # f1_s = float('nan')
+        #f2_s = f2_score(y_test, y_pred)
+        # f2_s = float('nan')
 
 
-        accuracy, f1_s, sensitivity = models.scores(self, y_pred)
+        accuracy, f2_s, sensitivity = models.scores(self, y_pred)
 
 
-        return accuracy, f1_s, sensitivity
+        return accuracy, f2_s, sensitivity, y_pred
 
-
+    def getYtrue(self):
+        return self.y_test
 
     def LR(self, C):
         model = LogisticRegression(C = C, max_iter = 500)
@@ -124,10 +125,10 @@ class models:
         y_pred = model.predict(self.X_test)
 
 
-        accuracy, f1_s, sensitivity = models.scores(self, y_pred)
+        accuracy, f2_s, sensitivity = models.scores(self, y_pred)
 
 
-        return accuracy, f1_s, sensitivity
+        return accuracy, f2_s, sensitivity, y_pred
 
     def LR_default(self):
         model = LogisticRegression(max_iter = 500)
@@ -135,20 +136,20 @@ class models:
         y_pred = model.predict(self.X_test)
 
 
-        accuracy, f1_s, sensitivity = models.scores(self, y_pred)
+        accuracy, f2_s, sensitivity = models.scores(self, y_pred)
 
 
-        return accuracy, f1_s, sensitivity
+        return accuracy, f2_s, sensitivity, y_pred
 
     def GNB(self):
         model = GaussianNB()
         model.fit(self.X_train, self.y_train)#, np.unique(self.y_train))
         y_pred = model.predict(self.X_test)
 
-        accuracy, f1_s, sensitivity = models.scores(self, y_pred)
+        accuracy, f2_s, sensitivity = models.scores(self, y_pred)
 
 
-        return accuracy, f1_s, sensitivity
+        return accuracy, f2_s, sensitivity, y_pred
 
 
 
@@ -161,9 +162,9 @@ class models:
         y_pred = model.predict(self.X_test)
         #accuracy = model.score(X_test, y_test)
 
-        accuracy, f1_s, sensitivity = models.scores(self, y_pred)
+        accuracy, f2_s, sensitivity = models.scores(self, y_pred)
 
-        return accuracy, f1_s, sensitivity
+        return accuracy, f2_s, sensitivity, y_pred
 
     def KNN_default(self): #, params):
         #model = KNeighborsClassifier(**params)
@@ -174,9 +175,9 @@ class models:
         y_pred = model.predict(self.X_test)
         #accuracy = model.score(X_test, y_test)
 
-        accuracy, f1_s, sensitivity = models.scores(self, y_pred)
+        accuracy, f2_s, sensitivity = models.scores(self, y_pred)
 
-        return accuracy, f1_s, sensitivity
+        return accuracy, f2_s, sensitivity, y_pred
 
 
 
@@ -189,18 +190,18 @@ class models:
         model.fit(self.X_train, self.y_train)
         y_pred = model.predict(self.X_test)
 
-        accuracy, f1_s, sensitivity = models.scores(self, y_pred)
+        accuracy, f2_s, sensitivity = models.scores(self, y_pred)
 
-        return accuracy, f1_s, sensitivity
+        return accuracy, f2_s, sensitivity, y_pred
 
     def RF_default(self):
         model = RandomForestClassifier()
         model.fit(self.X_train, self.y_train)
         y_pred = model.predict(self.X_test)
 
-        accuracy, f1_s, sensitivity = models.scores(self, y_pred)
+        accuracy, f2_s, sensitivity = models.scores(self, y_pred)
 
-        return accuracy, f1_s, sensitivity
+        return accuracy, f2_s, sensitivity, y_pred
 
     def LDA(self, solver):
 
@@ -211,9 +212,9 @@ class models:
         model.fit(self.X_train, self.y_train)
         y_pred = model.predict(self.X_test)
 
-        accuracy, f1_s, sensitivity = models.scores(self, y_pred)
+        accuracy, f2_s, sensitivity = models.scores(self, y_pred)
 
-        return accuracy, f1_s, sensitivity
+        return accuracy, f2_s, sensitivity, y_pred
 
 
     def MLP(self, hidden_layer_sizes, learning_rate, alpha):
@@ -227,9 +228,9 @@ class models:
         model.fit(self.X_train, self.y_train)
         y_pred = model.predict(self.X_test)
 
-        accuracy, f1_s, sensitivity = models.scores(self, y_pred)
+        accuracy, f2_s, sensitivity = models.scores(self, y_pred)
 
-        return accuracy, f1_s, sensitivity
+        return accuracy, f2_s, sensitivity, y_pred
 
     def MLP_default(self):
 
@@ -237,9 +238,9 @@ class models:
         model.fit(self.X_train, self.y_train)
         y_pred = model.predict(self.X_test)
 
-        accuracy, f1_s, sensitivity = models.scores(self, y_pred)
+        accuracy, f2_s, sensitivity = models.scores(self, y_pred)
 
-        return accuracy, f1_s, sensitivity
+        return accuracy, f2_s, sensitivity, y_pred
 
 
     def AdaBoost(self, learning_rate, n_estimators):
@@ -247,9 +248,9 @@ class models:
         model.fit(self.X_train, self.y_train)
         y_pred = model.predict(self.X_test)
 
-        accuracy, f1_s, sensitivity = models.scores(self, y_pred)
+        accuracy, f2_s, sensitivity = models.scores(self, y_pred)
 
-        return accuracy, f1_s, sensitivity
+        return accuracy, f2_s, sensitivity, y_pred
 
     ### AdaBoost_default
     def AdaBoost_default(self):
@@ -257,9 +258,9 @@ class models:
         model.fit(self.X_train, self.y_train)
         y_pred = model.predict(self.X_test)
 
-        accuracy, f1_s, sensitivity = models.scores(self, y_pred)
+        accuracy, f2_s, sensitivity = models.scores(self, y_pred)
 
-        return accuracy, f1_s, sensitivity
+        return accuracy, f2_s, sensitivity, y_pred
 
     def SGD(self, alpha):
         # Default loss in SGDClassifier gives SVM
@@ -267,9 +268,9 @@ class models:
         model.fit(self.X_train, self.y_train)
         y_pred = model.predict(self.X_test)
 
-        accuracy, f1_s, sensitivity = models.scores(self, y_pred)
+        accuracy, f2_s, sensitivity = models.scores(self, y_pred)
 
-        return accuracy, f1_s, sensitivity
+        return accuracy, f2_s, sensitivity, y_pred
 
 
     def XGBoost_default(self):
@@ -279,9 +280,9 @@ class models:
 
         accuracy = metrics.accuracy_score(self.y_test, y_pred)
 
-        f1_s, sensitivity = models.scores(self, y_pred)
+        f2_s, sensitivity = models.scores(self, y_pred)
 
-        return accuracy, f1_s, sensitivity
+        return accuracy, f2_s, sensitivity, y_pred
 
 
 
@@ -409,19 +410,19 @@ class models:
 
                 correct = (y_pred == targets).sum()
                 accuracy = float(correct/total)
-                f1_s = f1_score(y_test.detach().numpy(), y_pred.detach().numpy())
+                f2_s = f2_score(y_test.detach().numpy(), y_pred.detach().numpy())
 
                 #print("Epoch: {}. Batch: {}. Loss: {}. Accuracy: {}.".format(epoch, batch_idx, loss.item(), accuracy))
 
-            return loss, accuracy, f1_s
+            return loss, accuracy, f2_s
 
         # start
         for epoch in range(0, epochs):
             train(epoch)
-        loss, accuracy, f1_s = test(epoch)
+        loss, accuracy, f2_s = test(epoch)
 
 
-        return accuracy, f1_s
+        return accuracy, f2_s
 
 
 
@@ -546,18 +547,18 @@ class models:
 
                 correct = (y_pred == targets).sum()
                 accuracy = float(correct/total)
-                f1_s = f1_score(y_test.detach().numpy(), y_pred.detach().numpy())
+                f2_s = f2_score(y_test.detach().numpy(), y_pred.detach().numpy())
 
                 #print("Epoch: {}. Batch: {}. Loss: {}. Accuracy: {}.".format(epoch, batch_idx, loss.item(), accuracy))
 
-            return loss, accuracy, f1_s
+            return loss, accuracy, f2_s
 
         # start
         for epoch in range(0, epochs):
             train(epoch)
-        loss, accuracy, f1_s = test(epoch)
+        loss, accuracy, f2_s = test(epoch)
 
-        return accuracy, f1_s
+        return accuracy, f2_s
 
 
 
