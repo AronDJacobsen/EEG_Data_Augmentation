@@ -1,5 +1,6 @@
 
 *.pkl
+*.npy
 X_clean.npy
 y_clean.npy
 ID_frame_clean.npy

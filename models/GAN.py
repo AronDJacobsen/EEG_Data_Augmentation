@@ -196,3 +196,22 @@ def GAN(X, NtoGenerate, z_size = 100, g_hidden_size = 128, d_hidden_size = 128, 
 # example:
 # gen_samples = GAN(X[np.where(y[:,2] == 1)], 10000)
 
+
+def useGAN(Xtrain_new, ytrain_new, aug_ratio, GAN_epochs):
+    class_size = int(sum(ytrain_new))  # Sum of all the ones. Since data is balanced, the other class is same size
+
+    # Existing data for class 0 and 1 (Since not yet shuffled)
+    class0 = Xtrain_new[:class_size]
+    class1 = Xtrain_new[class_size:]
+
+    # GAN-augmented data, generated from existing data of each class.
+    GAN_class0 = GAN(class0, NtoGenerate=int(aug_ratio * class_size), epochs=GAN_epochs)
+    print("GAN class 0 complete")
+    GAN_class1 = GAN(class1, NtoGenerate=int(aug_ratio * class_size), epochs=GAN_epochs)
+    print("GAN class 1 complete")
+
+    Xtrain_new = np.concatenate((Xtrain_new, GAN_class0, GAN_class1))
+    ytrain_new = np.concatenate((ytrain_new, np.zeros(int(aug_ratio * class_size)),
+                                 np.ones(int(aug_ratio * class_size))))
+
+    return Xtrain_new, ytrain_new

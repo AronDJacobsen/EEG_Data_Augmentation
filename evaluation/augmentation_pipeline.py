@@ -150,17 +150,17 @@ model_dict = {'SGD' : ('SGD', spacesgd)}
 
 
 #### define model to be evaluated and filename ####
-experiment = 'smote_f2_LR_test' #'DataAug_color_noiseAdd_LR'
-experiment_name = "_smote_f2_LR_test" #"_DataAug_color_Noise" added to saving files. For augmentation end with "_Noise" or so.
+experiment = 'smote_f2' #'DataAug_color_noiseAdd_LR'
+experiment_name = "_smote_f2_base_for_y_true" #"_DataAug_color_Noise" added to saving files. For augmentation end with "_Noise" or so.
 noise_experiment = None #r"\whitenoise_covarOne" # r"\colornoise30Hz_covarOne" #
 # --> Should be named either GAN / Noise / MixUp, after _ in name.
 # So that the following line will work:
 # if experiment_name.split("_")[-1] == 'GAN':
 
-model_dict = {'LR' : ('LR', spacelr)}
+model_dict = {'baseline_major': ('baseline_major', spaceb)}
 
 #### define augmentation ####
-smote_ratio = np.array([0, 0.5, 1, 1.5, 2]) + 1 # np.array([0, 0.5, 1, 1.5, 2]) + 1 # Changed to be more in line with report
+smote_ratio = np.array([0]) + 1#, 0.5, 1, 1.5, 2]) + 1 # np.array([0, 0.5, 1, 1.5, 2]) + 1 # Changed to be more in line with report
 DataAug_ratio = np.array([0])#, 0.5, 1, 1.5, 2])
 GAN_epochs = 20
 clean_files = False
@@ -210,6 +210,7 @@ K = 5 # 80% training and 20% testing
 kf = KFold(n_splits=K, random_state=random_state_val, shuffle = True) # random state + shuffle ensured same repeated experiments
 
 
+y_true_dict = {}
 
 for aug_ratio in DataAug_ratio:
     print("\n####---------------------------------------####")
@@ -248,6 +249,7 @@ for aug_ratio in DataAug_ratio:
             #their indexes in train and test
             train_indices = [ i for i, ID in enumerate(ID_frame) if ID in trainindv]
             test_indices = [i for i, ID in enumerate(ID_frame) if ID in testindv]
+            testID_list = [ID for i, ID in enumerate(ID_frame) if ID in testindv]
             X_train, y_train = X[train_indices,:], y[train_indices] # we keep the original and balance new later
             X_test, y_test = X[test_indices,:], y[test_indices]
 
@@ -258,6 +260,8 @@ for aug_ratio in DataAug_ratio:
             #### initializing dict for this fold ####
             ho_trials[aug_ratio][ratio][i] = {} # for this fold
             results[aug_ratio][ratio][i] = {}
+
+            y_true_dict[i] = {}
 
             #### for each artifact ####
             for artifact in range(classes):
@@ -368,7 +372,7 @@ for aug_ratio in DataAug_ratio:
 
                 #### creating test environment ####
                 Xtrain_new, ytrain_new = shuffle(Xtrain_new, ytrain_new, random_state=random_state_val)
-                Xtest, ytest = shuffle(Xtest, ytest, random_state=random_state_val)
+                Xtest, ytest, testID_list = shuffle(Xtest, ytest, testID_list, random_state=random_state_val)
 
 
                 env = models(Xtrain_new, ytrain_new, Xtest, ytest, state = random_state_val)
@@ -474,6 +478,7 @@ for aug_ratio in DataAug_ratio:
                 #### initializing dict for this artifact ####
                 ho_trials[aug_ratio][ratio][i][artifact_names[artifact]] = {} # for this artifact
                 results[aug_ratio][ratio][i][artifact_names[artifact]] = {}
+                y_true_dict[i][artifact_names[artifact]] = {}
 
                 #### for each model ####
                 for key in model_dict:
@@ -527,6 +532,11 @@ for aug_ratio in DataAug_ratio:
                     results[aug_ratio][ratio][i][artifact_names[artifact]][key]['weighted_F2'] = F2
                     results[aug_ratio][ratio][i][artifact_names[artifact]][key]['sensitivity'] = sensitivity
 
+                if aug_ratio == 0:
+                    y_true_dict[i][artifact_names[artifact]]["y_true"] = env.y_test
+                    y_true_dict[i][artifact_names[artifact]]["ID_list"] = testID_list
+
+
             # new fold
             i += 1
 
@@ -541,25 +551,29 @@ for aug_ratio in DataAug_ratio:
 #### saving data ####
 # Remember to change name of pickle when doing a new first_pilot
 
-
+save_y_true = False
 
 if windowsOS:
     os.makedirs(pickle_path + r"\results\performance" + "\\" + experiment, exist_ok=True)
     os.makedirs(pickle_path + r"\results\hyperopt" + "\\" + experiment, exist_ok=True)
-    os.makedirs(pickle_path + r"\results\y_true" + "\\" + experiment, exist_ok=True)
+    os.makedirs(pickle_path + r"\results\y_true", exist_ok=True)
 
     SaveNumpyPickles(pickle_path + r"\results\performance" + "\\" + experiment, r"\results" + experiment_name, results, windowsOS)
     SaveNumpyPickles(pickle_path + r"\results\hyperopt" + "\\" + experiment, r"\ho_trials" + experiment_name, ho_trials, windowsOS)
-    SaveNumpyPickles(pickle_path + r"\results\y_true" + "\\" + experiment, r"\y_true" + experiment_name, y_true_dict, windowsOS)
+
+    if save_y_true:
+        SaveNumpyPickles(pickle_path + r"\results\y_true", r"\y_true_randomstate_" + str(random_state_val), y_true_dict, windowsOS)
 
 
 else:
     os.makedirs(pickle_path + r"results/performance" + "/" + experiment, exist_ok=True)
     os.makedirs(pickle_path + r"results/hyperopt" + "/" + experiment, exist_ok=True)
-    os.makedirs(pickle_path + r"\results\y_true" + "/" + experiment, exist_ok=True)
+    os.makedirs(pickle_path + r"results/y_true", exist_ok=True)
 
     SaveNumpyPickles(pickle_path + r"results/performance" + "/" + experiment, r"/results" + experiment_name, results, windowsOS=False)
     SaveNumpyPickles(pickle_path + r"results/hyperopt" + "/" + experiment, r"/ho_trials" + experiment_name, ho_trials, windowsOS=False)
-    SaveNumpyPickles(pickle_path + r"\results\y_true" + "/" + experiment, r"\y_true" + experiment_name, y_true_dict, windowsOS=False)
+
+    if save_y_true:
+        SaveNumpyPickles(pickle_path + r"results/y_true", r"/y_true_randomstate_" + str(random_state_val), y_true_dict, windowsOS=False)
 
 

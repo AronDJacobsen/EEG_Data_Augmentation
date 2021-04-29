@@ -1,6 +1,7 @@
 import torch, time, glob, pickle, os #, re
 import numpy as np
 from collections import defaultdict
+from tqdm import tqdm
 
 def createSubjectDict(prep_directory, windowsOS=False):
     # Setting directory
@@ -12,7 +13,8 @@ def createSubjectDict(prep_directory, windowsOS=False):
 
     # Loop through all session to load window-tensors into the "subjects"-dictionary
     index=0
-    for session_test in subdirs:
+    print("Creating subject dictionary...")
+    for session_test in tqdm(subdirs[:2]):
         subjectID = session_test.split("_")[0]
         if windowsOS:
             dim_tensors = [dim_t.reshape(-1) for tensor_file in glob.glob(prep_directory + session_test + "\\" + "**")
@@ -27,7 +29,7 @@ def createSubjectDict(prep_directory, windowsOS=False):
             subjects[subjectID] = {session_test: dim_tensors}
 
         index += 1
-        print("Subject dict running...: {:d}/{:d}".format(index,len(subdirs)))
+
 
     return subjects
 
@@ -50,7 +52,8 @@ def PicklePrepData(subjects_dict, prep_directory, save_path, windowsOS = False):
     # Loading all preprocessed files and dividing them into data, X, and target variable, y.
     index = 0
     error_id = set() # set for keeping track of subjects with errors in data.
-    for count, pt_dir in enumerate(pt_inputs):
+    print("Creating pickles of the preprocessed data...:")
+    for count, pt_dir in enumerate(tqdm(pt_inputs)):
         pt_loaded = torch.load(pt_dir)
         pt_label = np.zeros(len(label_encoder))
 
@@ -75,7 +78,7 @@ def PicklePrepData(subjects_dict, prep_directory, save_path, windowsOS = False):
                 ID_loader.append(pt_dir.split("/")[-2].split("_")[0])
 
         index += 1
-        print("LoadPrepData running...: {:d}/{:d}".format(index, len(pt_inputs)))
+
 
     # Stacking data to matrices.
     X = np.stack(input_loader)

@@ -42,3 +42,20 @@ def mixup(X, y, ratio, alpha=0.4):
 def mixup_criterion(criterion, pred, y_a, y_b, lam):
     return lam * criterion(pred, y_a) + (1 - lam) * criterion(pred, y_b)
 
+
+
+def useMixUp(Xtrain_new, ytrain_new, ratio):
+    # Onehot-encoding for mixup to work
+    y_onehot_encoded = OneHotEncoder(sparse=False).fit_transform(
+        ytrain_new.reshape(len(ytrain_new), 1))
+
+    # Running mixup
+    mix_X, mix_y, _ = mixup(Xtrain_new, y_onehot_encoded, ratio)
+
+    # Undoing the onehot-encoding
+    mix_y = np.argmax(mix_y, axis=1)
+
+    Xtrain_new = np.concatenate((Xtrain_new, mix_X))
+    ytrain_new = np.concatenate((ytrain_new, mix_y))
+
+    return Xtrain_new, ytrain_new

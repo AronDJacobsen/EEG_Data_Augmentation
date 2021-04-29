@@ -8,6 +8,7 @@ from sklearn import preprocessing
 from imblearn.pipeline import Pipeline
 from imblearn.under_sampling import NearMiss
 from sklearn.preprocessing import LabelEncoder
+from collections import Counter
 
 
 
@@ -120,3 +121,16 @@ def nearmiss(X, y, version, n_neighbors):
 
 
     return X_under, y_under
+
+
+def balanceData(Xtrain, ytrain, ratio, random_state_val):
+    # for class 0 (artifact) we downsample to no. obs. for artifact * ratio(to smote up)
+    label_size = Counter(ytrain)
+    major = max(label_size, key=label_size.get)
+    decrease = label_size[1 - major] * ratio
+    label_size[major] = int(np.round(decrease, decimals=0))
+    Xtrain_new, ytrain_new = rand_undersample(Xtrain, ytrain, arg=label_size,
+                                              state=random_state_val, multi=False)
+    Xtrain_new, ytrain_new = smote(Xtrain_new, ytrain_new, multi=False, state=random_state_val)
+
+    return Xtrain_new, ytrain_new

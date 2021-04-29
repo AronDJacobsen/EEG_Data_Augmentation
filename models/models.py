@@ -116,8 +116,6 @@ class models:
 
         return accuracy, f2_s, sensitivity, y_pred
 
-    def getYtrue(self):
-        return self.y_test
 
     def LR(self, C):
         model = LogisticRegression(C = C, max_iter = 500)

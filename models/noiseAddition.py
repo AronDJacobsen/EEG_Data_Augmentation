@@ -1,11 +1,12 @@
 import os, time, mne, shutil, glob
 import numpy as np
 import matplotlib.pyplot as plt
-from collections import defaultdict
+from collections import defaultdict, Counter
 import prepData.loadData as loadData
 from prepData.preprocessPipeline import TUH_rename_ch, readRawEdf, pipeline, spectrogramMake, slidingWindow
 from scipy.signal import butter, lfilter, freqz
 from prepData.dataLoader import *
+from models.balanceData import rand_undersample, binary
 
 ### BUTTERWORTH LOWPASS FILTERS TAKEN FROM
 # https://stackoverflow.com/questions/25191620/creating-lowpass-filter-in-scipy-understanding-methods-and-units
@@ -195,6 +196,48 @@ def generateNoisyData(data_path, save_path, file_selected, variance, use_covaria
     filepath = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia"
     #SaveNumpyPickles(filepath, r"\subjects_var{}_cutoff{}".format(variance, cutoff_freq), subjects, windowsOS=True)
     #PicklePrepData(subjects, r"C:\Users\Albert Kjøller\Documents\GitHub\TUAR_full_data\tempData", filepath, windowsOS=True)
+
+def prepareNoiseAddition(pickle_path_aug, noise_experiment, X_file, y_file, ID_file):
+    # Load noise augmentation file
+    X_noise = LoadNumpyPickles(pickle_path=pickle_path_aug + noise_experiment, file_name=X_file,
+                               windowsOS=windowsOS)
+    y_noise = LoadNumpyPickles(pickle_path=pickle_path_aug + noise_experiment, file_name=y_file,
+                               windowsOS=windowsOS)
+    ID_frame_noise = LoadNumpyPickles(pickle_path=pickle_path_aug + noise_experiment, file_name=ID_file,
+                                      windowsOS=windowsOS)
+
+    X_noise, y_noise, ID_frame_noise = binary(X_noise, y_noise, ID_frame_noise)
+
+    return X_noise, y_noise, ID_frame_noise
+
+
+
+def useNoiseAddition(X_noise_new, y_noise_new, Xtrain_new, ytrain_new, aug_ratio, random_state_val):
+
+    # Balance noisy data
+    label_size = Counter(y_noise_new)
+    major = max(label_size, key=label_size.get)
+    decrease = label_size[1 - major]
+    label_size[major] = int(np.round(decrease, decimals=0))
+    X_noise_new, y_noise_new = rand_undersample(X_noise_new, y_noise_new,
+                                                arg=label_size,
+                                                state=random_state_val, multi=False)
+
+    # Find new points
+    N_noise = X_noise_new.shape[0]
+    N_clean = Xtrain_new.shape[0]
+    n_new_points = int(aug_ratio * N_clean)
+    noise_idxs = np.random.choice(N_noise, n_new_points)
+
+    # Select noisy data
+    noise_X = X_noise_new[noise_idxs, :]
+    noise_y = y_noise_new[noise_idxs]
+
+    # Concatenate
+    Xtrain_new = np.concatenate((Xtrain_new, noise_X))
+    ytrain_new = np.concatenate((ytrain_new, noise_y))
+
+    return Xtrain_new, ytrain_new
 
 
 if __name__ == '__main__':

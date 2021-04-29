@@ -197,12 +197,12 @@ def investigateAugmentation(X, y, X_aug, y_aug, colors, artifact, method, view_c
     y_labels = np.concatenate((["Original"] * len(y), ["Augmented"] * len(y_aug)))
 
     X_aug_pca = scaler.transform(X_with_aug)
-    pca_scores_aug = pca.fit_transform(X_aug_pca)
+    pca_scores_aug = pca.transform(X_aug_pca)
 
 
     fig = plt.figure(figsize=(10, 12))
     ax1 = plt.subplot(2, 1, 1)
-    plotPCAScatter(pca.fit_transform(Xstd), pca, ["Original"]*len(y_std), colors, artifact, method)
+    plotPCAScatter(pca.transform(Xstd), pca, ["Original"]*len(y_std), colors, artifact, method)
     ax2 = plt.subplot(2, 1, 2, sharex=ax1, sharey=ax1)
     plotPCAScatter(pca_scores_aug, pca, y_labels, colors, artifact, method)
     fig.show()
@@ -280,7 +280,7 @@ if __name__ == '__main__':
     plotPCAScatter3D(pca_scores_unbalanced, pca_SMOTE, y_std, colors, artifact, method1)
 
     method2 = "With SMOTE"
-    pca_scores_SMOTE = pca_SMOTE.fit_transform(X_SMOTE)
+    pca_scores_SMOTE = pca_SMOTE.transform(X_SMOTE)
     plotPCAScatter(pca_scores_SMOTE, pca_SMOTE, y_SMOTE, colors, artifact, method2)
     plt.show()
     plotPCAScatter3D(pca_scores_SMOTE, pca_SMOTE, y_SMOTE, colors, artifact, method2)
@@ -302,7 +302,7 @@ if __name__ == '__main__':
 
     experiment = 'DataAug_white_noiseAdd_LR'  # 'DataAug_color_noiseAdd_LR'
     experiment_name = "_DataAug_white_Noise"  # "_DataAug_color_Noise" added to saving files
-    noise_experiment = r"\colornoise30Hz_covarOne"
+    noise_experiment = r"\whitenoise_covarOne"
 
     X_noise = LoadNumpyPickles(pickle_path_aug + noise_experiment, file_name=X_file, windowsOS=windowsOS)
     y_noise = LoadNumpyPickles(pickle_path_aug + noise_experiment, file_name=y_file, windowsOS=windowsOS)
