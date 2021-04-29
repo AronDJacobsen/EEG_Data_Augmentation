@@ -206,7 +206,7 @@ class getResults:
                                                 pass
                     """
                 if i == 0:  # If merging full files we will first create a dictionary and continue to
-                            # the else-statement ...
+                    # the else-statement ...
                     for aug_ratio in self.aug_ratios:
                         all_results_dict[aug_ratio] = defaultdict(dict)
                         for ratio in self.smote_ratios:
@@ -272,7 +272,6 @@ class getResults:
                                          windowsOS=self.windowsOS)
             HO_trials = HO_trials[()]
 
-
         table_aug_dict = defaultdict(dict)
         table_aug_std_dict = defaultdict(dict)
 
@@ -280,9 +279,6 @@ class getResults:
             results = results_all[aug_ratio]
 
             pd.set_option("display.max_rows", None, "display.max_columns", None)
-
-            table = defaultdict(dict)  # {}
-            table_std = defaultdict(dict)  # {}
 
             # want to average each fold
 
@@ -296,6 +292,8 @@ class getResults:
             table_smote_std_dict = defaultdict(dict)
 
             for smote_ratio in self.smote_ratios:
+                table = defaultdict(dict)  # {}
+                table_std = defaultdict(dict)  # {}
 
                 for idx_art, artifact in enumerate(self.artifacts):
                     # table[artifact] = []
@@ -345,13 +343,12 @@ class getResults:
                 table_smote_dict[smote_ratio] = table
                 table_smote_std_dict[smote_ratio] = table_std
 
-                # TODO: Undersøg hvorfor det her ikke virker. Jeg forstår det simpelthen ikke...
                 table_aug_dict[aug_ratio][smote_ratio] = table
                 table_aug_std_dict[aug_ratio][smote_ratio] = table_std
 
         return table_aug_dict, table_aug_std_dict
 
-    def plotResultsAugmentation(self, performance_list, errors_list, experiment, aug_technique, measure="sensitiviy",
+    def plotResultsAugmentation(self, performances_dict, errors_dict, experiment, aug_technique, measure="sensitiviy",
                                 save_img=False):
 
         save_path = (self.slash).join([dir, "Plots", experiment])
@@ -360,24 +357,11 @@ class getResults:
         # Plotting results
         art = len(self.artifacts)
 
-        performance_smote = []
-        errors_smote = []
-
-        for i in range(len(self.smote_ratios)):
-            performance_smote.append([lst[i] for lst in performance_list])
-            errors_smote.append([lst[i] for lst in errors_list])
-
-        performance_list_ofLists = performance_smote
-        errors_list_ofLists = errors_smote
-
         for indv_art, name in enumerate(self.artifacts):
-
-            for j, performance_list in enumerate(performance_list_ofLists):
-                errors_list = errors_list_ofLists[j]
-
-                for i in range(len(performance_list)):
-                    performance_dict = performance_list[i]
-                    error_dict = errors_list[i]
+            for j, smote_ratio in enumerate(self.smote_ratios):
+                for i, aug_ratio in enumerate(self.aug_ratios):
+                    performance_dict = performance_dict[aug_ratio][smote_ratio]
+                    error_dict = errors_dict[aug_ratio][smote_ratio]
 
                     performance_vals = np.array(list(performance_dict.values())[:art])
                     error_vals = np.array(list(error_dict.values())[:art])
@@ -417,8 +401,14 @@ class getResults:
 
                 plt.show()
 
-    def plotResultsSMOTE(self, performance_list, errors_list, experiment, aug_technique=None, measure="sensitiviy",
-                         only_smote=True, save_img=False):
+    def plotResultsHelper(self, performances_dict, errors_dict, experiment, smote_ratios=None, aug_ratios=None,
+                          aug_technique=None, measure="sensitiviy",
+                          across_SMOTE=True, save_img=False):
+
+        if smote_ratios == None:
+            smote_ratios = self.smote_ratios
+        if aug_ratios == None:
+            aug_ratios = self.aug_ratios
 
         save_path = (self.slash).join([dir, "Plots", experiment])
 
@@ -426,59 +416,104 @@ class getResults:
         # Plotting results
         art = len(self.artifacts)
 
-        if only_smote:
-            performance_list_ofLists = performance_list[0]
-            errors_list_ofLists = errors_list[0]
+        if across_SMOTE:
+            for indv_art, name in enumerate(self.artifacts):
+                for j, aug_ratio in enumerate(aug_ratios):
+                    for i, smote_ratio in enumerate(smote_ratios):
+                        performance_dict = performances_dict[aug_ratio][smote_ratio]
+                        error_dict = errors_dict[aug_ratio][smote_ratio]
 
-        for indv_art, name in enumerate(self.artifacts):
+                        performance_vals = np.array(list(performance_dict.values())[:art])
+                        error_vals = np.array(list(error_dict.values())[:art])
 
-            for j, performance_list in enumerate(performance_list_ofLists):
-                errors_list = errors_list_ofLists[j]
+                        X_axis = np.arange(len(self.models)) - 0.3
+                        plt.bar(x=X_axis + 0.15 * i, height=performance_vals[indv_art, :], width=0.15,
+                                color=colorlist[i],
+                                label="SMOTE-ratio = " + str(smote_ratios[i]))
 
-                for i in range(len(performance_list)):
-                    performance_dict = performance_list[i]
-                    error_dict = errors_list[i]
+                        plt.errorbar(x=X_axis + 0.15 * i, y=performance_vals[indv_art, :], yerr=error_vals[indv_art, :],
+                                     fmt='.', color='k')
 
-                    performance_vals = np.array(list(performance_dict.values())[:art])
-                    error_vals = np.array(list(error_dict.values())[:art])
+                    for i, model in enumerate(self.models):
+                        if model == 'baseline_perm':
+                            self.models[i] = "base-\nline"
+                        elif model == 'AdaBoost':
+                            self.models[i] = "Ada-\nBoost"
 
-                    X_axis = np.arange(len(self.models)) - 0.3
-                    plt.bar(x=X_axis + 0.15 * i, height=performance_vals[indv_art, :], width=0.15, color=colorlist[i],
-                            label="SMOTE-ratio = " + str(self.smote_ratios[i]))
+                    plt.xticks(np.arange(len(self.models)), self.models, rotation=0)
+                    plt.ylim(0, 1)
 
-                    plt.errorbar(x=X_axis + 0.15 * i, y=performance_vals[indv_art, :], yerr=error_vals[indv_art, :],
-                                 fmt='.', color='k')
+                    if aug_technique == None:
+                        plt.title(
+                            f"{measure} with {aug_technique} augmentation on the '{name}'-class - Aug. ratio = {aug_ratios[j]}")
+                    else:
+                        plt.title(
+                            f"{measure} with {aug_technique} augmentation on the '{name}'-class - Aug. ratio = {aug_ratios[j]}")
 
-                for i, model in enumerate(self.models):
-                    if model == 'baseline_perm':
-                        self.models[i] = "base-\nline"
-                    elif model == 'AdaBoost':
-                        self.models[i] = "Ada-\nBoost"
+                    plt.xlabel("Model")
+                    plt.ylabel(measure)
+                    plt.legend(loc='center right', bbox_to_anchor=(1.36, 0.5))
+                    plt.subplots_adjust(bottom=0.2, right=0.775)
 
-                plt.xticks(np.arange(len(self.models)), self.models, rotation=0)
-                plt.ylim(0, 1)
+                    if save_img:
+                        img_path = f"{(self.slash).join([save_path, measure])}{self.slash}{name}_aug{aug_technique}_augRatio{aug_ratios[j]}.png"
+                        os.makedirs((self.slash).join(img_path.split(self.slash)[:-1]), exist_ok=True)
+                        plt.savefig(img_path)
+                    plt.show()
 
-                if aug_technique == None:
-                    plt.title(
-                        f"{measure} with {aug_technique} augmentation on the '{name}'-class - Aug. ratio = {self.smote_ratios[j]}")
-                else:
-                    plt.title(
-                        f"{measure} with {aug_technique} augmentation on the '{name}'-class - Aug. ratio = {self.smote_ratios[j]}")
+        else:
+            for indv_art, name in enumerate(self.artifacts):
+                for j, smote_ratio in enumerate(smote_ratios):
+                    for i, aug_ratio in enumerate(aug_ratios):
+                        performance_dict = performances_dict[aug_ratio][smote_ratio]
+                        error_dict = errors_dict[aug_ratio][smote_ratio]
 
-                plt.xlabel("Model")
-                plt.ylabel(measure)
-                plt.legend(loc='center right', bbox_to_anchor=(1.36, 0.5))
-                plt.subplots_adjust(bottom=0.2, right=0.775)
+                        performance_vals = np.array(list(performance_dict.values())[:art])
+                        error_vals = np.array(list(error_dict.values())[:art])
 
-                if save_img:
-                    img_path = f"{(self.slash).join([save_path, measure])}{self.slash}{name}_aug{aug_technique}_smote{self.smote_ratios[j] - 1}.png"
-                    os.makedirs((self.slash).join(img_path.split(self.slash)[:-1]), exist_ok=True)
-                    plt.savefig(img_path)
+                        X_axis = np.arange(len(self.models)) - 0.3
+                        plt.bar(x=X_axis + 0.15 * i, height=performance_vals[indv_art, :], width=0.15,
+                                color=colorlist[i],
+                                label="Aug. ratio = " + str(aug_ratios[i]))
 
-                plt.show()
+                        plt.errorbar(x=X_axis + 0.15 * i, y=performance_vals[indv_art, :], yerr=error_vals[indv_art, :],
+                                     fmt='.', color='k')
 
-    def plotResultsChooseMeasure(self, experiment_name, aug_technique, only_smote=False, measure='sensitivity',
-                                 save_img=False):
+                    for i, model in enumerate(self.models):
+                        if model == 'baseline_perm':
+                            self.models[i] = "base-\nline"
+                        elif model == 'AdaBoost':
+                            self.models[i] = "Ada-\nBoost"
+
+                    plt.xticks(np.arange(len(self.models)), self.models, rotation=0)
+                    plt.ylim(0, 1)
+
+                    if aug_technique == None:
+                        plt.title(
+                            f"{measure} with {aug_technique} augmentation on the '{name}'-class - SMOTE = {smote_ratios[j] - 1}")
+                    else:
+                        plt.title(
+                            f"{measure} with {aug_technique} augmentation on the '{name}'-class - SMOTE = {smote_ratios[j] - 1}")
+
+                    plt.xlabel("Model")
+                    plt.ylabel(measure)
+                    plt.legend(loc='center right', bbox_to_anchor=(1.36, 0.5))
+                    plt.subplots_adjust(bottom=0.2, right=0.775)
+
+                    if save_img:
+                        img_path = f"{(self.slash).join([save_path, measure])}{self.slash}{name}_aug{aug_technique}_smote{smote_ratios[j] - 1}.png"
+                        os.makedirs((self.slash).join(img_path.split(self.slash)[:-1]), exist_ok=True)
+                        plt.savefig(img_path)
+                    plt.show()
+
+    def plotResults(self, experiment_name, aug_technique, smote_ratios=None, aug_ratios=None, measure='sensitivity',
+                    across_SMOTE=True, save_img=False):
+
+        if smote_ratios == None:
+            smote_ratios = self.smote_ratios
+        if aug_ratios == None:
+            aug_ratios = self.aug_ratios
+
         # Loading statistically calculated results as dictionaries
         # For single files and their HO_trials
         # List of dictionaries of results. Each entry in the list is a results dictionary for one SMOTE ratio
@@ -486,18 +521,19 @@ class getResults:
         self.smote_ratios.sort()
 
         # This function will plot results created in the augmentation experiment (with aug. ratio key in the dict)
-        if only_smote:
-            self.plotResultsSMOTE(performance_list=performances, errors_list=errors,
-                                  experiment=self.experiment,
-                                  save_img=save_img, aug_technique=aug_technique,
-                                  measure=measure, only_smote=only_smote)
-        else:
-            self.plotResultsAugmentation(performance_list=performances, errors_list=errors,
-                                         experiment=self.experiment,
-                                         save_img=save_img, aug_technique=aug_technique,
-                                         measure=measure)
+        self.plotResultsHelper(performances_dict=performances, errors_dict=errors,
+                               experiment=self.experiment, smote_ratios=smote_ratios,
+                               aug_ratios=aug_ratios, across_SMOTE=across_SMOTE,
+                               save_img=save_img, aug_technique=aug_technique,
+                               measure=measure)
 
-    def printResultsChooseMeasure(self, experiment_name, aug_ratios=[0], measure='sensitivity', LaTeX=False):
+    def printResults(self, experiment_name, smote_ratios=None, aug_ratios=None, measure='sensitivity',
+                     printSTDTable=False, LaTeX=False):
+
+        if smote_ratios == None:
+            smote_ratios = self.smote_ratios
+        if aug_ratios == None:
+            aug_ratios = self.aug_ratios
 
         performances, errors = self.tableResults_Augmentation(measure=measure, experiment_name=experiment_name)
         self.smote_ratios.sort()
@@ -506,36 +542,50 @@ class getResults:
             print("\n\n")
             print(80 * "#")
             print("Results with augmentation rate set to {:2f}".format(self.aug_ratios[j]))
-            print(80 * "#")
+            print(100 * "#")
 
-            performance_list = performances[j]
-            errors_list = errors[j]
+            performance_dict = performances[j]
+            errors_dict = errors[j]
 
-            for i, ratio in enumerate(self.smote_ratios):
+            for i, ratio in enumerate(smote_ratios):
+
+                performance = performance_dict[ratio]
+                error = errors_dict[ratio]
+
+                # Print dataframes
+                df_eval = pd.DataFrame.from_dict(performance)
+                df_eval.index = self.models
+                df_eval = np.round(df_eval * 100, 2)
 
                 if LaTeX:
-                    print("Implement LaTeX layout!")
+                    df_latex = df_eval.to_latex()
+                    print(df_latex)
 
                 else:
-                    performance = performance_list[i]
-                    error = errors_list[i]
-
-                    # Print dataframes
-                    df_eval = pd.DataFrame.from_dict(performance)
-                    df_eval.index = self.models
                     print('\nOVERALL PERFORMANCE')
                     print("SMOTE RATIO:" + str(ratio - 1) + "\n")
-                    print(np.round(df_eval * 100, 2))
+                    print(df_eval.to_string())
                     # print(df_eval)
 
+                if printSTDTable:
                     df_eval = pd.DataFrame.from_dict(error)
                     df_eval.index = self.models
-                    print('\nSTANDARD DEVIATIONS')
-                    print("SMOTE RATIO:" + str(ratio - 1) + "\n")
-                    print(np.round(df_eval * 100, 2))
+                    df_eval = np.round(df_eval * 100, 2)
+                    if LaTeX:
+                        df_latex = pd.df_eval.to_latex()
+                        print(df_latex)
 
-                    print("")
-                    print(80 * "#")
+                    else:
+                        print('\nSTANDARD DEVIATIONS')
+                        print("SMOTE RATIO:" + str(ratio - 1) + "\n")
+                        print(df_eval.to_string)
+
+                print("")
+                print(100 * "#")
+
+    def getPredictions(self, model):
+
+        pass
 
 
 if __name__ == '__main__':
@@ -558,7 +608,6 @@ if __name__ == '__main__':
     KNN_smote = getResults(dir, experiment, experiment_name, merged_file=True, windowsOS=True)
     KNN_smote.mergeResultFiles(file_name=experiment_name)
 
-
     # Example of merging fully created files from different models.
     experiment = "smote_f2"  # directory containing the files we will look at
     experiment_name = '_smote_f2_mergeExample'
@@ -580,23 +629,47 @@ if __name__ == '__main__':
     # The first list indices describes augmentation ratio, the inner list is smote ratio.
     performances, errors = fullSMOTE.tableResults_Augmentation(experiment_name=experiment_name, measure=measure)
 
-    fullSMOTE.printResultsChooseMeasure(measure=measure, experiment_name=experiment_name, LaTeX=LaTeX)
-    fullSMOTE.plotResultsChooseMeasure(measure=measure,
-                                       experiment_name=experiment_name,
-                                       aug_technique=aug_technique,
-                                       only_smote=only_smote,
-                                       save_img=save_img)
+    # Examples of getting tables of the results
+    fullSMOTE.printResults(measure=measure,
+                           experiment_name=experiment_name,
+                           smote_ratios=fullSMOTE.smote_ratios,
+                           aug_ratios=[0],
+                           printSTDTable=False,
+                           LaTeX=False)
 
-    """ 
-        Can not get this one to work right now...
-        fullSMOTE.plotResultsSMOTE(performance_list=performances, 
-                                   errors_list=errors,
-                                   experiment=fullSMOTE.experiment,
-                                   aug_technique=None,
-                                   measure=measure, 
-                                   only_smote=only_smote,
-                                   save_img=save_img) 
-        """
+    fullSMOTE.printResults(measure=measure,
+                           experiment_name=experiment_name,
+                           smote_ratios=fullSMOTE.smote_ratios,
+                           aug_ratios=[0],
+                           printSTDTable=False,
+                           LaTeX=True)
+
+    # Examples of getting plots of the results
+    fullSMOTE.plotResults(measure=measure,
+                          experiment_name=experiment_name,
+                          aug_technique=aug_technique,
+                          smote_ratios=fullSMOTE.smote_ratios,
+                          aug_ratios=[0],
+                          across_SMOTE=True,
+                          save_img=save_img)
+
+    fullSMOTE.plotResults(measure=measure,
+                          experiment_name=experiment_name,
+                          aug_technique=aug_technique,
+                          smote_ratios=fullSMOTE.smote_ratios,
+                          aug_ratios=[0],
+                          across_SMOTE=False,
+                          save_img=save_img)
+
+    fullSMOTE.plotResults(measure='accuracy',
+                          experiment_name=experiment_name,
+                          aug_technique=aug_technique,
+                          smote_ratios=fullSMOTE.smote_ratios,
+                          aug_ratios=[0],
+                          across_SMOTE=True,
+                          save_img=save_img)
+
+    fullSMOTE.getPredictions(model='LR')
 
     # Next we wish to examine accuracy
     measure = "accuracy"
