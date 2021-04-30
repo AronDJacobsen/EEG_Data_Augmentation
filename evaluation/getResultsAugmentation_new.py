@@ -373,13 +373,15 @@ class getResults:
                     plt.errorbar(x=X_axis + 0.15 * i, y=performance_vals[indv_art, :], yerr=error_vals[indv_art, :],
                                  fmt='.', color='k')
 
-                for i, model in enumerate(self.models):
+                models = self.models
+                for i, model in enumerate(models):
                     if model == 'baseline_perm':
-                        self.models[i] = "base-\nline"
+                        models[i] = "base-\nline"
                     elif model == 'AdaBoost':
-                        self.models[i] = "Ada-\nBoost"
+                        models[i] = "Ada-\nBoost"
 
-                plt.xticks(np.arange(len(self.models)), self.models, rotation=0)
+
+                plt.xticks(np.arange(len(models)), models, rotation=0)
                 plt.ylim(0, 1)
 
                 if aug_technique == None:
@@ -434,13 +436,14 @@ class getResults:
                         plt.errorbar(x=X_axis + 0.15 * i, y=performance_vals[indv_art, :], yerr=error_vals[indv_art, :],
                                      fmt='.', color='k')
 
-                    for i, model in enumerate(self.models):
+                    models = self.models
+                    for i, model in enumerate(models):
                         if model == 'baseline_perm':
-                            self.models[i] = "base-\nline"
+                            models[i] = "base-\nline"
                         elif model == 'AdaBoost':
-                            self.models[i] = "Ada-\nBoost"
+                            models[i] = "Ada-\nBoost"
 
-                    plt.xticks(np.arange(len(self.models)), self.models, rotation=0)
+                    plt.xticks(np.arange(len(models)), models, rotation=0)
                     plt.ylim(0, 1)
 
                     if aug_technique == None:
@@ -479,13 +482,14 @@ class getResults:
                         plt.errorbar(x=X_axis + 0.15 * i, y=performance_vals[indv_art, :], yerr=error_vals[indv_art, :],
                                      fmt='.', color='k')
 
-                    for i, model in enumerate(self.models):
+                    models = self.models
+                    for i, model in enumerate(models):
                         if model == 'baseline_perm':
-                            self.models[i] = "base-\nline"
+                            models[i] = "base-\nline"
                         elif model == 'AdaBoost':
-                            self.models[i] = "Ada-\nBoost"
+                            models[i] = "Ada-\nBoost"
 
-                    plt.xticks(np.arange(len(self.models)), self.models, rotation=0)
+                    plt.xticks(np.arange(len(models)), models, rotation=0)
                     plt.ylim(0, 1)
 
                     if aug_technique == None:
@@ -583,10 +587,98 @@ class getResults:
                 print("")
                 print(100 * "#")
 
-    def getPredictions(self, model):
+    def getPredictions(self, aug_ratios=None, smote_ratios=None, artifacts=None, models=None):
+
+        correct_models = ['baseline_perm', 'LR', 'GNB', 'KNN', 'RF', 'LDA', 'MLP', 'AdaBoost', 'SGD']
+        if self.models is not correct_models:
+            self.models = correct_models
+
+        if aug_ratios is None:
+            aug_ratios = self.aug_ratios
+        if smote_ratios is None:
+            smote_ratios = self.smote_ratios
+        if artifacts is None:
+            artifacts = self.artifacts
+        if models is None:
+            models = self.models
+
+
+        # Specifies basepath
+        results_basepath = self.slash.join(self.pickle_path.split(self.slash)[:-2])
+        exp = self.pickle_path.split(self.slash)[-1]
+
+        # Loads merged file or not.
+        if self.merged_file:
+            results_all = LoadNumpyPickles(
+                pickle_path=(self.slash).join([results_basepath, "merged_files", exp]),
+                file_name=self.slash + "results" + experiment_name + '.npy', windowsOS=self.windowsOS)
+            results_all = results_all[()]
+        else:
+            results_all = LoadNumpyPickles(pickle_path=(self.slash).join([results_basepath, "performance", exp]),
+                                           file_name=self.slash + "results" + experiment_name + '.npy',
+                                           windowsOS=self.windowsOS)
+            results_all = results_all[()]
+
+
+        # For all folds to get predictions of all data points.
+
+        y_pred_dict = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(dict))))
+        for aug_ratio in aug_ratios:
+            for smote_ratio in smote_ratios:
+                for artifact in artifacts:
+                    for model in models:
+                        y_pred = []
+                        for fold in self.folds:
+                            #if results_all[aug_ratio][smote_ratio][fold][artifact][model] != defaultdict(dict): # if model is not in merged files
+                            y_pred_fold = results_all[aug_ratio][smote_ratio][fold][artifact][model]['y_pred']
+                            y_pred.append(y_pred_fold)
+                            #else:
+                            #    y_pred.append({})
+
+                        try:
+                            y_pred = np.concatenate(y_pred)
+                        except ValueError:
+                            y_pred = np.nan
+
+
+                        y_pred_dict[aug_ratio][smote_ratio][artifact][model] = y_pred
+
+        return y_pred_dict
+
+
+    def getCorrelation(self, aug_ratio=0, smote_ratio=1, artifact=None, models=None):
+
+        if models == None:
+            models = self.models
+
+        if artifact == None:
+            print("Please specify artifact!")
+
+        else:
+            y_pred_dict = self.getPredictions(aug_ratios=[aug_ratio], smote_ratios=[smote_ratio], artifacts=[artifact], models=models)
+            matrix = []
+            model_names = []
+
+            for model in models:
+                pred_models = y_pred_dict[aug_ratio][smote_ratio][artifact][model]
+
+                if np.any(np.isnan(pred_models)):
+                    pass
+                else:
+                    matrix.append(pred_models)
+                    model_names.append(model)
+
+        corr_matrix = pd.DataFrame(np.corrcoef(matrix), columns=model_names, index=model_names)
+
+        print("#"*80)
+        print(f"Correlation with augmentation rate: {aug_ratio}, SMOTE-ratio: {smote_ratio}")
+        print(corr_matrix)
+
+        return corr_matrix
+
+    def getMutualInformation(self):
 
         pass
-
 
 if __name__ == '__main__':
     dir = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia"  # dir = "/Users/philliphoejbjerg/Documents/GitHub/EEG_epilepsia"  # dir = r"/Users/Jacobsen/Documents/GitHub/EEG_epilepsia" + "/"
@@ -603,16 +695,18 @@ if __name__ == '__main__':
                                         experiment=experiment)
 
     # Example of merging result-files created with same models but different SMOTE-ratios
-    experiment = 'KNN_for_merge_smote_f2'
-    experiment_name = '_smote_f2_KNN'  # end of the name of the new file to be created or the file(s) to be loaded
-    KNN_smote = getResults(dir, experiment, experiment_name, merged_file=True, windowsOS=True)
-    KNN_smote.mergeResultFiles(file_name=experiment_name)
+    experiment = 'AdaBoost_for_merge_smote_f2'
+    experiment_name = '_smote_f2_AdaBoost'  # end of the name of the new file to be created or the file(s) to be loaded
+    AdaBoost_smote = getResults(dir, experiment, experiment_name, merged_file=True, windowsOS=True)
+    AdaBoost_smote.mergeResultFiles(file_name=experiment_name)
 
     # Example of merging fully created files from different models.
     experiment = "smote_f2"  # directory containing the files we will look at
     experiment_name = '_smote_f2_mergeExample'
     fullSMOTE = getResults(dir, experiment, experiment_name, merged_file=True, windowsOS=True)
     fullSMOTE.mergeResultFiles(file_name=experiment_name)
+
+
 
     # To work with the merged file we have to change the pickle path to the "merged" folder.
     fullSMOTE.changePicklePath()
@@ -628,6 +722,24 @@ if __name__ == '__main__':
     # performances is a nested list of performance dictionaries, the same is errors (but with errors instead)
     # The first list indices describes augmentation ratio, the inner list is smote ratio.
     performances, errors = fullSMOTE.tableResults_Augmentation(experiment_name=experiment_name, measure=measure)
+
+    # Creates a dictionary for the predictions.
+    y_pred_dict = fullSMOTE.getPredictions()  # models = ['LDA']
+    corr_matrix = fullSMOTE.getCorrelation(artifact='eyem')
+
+    fullSMOTE.printResults(measure=measure,
+                           experiment_name=experiment_name,
+                           smote_ratios=[1],
+                           aug_ratios=[0],
+                           printSTDTable=False,
+                           LaTeX=False)
+
+    fullSMOTE.printResults(measure="weighted_F2",
+                           experiment_name=experiment_name,
+                           smote_ratios=[1],
+                           aug_ratios=[0],
+                           printSTDTable=False,
+                           LaTeX=False)
 
     # Examples of getting tables of the results
     fullSMOTE.printResults(measure=measure,
@@ -661,6 +773,8 @@ if __name__ == '__main__':
                           across_SMOTE=False,
                           save_img=save_img)
 
+
+    # Next we wish to examine accuracy
     fullSMOTE.plotResults(measure='accuracy',
                           experiment_name=experiment_name,
                           aug_technique=aug_technique,
@@ -669,27 +783,19 @@ if __name__ == '__main__':
                           across_SMOTE=True,
                           save_img=save_img)
 
-    fullSMOTE.getPredictions(model='LR')
 
-    # Next we wish to examine accuracy
-    measure = "accuracy"
+    # Next we wish to examine the F2-score
+    fullSMOTE.plotResults(measure='weighted_F2',
+                          experiment_name=experiment_name,
+                          aug_technique=aug_technique,
+                          smote_ratios=fullSMOTE.smote_ratios,
+                          aug_ratios=[0],
+                          across_SMOTE=True,
+                          save_img=save_img)
 
-    performances, errors = fullSMOTE.tableResults_Augmentation(experiment_name=experiment_name, measure=measure)
-    fullSMOTE.plotResultsChooseMeasure(measure=measure,
-                                       experiment_name=experiment_name,
-                                       aug_technique=aug_technique,
-                                       save_img=save_img)
-    fullSMOTE.printResultsChooseMeasure(measure=measure, experiment_name=experiment_name, LaTeX=LaTeX)
 
-    # Then we wish to examine F2-score
-    measure = "weighted_F2"
 
-    performances, errors = fullSMOTE.tableResults_Augmentation(experiment_name=experiment_name, measure=measure)
-    fullSMOTE.plotResultsChooseMeasure(measure=measure,
-                                       experiment_name=experiment_name,
-                                       aug_technique=aug_technique,
-                                       save_img=save_img)
-    fullSMOTE.printResultsChooseMeasure(measure=measure, experiment_name=experiment_name, LaTeX=LaTeX)
+
 
     # TODO: Don't know how we will work with the augmented files
 
