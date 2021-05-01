@@ -3,9 +3,12 @@ import numpy as np
 from prepData.dataLoader import *
 import pickle
 import matplotlib.pyplot as plt
-from collections import defaultdict
+from collections import defaultdict, Counter
 import glob
 import pandas as pd
+from tqdm import tqdm
+from models.models import *
+import seaborn as sn
 
 
 class getResults:
@@ -545,7 +548,7 @@ class getResults:
         for j in range(len(aug_ratios)):
             print("\n\n")
             print(80 * "#")
-            print("Results with augmentation rate set to {:2f}".format(self.aug_ratios[j]))
+            print("{} scores with augmentation rate set to {:2f}".format(measure, self.aug_ratios[j]))
             print(100 * "#")
 
             performance_dict = performances[j]
@@ -646,7 +649,7 @@ class getResults:
         return y_pred_dict
 
 
-    def getCorrelation(self, aug_ratio=0, smote_ratio=1, artifact=None, models=None):
+    def getCorrelation(self, aug_ratio=0, smote_ratio=1, artifact=None, models=None, print_matrix=True):
 
         if models == None:
             models = self.models
@@ -670,15 +673,149 @@ class getResults:
 
         corr_matrix = pd.DataFrame(np.corrcoef(matrix), columns=model_names, index=model_names)
 
-        print("#"*80)
-        print(f"Correlation with augmentation rate: {aug_ratio}, SMOTE-ratio: {smote_ratio}")
-        print(corr_matrix)
+        if print_matrix:
+            print("#"*80)
+            print(f"Correlation with augmentation rate: {aug_ratio}, SMOTE-ratio: {smote_ratio}")
+            print(corr_matrix)
 
         return corr_matrix
 
-    def getMutualInformation(self):
+    def getMutualInformation(self, aug_ratio=0, smote_ratio=1, artifact=None, models=None):
+        if models == None:
+            models = self.models
 
-        pass
+        if artifact == None:
+            print("Please specify artifact!")
+
+        else:
+            corr_matrix = self.getCorrelation(artifact='eyem', print_matrix=False)
+
+            # Formula from here: https://lips.cs.princeton.edu/correlation-and-mutual-information/
+            I = -1/2 * np.log(1 - np.round(corr_matrix,4) ** 2)
+
+        return I
+
+
+
+    def getCorrelationAcrossRatios(self, aug_ratio=0, smote_ratio=1, artifact=None, models=None, print_matrix=True):
+
+
+        #TODO: Insert lines here!
+        raise NotImplementedError("CREATE THIS FUNCTION!")
+
+
+
+
+    def EnsemblePredictions(self, select_models, select_aug_ratios, select_smote_ratios, artifacts=None):
+
+        if artifacts is None:
+            artifacts = self.artifacts
+
+        n_classifiers = len(select_models)
+        y_pred_dict = self.getPredictions(models=self.models,
+                                          aug_ratios=self.aug_ratios,
+                                          smote_ratios=self.smote_ratios,
+                                          artifacts=self.artifacts)
+
+        ensemble_preds_art = defaultdict(dict)
+
+
+        for j in range(len(artifacts)):
+            ensemble_preds = []
+            for i in range(n_classifiers):
+                model_pred = y_pred_dict[select_aug_ratios[i]][select_smote_ratios[i]][artifacts[j]][select_models[i]]
+                ensemble_preds.append(model_pred)
+
+
+            # Hard voting classifier, since it is on class labels and not probability.
+            ensemble_preds = np.array(ensemble_preds)
+
+            print(f"\nCreating ensemble predictions for {artifacts[j]}")
+            ensemble_preds_gathered = []
+            for lst in tqdm(ensemble_preds.T):
+                ensemble_preds_gathered.append(Counter(lst).most_common(1)[0][0])
+
+            ensemble_preds_art[artifacts[j]] = np.array(ensemble_preds_gathered)
+
+        return ensemble_preds_art
+
+    def metrics_scores(self, y_true, y_pred):
+        # zero_division sets it to 0 as default
+        f2_s = fbeta_score(y_true, y_pred, average='weighted', beta = 2.0, zero_division = 0)
+
+        conf_matrix = confusion_matrix(y_true, y_pred, labels=[0, 1])
+
+        TP = conf_matrix[1][1]
+        TN = conf_matrix[0][0]
+        FP = conf_matrix[0][1]
+        FN = conf_matrix[1][0]
+
+        accuracy = (TP + TN) / (TP + TN + FP + FN)
+
+        if TP == 0 and FN == 0:
+            print("No TP or FN found.")
+            FN = 1 # Random number to account for division by zero
+
+        sensitivity = (TP / float(TP + FN))
+
+        # rounding digits
+        accuracy, f2_s, sensitivity = np.round([accuracy, f2_s, sensitivity], 5)
+        return accuracy, f2_s, sensitivity
+
+    def printScores(self, pred_dict, y_true_filename, model=None, ensemble=False, print_confusion=True):
+
+        if ensemble:
+            model = "Ensemble method"
+        else:
+            pred_dict = pred_dict[model]
+
+
+        results_basepath = self.slash.join(self.pickle_path.split(self.slash)[:-2])
+
+        y_true = LoadNumpyPickles(
+            pickle_path=(self.slash).join([results_basepath, "y_true"]),
+            file_name=self.slash + y_true_filename + '.npy', windowsOS=self.windowsOS)
+        y_true = y_true[()]
+
+        y_true_dict = defaultdict(dict)
+
+        for artifact in self.artifacts:
+            y_true_art = []
+            for i in self.folds:
+                y_true_art.append(y_true[i][artifact]['y_true'])
+
+            y_true_art = np.concatenate(y_true_art)
+            y_true_dict[artifact] = y_true_art
+
+        for art in self.artifacts:
+            scores = self.metrics_scores(y_true=y_true_dict[art], y_pred=pred_dict[art])
+            print(f"\nResults for ensemble classifier on {art}")
+            print("Accuracy, F2, sensitivity")
+            print(scores)
+
+            if print_confusion:
+                conf_matrix = confusion_matrix(y_true=y_true_dict[art], y_pred=pred_dict[art], labels=[0, 1])
+                conf_matrix = conf_matrix / np.linalg.norm(conf_matrix)
+
+                sn.heatmap(conf_matrix, annot=True, cmap=plt.cm.Blues)
+                plt.xlabel("Predicted label")
+                plt.ylabel("Actual label")
+                plt.title(f"Confusion matrix for {art} artifact with {model}")
+                plt.show()
+
+    def compressDict(self, pred_dict):
+
+        pred_dict_new = defaultdict(dict)
+        models = list(pred_dict[0][1]['eyem'].keys())
+
+
+        for artifact in self.artifacts:
+            for model in models:
+                pred_dict_new[model][artifact] = pred_dict[0][1][artifact][model]
+
+        return pred_dict_new
+
+
 
 if __name__ == '__main__':
     dir = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia"  # dir = "/Users/philliphoejbjerg/Documents/GitHub/EEG_epilepsia"  # dir = r"/Users/Jacobsen/Documents/GitHub/EEG_epilepsia" + "/"
@@ -723,16 +860,36 @@ if __name__ == '__main__':
     # The first list indices describes augmentation ratio, the inner list is smote ratio.
     performances, errors = fullSMOTE.tableResults_Augmentation(experiment_name=experiment_name, measure=measure)
 
-    # Creates a dictionary for the predictions.
-    y_pred_dict = fullSMOTE.getPredictions()  # models = ['LDA']
-    corr_matrix = fullSMOTE.getCorrelation(artifact='eyem')
-
-    fullSMOTE.printResults(measure=measure,
+    fullSMOTE.printResults(measure="weighted_F2",
                            experiment_name=experiment_name,
                            smote_ratios=[1],
                            aug_ratios=[0],
                            printSTDTable=False,
                            LaTeX=False)
+
+    fullSMOTE.printResults(measure="sensitivity",
+                           experiment_name=experiment_name,
+                           smote_ratios=[1],
+                           aug_ratios=[0],
+                           printSTDTable=False,
+                           LaTeX=False)
+
+    # Creates a dictionary for the predictions.
+    y_pred_dict = fullSMOTE.getPredictions()  # models = ['LDA']
+    corr_matrix = fullSMOTE.getCorrelation(artifact='eyem')
+    MI = fullSMOTE.getMutualInformation(artifact='eyem')
+    print(MI)
+
+    y_pred_dict_sub = fullSMOTE.getPredictions(models=['LDA', 'GNB', 'MLP', 'LR', 'SGD'],
+                                               aug_ratios=[0],
+                                               smote_ratios=[1])
+    y_pred_dict_sub = fullSMOTE.compressDict(y_pred_dict_sub)
+    fullSMOTE.printScores(pred_dict=y_pred_dict_sub, model='LDA', y_true_filename="y_true_randomstate_0")
+
+    # The input should be a list of models, a list of aug_ratios for each model and a list of smote_ratios for each
+    # model. For future experiments it should take a list with augmentation_techniques in as well.
+    ensemble_pred_dict = fullSMOTE.EnsemblePredictions(['LDA', 'GNB', 'MLP', 'LR', 'SGD'], [0, 0, 0, 0, 0], [1, 1, 1, 1, 1])
+    fullSMOTE.printScores(pred_dict=ensemble_pred_dict, y_true_filename = "y_true_randomstate_0", ensemble=True)
 
     fullSMOTE.printResults(measure="weighted_F2",
                            experiment_name=experiment_name,
