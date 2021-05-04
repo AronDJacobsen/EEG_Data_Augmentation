@@ -14,5 +14,16 @@ if __name__ == '__main__':
     # LR_MixUp = getResults(dir, experiment, experiment_name, merged_file=True, windowsOS=True)
     # LR_MixUp.mergeResultFiles(file_name=experiment_name)
 
+    # across_SMOTE has to be False when doing it with augmentation
+    """
+    # For augmentation
+    fullSMOTE.plotResults(measure="sensitivity",
+                          experiment_name=experiment_name,
+                          aug_technique=aug_technique,
+                          smote_ratios=fullSMOTE.smote_ratios,
+                          aug_ratios=[0],
+                          across_SMOTE=False,
+                          save_img=save_img)
+    """
 
     raise NotImplementedError("Run augmentation experiments!")

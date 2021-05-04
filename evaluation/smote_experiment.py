@@ -5,7 +5,7 @@ if __name__ == '__main__':
 
     # Example of merging fully created files from different models.
     experiment = "smote_f2"  # directory containing the files we will look at
-    experiment_name = '_smote_f2_merge_withoutKNN'
+    experiment_name = '_smote_f2_merged_allModels'
     fullSMOTE = getResults(dir, experiment, experiment_name, merged_file=True, windowsOS=True)
     fullSMOTE.mergeResultFiles(file_name=experiment_name)
 
@@ -33,22 +33,6 @@ if __name__ == '__main__':
                           across_SMOTE=True,
                           save_img=save_img)
 
-    # Next we wish to examine sensitivity
-    fullSMOTE.printResults(measure="sensitivity",
-                           experiment_name=experiment_name,
-                           smote_ratios=[1],
-                           aug_ratios=[0],
-                           printSTDTable=False,
-                           LaTeX=False)
-
-    fullSMOTE.plotResults(measure="sensitivity",
-                          experiment_name=experiment_name,
-                          aug_technique=aug_technique,
-                          smote_ratios=fullSMOTE.smote_ratios,
-                          aug_ratios=[0],
-                          across_SMOTE=False,
-                          save_img=save_img)
-
     # Next we wish to examine accuracy
     fullSMOTE.printResults(measure="accuracy",
                            experiment_name=experiment_name,
@@ -57,10 +41,29 @@ if __name__ == '__main__':
                            printSTDTable=False,
                            LaTeX=False)
 
-    fullSMOTE.plotResults(measure='accuracy',
+    fullSMOTE.plotResults(measure="accuracy",
                           experiment_name=experiment_name,
                           aug_technique=aug_technique,
                           smote_ratios=fullSMOTE.smote_ratios,
                           aug_ratios=[0],
                           across_SMOTE=True,
                           save_img=save_img)
+
+    # Next we wish to examine accuracy
+    fullSMOTE.printResults(measure="sensitivity",
+                           experiment_name=experiment_name,
+                           smote_ratios=[1],
+                           aug_ratios=[0],
+                           printSTDTable=False,
+                           LaTeX=False)
+
+    fullSMOTE.plotResults(measure='sensitivity',
+                          experiment_name=experiment_name,
+                          aug_technique=aug_technique,
+                          smote_ratios=fullSMOTE.smote_ratios,
+                          aug_ratios=[0],
+                          across_SMOTE=True,
+                          save_img=save_img)
+
+    print("Break")
+

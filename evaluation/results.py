@@ -107,7 +107,7 @@ class getResults:
 
         print(f"\n ---> Pickle path changed to: {self.pickle_path}")
 
-    def mergeResultFiles(self, file_name="merged", merge_smote_files=False, merge_aug_files=False, exclude_models=None):
+    def mergeResultFiles(self, file_name="merged", merge_smote_files=False, merge_aug_files=False, exclude_models=None, merge_smote=False, model_name='AdaBoost'):
 
         if self.merged_file == False:
             raise Exception("Merged file set to 'False'")
@@ -301,7 +301,7 @@ class getResults:
                 for idx_art, artifact in enumerate(self.artifacts):
                     # table[artifact] = []
                     store_model = [0] * len(self.models)
-                    sensitivity_std = [0] * len(self.models)
+                    measure_std = [0] * len(self.models)
 
                     for idx_mod, model in enumerate(self.models):
 
@@ -331,10 +331,10 @@ class getResults:
 
                         # Store standard deviation for sensitivies for each classifier/ model
                         store_model[idx_mod] = np.mean(store_scores)
-                        sensitivity_std[idx_mod] = np.mean(store_scores)
+                        measure_std[idx_mod] = np.std(store_scores)
 
                     table[artifact] = store_model
-                    table_std[artifact] = sensitivity_std
+                    table_std[artifact] = measure_std
 
                 table['avg. accuracy'] = np.mean(acc, axis=1)
                 table['avg. weighted f2'] = np.mean(f2s, axis=1)
@@ -354,7 +354,7 @@ class getResults:
     def plotResultsAugmentation(self, performances_dict, errors_dict, experiment, aug_technique, measure="sensitiviy",
                                 save_img=False):
 
-        save_path = (self.slash).join([dir, "Plots", experiment])
+        save_path = (self.slash).join([self.dir, "Plots", experiment])
 
         colorlist = ["lightslategrey", "lightsteelblue", "darkcyan", "firebrick", "lightcoral"]
         # Plotting results
@@ -363,7 +363,7 @@ class getResults:
         for indv_art, name in enumerate(self.artifacts):
             for j, smote_ratio in enumerate(self.smote_ratios):
                 for i, aug_ratio in enumerate(self.aug_ratios):
-                    performance_dict = performance_dict[aug_ratio][smote_ratio]
+                    performance_dict = performances_dict[aug_ratio][smote_ratio]
                     error_dict = errors_dict[aug_ratio][smote_ratio]
 
                     performance_vals = np.array(list(performance_dict.values())[:art])
@@ -377,14 +377,16 @@ class getResults:
                                  fmt='.', color='k')
 
                 models = self.models
+                """
                 for i, model in enumerate(models):
                     if model == 'baseline_perm':
                         models[i] = "base-\nline"
                     elif model == 'AdaBoost':
                         models[i] = "Ada-\nBoost"
+                """
 
 
-                plt.xticks(np.arange(len(models)), models, rotation=0)
+                plt.xticks(np.arange(len(models)), models, rotation=60)
                 plt.ylim(0, 1)
 
                 if aug_technique == None:
@@ -415,7 +417,7 @@ class getResults:
         if aug_ratios == None:
             aug_ratios = self.aug_ratios
 
-        save_path = (self.slash).join([dir, "Plots", experiment])
+        save_path = (self.slash).join([self.dir, "Plots", experiment])
 
         colorlist = ["lightslategrey", "lightsteelblue", "darkcyan", "firebrick", "lightcoral"]
         # Plotting results
@@ -440,13 +442,15 @@ class getResults:
                                      fmt='.', color='k')
 
                     models = self.models
+                    """
                     for i, model in enumerate(models):
                         if model == 'baseline_perm':
                             models[i] = "base-\nline"
                         elif model == 'AdaBoost':
                             models[i] = "Ada-\nBoost"
+                    """
 
-                    plt.xticks(np.arange(len(models)), models, rotation=0)
+                    plt.xticks(np.arange(len(models)), models, rotation=60)
                     plt.ylim(0, 1)
 
                     if aug_technique == None:
@@ -485,14 +489,17 @@ class getResults:
                         plt.errorbar(x=X_axis + 0.15 * i, y=performance_vals[indv_art, :], yerr=error_vals[indv_art, :],
                                      fmt='.', color='k')
 
+
                     models = self.models
+                    """
                     for i, model in enumerate(models):
                         if model == 'baseline_perm':
                             models[i] = "base-\nline"
                         elif model == 'AdaBoost':
                             models[i] = "Ada-\nBoost"
+                    """
 
-                    plt.xticks(np.arange(len(models)), models, rotation=0)
+                    plt.xticks(np.arange(len(models)), models, rotation=60)
                     plt.ylim(0, 1)
 
                     if aug_technique == None:
@@ -593,7 +600,7 @@ class getResults:
     def getPredictions(self, aug_ratios=None, smote_ratios=None, artifacts=None, models=None, withFolds=False):
 
         correct_models = ['baseline_perm', 'LR', 'GNB', 'KNN', 'RF', 'LDA', 'MLP', 'AdaBoost', 'SGD']
-        if self.models is not correct_models:
+        if self.models != correct_models:
             self.models = correct_models
 
         if aug_ratios is None:
@@ -636,8 +643,6 @@ class getResults:
                             y_pred_fold = results_all[aug_ratio][smote_ratio][fold][artifact][model]['y_pred']
 
                             y_pred.append(y_pred_fold)
-
-
 
                         try:
                             trial = np.concatenate(y_pred)
