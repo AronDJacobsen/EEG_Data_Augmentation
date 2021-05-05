@@ -1,4 +1,4 @@
-from pipeline import *
+from evaluation.pipeline import *
 
 if __name__ == '__main__':
     """ Select path to the data-pickles ! """
@@ -35,7 +35,7 @@ if __name__ == '__main__':
                             not experimenting with Noise Addition augmentation technique. """
 
     model = 'LR'
-    aug_method = "_Noise"  # or '_Noise' or so.
+    aug_method = "_MixUp"  # or '_Noise' or so.
     artifact = 'chew'
 
     experiment = 'augmentation_trial'  # 'DataAug_color_noiseAdd_LR'
