@@ -248,7 +248,7 @@ if __name__ == '__main__':
 
     np.random.seed(20)
     ratio = 0  # Currently not doing anything as we do not want to visualize the downsampling, but only the SMOTING.
-    subsample_n = 5000
+    subsample_n = 100000
     indices = np.random.choice(len(X), subsample_n)
 
     X_under, y_under = rand_undersample(X[indices, :], y[indices], arg='majority', state=random_state_val, multi=False)

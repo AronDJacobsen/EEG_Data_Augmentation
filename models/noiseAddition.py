@@ -197,7 +197,7 @@ def generateNoisyData(data_path, save_path, file_selected, variance, use_covaria
     #SaveNumpyPickles(filepath, r"\subjects_var{}_cutoff{}".format(variance, cutoff_freq), subjects, windowsOS=True)
     #PicklePrepData(subjects, r"C:\Users\Albert Kjøller\Documents\GitHub\TUAR_full_data\tempData", filepath, windowsOS=True)
 
-def prepareNoiseAddition(pickle_path_aug, noise_experiment, X_file, y_file, ID_file):
+def prepareNoiseAddition(pickle_path_aug, noise_experiment, X_file, y_file, ID_file, windowsOS):
     # Load noise augmentation file
     X_noise = LoadNumpyPickles(pickle_path=pickle_path_aug + noise_experiment, file_name=X_file,
                                windowsOS=windowsOS)

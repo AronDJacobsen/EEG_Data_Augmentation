@@ -164,8 +164,8 @@ class pipeline:
         pickle_path_aug = self.pickle_path + r"\augmentation_pickles"
 
         if noise_experiment != None:
-            X_noise, y_noise, ID_frame_noise = prepareNoiseAddition(pickle_path_aug, noise_experiment, X_file, y_file,
-                                                                    ID_file)
+            X_noise, y_noise, ID_frame_noise = prepareNoiseAddition(pickle_path_aug, noise_experiment, self.X_file, self.y_file,
+                                                                    self.ID_file, windowsOS=self.windowsOS)
 
             if DelNan_noiseFiles:
                 X, y, ID_frame, X_noise, y_noise, ID_frame_noise = DeleteNanNoise(X, y, ID_frame, X_noise, y_noise,
@@ -285,7 +285,7 @@ class pipeline:
                                                                       state=random_state_val, multi=False)
                         else:
                             # Using mix of undersampling and smote
-                            balanceData(Xtrain, ytrain, ratio, random_state_val=random_state_val)
+                            Xtrain_new, ytrain_new = balanceData(Xtrain, ytrain, ratio, random_state_val=random_state_val)
 
                         # %% Data Augmentation step:
                         if aug_ratio != 0:
@@ -334,7 +334,7 @@ class pipeline:
                                                                             state=random_state_val, multi=False)
                         else:
                             # Using mix of undersampling and smote
-                            balanceData(HO_Xtrain, HO_ytrain, ratio, random_state_val=random_state_val)
+                            HO_Xtrain_new, HO_ytrain_new = balanceData(HO_Xtrain, HO_ytrain, ratio, random_state_val=random_state_val)
 
                         if aug_ratio != 0:
 

@@ -586,7 +586,7 @@ class getResults:
                     df_eval.index = self.models
                     df_eval = np.round(df_eval * 100, 2)
                     if LaTeX:
-                        df_latex = pd.df_eval.to_latex()
+                        df_latex = df_eval.to_latex()
                         print(df_latex)
 
                     else:

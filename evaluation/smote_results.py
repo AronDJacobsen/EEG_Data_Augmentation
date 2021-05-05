@@ -20,10 +20,10 @@ if __name__ == '__main__':
     # Next we wish to examine F2!
     fullSMOTE.printResults(measure="weighted_F2",
                            experiment_name=experiment_name,
-                           smote_ratios=[1],
+                           smote_ratios=[3],
                            aug_ratios=[0],
-                           printSTDTable=False,
-                           LaTeX=False)
+                           printSTDTable=True,
+                           LaTeX=True)
 
     fullSMOTE.plotResults(measure="weighted_F2",
                           experiment_name=experiment_name,
