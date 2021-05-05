@@ -6,7 +6,7 @@ if __name__ == '__main__':
     # pickle_path = r"/Users/Jacobsen/Documents/GitHub/EEG_epilepsia" + "/"
     # pickle_path = r"/Users/philliphoejbjerg/Documents/GitHub/EEG_epilepsia" + "/"
 
-    windowsOS = True
+    windowsOS = False
 
     """ Loading data - define which pickles to load (with NaNs or without) """
     X_file = r"\X_clean.npy"  # X_file = r"\X.npy"

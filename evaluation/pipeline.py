@@ -48,8 +48,12 @@ class pipeline:
             ID_file (str): name of the the ID array holding info of the ID of each observation, i.e."r\ID_frame.npy".
             windowsOS (bool): True if running on a Windows operating system.
         """
+        if windowsOS:
+            self.slash = "\\"
+        else:
+            self.slash = "/"
 
-        self.pickle_path = pickle_path + "\\"
+        self.pickle_path = pickle_path + self.slash
         self.X_file = X_file
         self.y_file = y_file
         self.ID_file = ID_file
