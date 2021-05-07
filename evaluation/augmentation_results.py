@@ -35,6 +35,37 @@ if __name__ == '__main__':
                           across_SMOTE=False,
                           save_img=save_img)
 
+    # Example of merging fully created files from different models.
+    experiment = "augmentation_whiteNoise"  # directory containing the files we will look at
+    experiment_name = '_augmentation_whiteNoise_merged_allModels'
+    fullSMOTE = getResults(dir, experiment, experiment_name, merged_file=True, windowsOS=True)
+    fullSMOTE.mergeResultFiles(file_name=experiment_name)
+
+    # To work with the merged file we have to change the pickle path to the "merged" folder.
+    fullSMOTE.changePicklePath()
+
+    # Initialize global parameters?
+    aug_technique = "white noise"  # "GAN" # "MixUp" #Noise Addition --> mainly for naming of the plots
+    LaTeX = False
+    save_img = True
+
+    # Next we wish to examine F2!
+    fullSMOTE.printResults(measure="weighted_F2",
+                           experiment_name=experiment_name,
+                           smote_ratios=[1],
+                           aug_ratios=[0.5],
+                           printSTDTable=True,
+                           across_SMOTE=False,
+                           LaTeX=False)
+
+    fullSMOTE.plotResults(measure="weighted_F2",
+                          experiment_name=experiment_name,
+                          aug_technique=aug_technique,
+                          smote_ratios=[1],
+                          aug_ratios=fullSMOTE.aug_ratios,
+                          across_SMOTE=False,
+                          save_img=save_img)
+
 
 
 
