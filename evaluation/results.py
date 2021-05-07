@@ -9,6 +9,7 @@ import pandas as pd
 from tqdm import tqdm
 from models.models import *
 import seaborn as sn
+from sklearn.metrics import auc
 
 
 class getResults:
@@ -542,7 +543,7 @@ class getResults:
                                measure=measure)
 
     def printResults(self, experiment_name, smote_ratios=None, aug_ratios=None, measure='sensitivity',
-                     printSTDTable=False, LaTeX=False):
+                     printSTDTable=False, LaTeX=False, across_SMOTE=True):
 
         if smote_ratios == None:
             smote_ratios = self.smote_ratios
@@ -552,50 +553,96 @@ class getResults:
         performances, errors = self.tableResults_Augmentation(measure=measure, experiment_name=experiment_name)
         self.smote_ratios.sort()
 
-        for j in range(len(aug_ratios)):
-            print("\n\n")
-            print(80 * "#")
-            print("{} scores with augmentation rate set to {:2f}".format(measure, self.aug_ratios[j]))
-            print(100 * "#")
+        if across_SMOTE:
+            for j, aug_ratio in enumerate(aug_ratios):
+                print("\n\n")
+                print(80 * "#")
+                print("{} scores with augmentation rate set to {:2f}".format(measure, self.aug_ratios[j]))
+                print(100 * "#")
 
-            performance_dict = performances[j]
-            errors_dict = errors[j]
+                performance_dict = performances[aug_ratio]
+                errors_dict = errors[aug_ratio]
 
-            for i, ratio in enumerate(smote_ratios):
+                for i, ratio in enumerate(smote_ratios):
 
-                performance = performance_dict[ratio]
-                error = errors_dict[ratio]
+                    performance = performance_dict[ratio]
+                    error = errors_dict[ratio]
 
-                # Print dataframes
-                df_eval = pd.DataFrame.from_dict(performance)
-                df_eval.index = self.models
-                df_eval = np.round(df_eval * 100, 2)
-
-                if LaTeX:
-                    df_latex = df_eval.to_latex()
-                    print(df_latex)
-
-                else:
-                    print('\nOVERALL PERFORMANCE')
-                    print("SMOTE RATIO:" + str(ratio - 1) + "\n")
-                    print(df_eval.to_string())
-                    # print(df_eval)
-
-                if printSTDTable:
-                    df_eval = pd.DataFrame.from_dict(error)
+                    # Print dataframes
+                    df_eval = pd.DataFrame.from_dict(performance)
                     df_eval.index = self.models
                     df_eval = np.round(df_eval * 100, 2)
+
                     if LaTeX:
                         df_latex = df_eval.to_latex()
                         print(df_latex)
 
                     else:
-                        print('\nSTANDARD DEVIATIONS')
+                        print('\nOVERALL PERFORMANCE')
                         print("SMOTE RATIO:" + str(ratio - 1) + "\n")
-                        print(df_eval.to_string)
+                        print(df_eval.to_string())
+                        # print(df_eval)
 
-                print("")
+                    if printSTDTable:
+                        df_eval = pd.DataFrame.from_dict(error)
+                        df_eval.index = self.models
+                        df_eval = np.round(df_eval * 100, 2)
+                        if LaTeX:
+                            df_latex = df_eval.to_latex()
+                            print(df_latex)
+
+                        else:
+                            print('\nSTANDARD DEVIATIONS')
+                            print("SMOTE RATIO:" + str(ratio - 1) + "\n")
+                            print(df_eval.to_string())
+
+                    print("")
+                    print(100 * "#")
+        else:
+            for j, aug_ratio in enumerate(aug_ratios):
+                print("\n\n")
+                print(80 * "#")
+                print("{} scores with smote rate set to {:2f}".format(measure, self.smote_ratios[j]-1))
                 print(100 * "#")
+
+                performance_dict = performances[aug_ratio]
+                errors_dict = errors[aug_ratio]
+
+                for i, ratio in enumerate(smote_ratios):
+
+                    performance = performance_dict[ratio]
+                    error = errors_dict[ratio]
+
+                    # Print dataframes
+                    df_eval = pd.DataFrame.from_dict(performance)
+                    df_eval.index = self.models
+                    df_eval = np.round(df_eval * 100, 2)
+
+                    if LaTeX:
+                        df_latex = df_eval.to_latex()
+                        print(df_latex)
+
+                    else:
+                        print('\nOVERALL PERFORMANCE')
+                        print("Aug. ratio:" + str(aug_ratio) + "\n")
+                        print(df_eval.to_string())
+                        # print(df_eval)
+
+                    if printSTDTable:
+                        df_eval = pd.DataFrame.from_dict(error)
+                        df_eval.index = self.models
+                        df_eval = np.round(df_eval * 100, 2)
+                        if LaTeX:
+                            df_latex = df_eval.to_latex()
+                            print(df_latex)
+
+                        else:
+                            print('\nSTANDARD DEVIATIONS')
+                            print("Aug. ratio:" + str(aug_ratio) + "\n")
+                            print(df_eval.to_string())
+
+                    print("")
+                    print(100 * "#")
 
     def getPredictions(self, aug_ratios=None, smote_ratios=None, artifacts=None, models=None, withFolds=False):
 
@@ -821,6 +868,11 @@ class getResults:
                 plt.title(f"Confusion matrix for {art} artifact with {model}, SMOTE: {smote_ratio}, Aug.: {aug_ratio}")
                 plt.show()
 
+
+                self.plotROC(conf_matrix=conf_matrix, model_name="EXAMPLE!")
+
+
+
     def compressDict(self, pred_dict, smote_ratio=1, aug_ratio=0):
 
         pred_dict_new = defaultdict(dict)
@@ -835,6 +887,32 @@ class getResults:
 
 
 
+    def plotROC(self, conf_matrix, model_name):
+
+        TP = conf_matrix[1][1]
+        TN = conf_matrix[0][0]
+        FP = conf_matrix[0][1]
+        FN = conf_matrix[1][0]
+
+        fpr = FP / (FP + TN)
+        tpr = TP / (TP + FN)
+
+        roc_auc = auc(fpr, tpr)
+
+        plt.figure()
+        lw = 2
+        plt.plot(fpr, tpr, color='darkorange',
+                 lw=lw, label=model_name % roc_auc)
+        plt.plot([0, 1], [0, 1], color='navy', lw=lw, linestyle='--')
+        plt.xlim([0.0, 1.0])
+        plt.ylim([0.0, 1.05])
+        plt.xlabel('False Positive Rate')
+        plt.ylabel('True Positive Rate')
+        plt.title('Receiver operating characteristic example')
+        plt.legend(loc="lower right")
+        plt.show()
+
+
 if __name__ == '__main__':
     dir = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia"  # dir = "/Users/philliphoejbjerg/Documents/GitHub/EEG_epilepsia"  # dir = r"/Users/Jacobsen/Documents/GitHub/EEG_epilepsia" + "/"
 
@@ -847,6 +925,14 @@ if __name__ == '__main__':
     # To work with the merged file we have to change the pickle path to the "merged" folder.
     fullSMOTE.changePicklePath()
     performances, errors = fullSMOTE.tableResults_Augmentation(experiment_name=experiment_name, measure="sensitivity")
+
+    y_pred_dict = fullSMOTE.getPredictions(models=['LDA'],
+                                           aug_ratios=[0],
+                                           smote_ratios=[1],
+                                           artifacts=['eyem'])
+    y_pred_dict = fullSMOTE.compressDict(y_pred_dict, smote_ratio=1, aug_ratio=0)
+
+    fullSMOTE.printScores(pred_dict=y_pred_dict, y_true_filename = "y_true_randomstate_0", model='LDA', ensemble=False, print_confusion=True)
 
 
     print("")
