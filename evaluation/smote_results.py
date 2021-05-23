@@ -20,10 +20,39 @@ if __name__ == '__main__':
     # Next we wish to examine F2!
     fullSMOTE.printResults(measure="weighted_F2",
                            experiment_name=experiment_name,
-                           smote_ratios=[3],
+                           smote_ratios=[1],
                            aug_ratios=[0],
                            printSTDTable=True,
                            LaTeX=True)
+
+    fullSMOTE.plotResultsPlainExp(experiment_name=experiment_name,
+                                  across_SMOTE=True,
+                                  save_img=True)
+
+
+    # No augmentation or smote at all!
+    fullSMOTE.plotResults(measure="weighted_F2",
+                          experiment_name=experiment_name,
+                          aug_technique=aug_technique,
+                          smote_ratios=[1],#fullSMOTE.smote_ratios,
+                          aug_ratios=[0],
+                          across_SMOTE=True,
+                          save_img=True)#save_img)
+    fullSMOTE.plotResults(measure="accuracy",
+                          experiment_name=experiment_name,
+                          aug_technique=aug_technique,
+                          smote_ratios=[1],  # fullSMOTE.smote_ratios,
+                          aug_ratios=[0],
+                          across_SMOTE=True,
+                          save_img=True)  # save_img)
+    fullSMOTE.plotResults(measure="sensitivity",
+                          experiment_name=experiment_name,
+                          aug_technique=aug_technique,
+                          smote_ratios=[1],  # fullSMOTE.smote_ratios,
+                          aug_ratios=[0],
+                          across_SMOTE=True,
+                          save_img=True)  # save_img)
+
 
     fullSMOTE.plotResults(measure="weighted_F2",
                           experiment_name=experiment_name,
@@ -31,7 +60,7 @@ if __name__ == '__main__':
                           smote_ratios=fullSMOTE.smote_ratios,
                           aug_ratios=[0],
                           across_SMOTE=True,
-                          save_img=save_img)
+                          save_img=True)  # save_img)
 
     # Next we wish to examine accuracy
     fullSMOTE.printResults(measure="accuracy",

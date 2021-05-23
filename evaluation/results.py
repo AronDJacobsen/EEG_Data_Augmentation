@@ -108,7 +108,8 @@ class getResults:
 
         print(f"\n ---> Pickle path changed to: {self.pickle_path}")
 
-    def mergeResultFiles(self, file_name="merged", merge_smote_files=False, merge_aug_files=False, exclude_models=None, merge_smote=False, model_name='AdaBoost'):
+    def mergeResultFiles(self, file_name="merged", merge_smote_files=False, merge_aug_files=False, exclude_models=None,
+                         merge_smote=False, model_name='AdaBoost'):
 
         if self.merged_file == False:
             raise Exception("Merged file set to 'False'")
@@ -386,7 +387,6 @@ class getResults:
                         models[i] = "Ada-\nBoost"
                 """
 
-
                 plt.xticks(np.arange(len(models)), models, rotation=60)
                 plt.ylim(0, 1)
 
@@ -434,12 +434,19 @@ class getResults:
                         performance_vals = np.array(list(performance_dict.values())[:art])
                         error_vals = np.array(list(error_dict.values())[:art])
 
-                        X_axis = np.arange(len(self.models)) - 0.3
-                        plt.bar(x=X_axis + 0.15 * i, height=performance_vals[indv_art, :], width=0.15,
+                        w = 0.15
+                        w = 0.75 / len(smote_ratios)
+                        if len(smote_ratios) == 1:
+                            X_axis = np.arange(len(self.models))
+                        else:
+                            X_axis = np.arange(len(self.models)) - 0.3
+                        plt.bar(x=X_axis + w * i,
+                                height=performance_vals[indv_art, :],
+                                width=w,
                                 color=colorlist[i],
-                                label="SMOTE-ratio = " + str(smote_ratios[i]))
+                                label="SMOTE-ratio = " + str(smote_ratios[i] - 1))
 
-                        plt.errorbar(x=X_axis + 0.15 * i, y=performance_vals[indv_art, :], yerr=error_vals[indv_art, :],
+                        plt.errorbar(x=X_axis + w * i, y=performance_vals[indv_art, :], yerr=error_vals[indv_art, :],
                                      fmt='.', color='k')
 
                     models = self.models
@@ -451,20 +458,21 @@ class getResults:
                             models[i] = "Ada-\nBoost"
                     """
 
-                    plt.xticks(np.arange(len(models)), models, rotation=60)
+                    plt.xticks(np.arange(len(models)), models, rotation=-15)
                     plt.ylim(0, 1)
 
                     if aug_technique == None:
                         plt.title(
-                            f"{measure} with {aug_technique} augmentation on the '{name}'-class - Aug. ratio = {aug_ratios[j]}")
+                            f"{measure} without augmentation on the '{name}'-class")
                     else:
                         plt.title(
                             f"{measure} with {aug_technique} augmentation on the '{name}'-class - Aug. ratio = {aug_ratios[j]}")
 
                     plt.xlabel("Model")
                     plt.ylabel(measure)
-                    plt.legend(loc='center right', bbox_to_anchor=(1.36, 0.5))
-                    plt.subplots_adjust(bottom=0.2, right=0.775)
+                    if len(smote_ratios) > 1:
+                        plt.legend(loc='center right', bbox_to_anchor=(1.36, 0.5))
+                        plt.subplots_adjust(bottom=0.2, right=0.775)
 
                     if save_img:
                         img_path = f"{(self.slash).join([save_path, measure])}{self.slash}{name}_aug{aug_technique}_augRatio{aug_ratios[j]}.png"
@@ -489,7 +497,6 @@ class getResults:
 
                         plt.errorbar(x=X_axis + 0.15 * i, y=performance_vals[indv_art, :], yerr=error_vals[indv_art, :],
                                      fmt='.', color='k')
-
 
                     models = self.models
                     """
@@ -541,6 +548,143 @@ class getResults:
                                aug_ratios=aug_ratios, across_SMOTE=across_SMOTE,
                                save_img=save_img, aug_technique=aug_technique,
                                measure=measure)
+
+    def plotResultsHelperPlain(self, performances_F2, errors_F2, performances_sens, errors_sens, experiment, smote_ratio=None, aug_ratio=None, measure="sensitiviy",
+                          across_SMOTE=True, save_img=False):
+
+        if smote_ratio == None:
+            smote_ratio = 1
+        if aug_ratio == None:
+            aug_ratio = 0
+
+        save_path = (self.slash).join([self.dir, "Plots", "plain_experiment"])
+
+        colorlist = ["royalblue", "lightslategrey", "lightsteelblue", "darkcyan", "lightcoral", "firebrick", "darkorange", "darkkhaki", "olive"]
+        # Plotting results
+        art = len(self.artifacts)
+
+        if across_SMOTE:
+
+            fig, ((ax1, ax2)) = plt.subplots(1, 2, figsize=(10, 5))
+
+            measure = "weighted_F2"
+            for indv_model, name in enumerate(self.models):
+                # for i, artifact in enumerate(self.artifacts):
+                performance_dict = performances_F2[aug_ratio][smote_ratio]
+                error_dict = errors_F2[aug_ratio][smote_ratio]
+
+                performance_vals = np.array(list(performance_dict.values())[:art])
+                error_vals = np.array(list(error_dict.values())[:art])
+
+                w = 0.15
+                w = 0.75 / len(self.models)
+
+                X_axis = np.arange(len(self.artifacts)) - 0.33
+                ax1.bar(x=X_axis + w * indv_model,
+                        height=performance_vals[:, indv_model],
+                        width=w,
+                        color=colorlist[indv_model],
+                        label=name)
+
+                ax1.errorbar(x=X_axis + w * indv_model, y=performance_vals[:, indv_model],
+                             yerr=error_vals[:, indv_model],
+                             fmt='.', color='k')
+
+                models = self.models
+                """
+                for i, model in enumerate(models):
+                    if model == 'baseline_perm':
+                        models[i] = "base-\nline"
+                    elif model == 'AdaBoost':
+                        models[i] = "Ada-\nBoost"
+                """
+
+            # ax1.set_xticks(np.arange(len(self.artifacts)), self.artifacts)#, rotation=-15)
+            ax1.set_ylim(0, 1)
+            ax1.set_xticks(np.arange(len(self.artifacts)))
+            ax1.set_xticklabels(self.artifacts)
+            ax1.set_title(measure)
+
+            ax1.set_xlabel("Artifact")
+            ax1.set_ylabel(measure)
+            # ax1.subplots_adjust(bottom=0.2, right=0.75)
+
+            measure = 'sensitivity'
+            for indv_model, name in enumerate(self.models):
+                # for i, artifact in enumerate(self.artifacts):
+                performance_dict = performances_sens[aug_ratio][smote_ratio]
+                error_dict = errors_sens[aug_ratio][smote_ratio]
+
+                performance_vals = np.array(list(performance_dict.values())[:art])
+                error_vals = np.array(list(error_dict.values())[:art])
+
+                w = 0.15
+                w = 0.75 / len(self.models)
+
+                X_axis = np.arange(len(self.artifacts)) - 0.33
+                ax2.bar(x=X_axis + w * indv_model,
+                        height=performance_vals[:, indv_model],
+                        width=w,
+                        color=colorlist[indv_model],
+                        label=name)
+
+                ax2.errorbar(x=X_axis + w * indv_model, y=performance_vals[:, indv_model],
+                             yerr=error_vals[:, indv_model],
+                             fmt='.', color='k')
+
+                models = self.models
+                """
+                for i, model in enumerate(models):
+                    if model == 'baseline_perm':
+                        models[i] = "base-\nline"
+                    elif model == 'AdaBoost':
+                        models[i] = "Ada-\nBoost"
+                """
+
+            # ax2.set_xticks(np.arange(len(self.artifacts)), self.artifacts)#, rotation=-15)
+            ax2.set_ylim(0, 1)
+            ax2.set_xticks(np.arange(len(self.artifacts)))
+            ax2.set_xticklabels(self.artifacts)
+            # ax2.set_yticks()
+
+            ax2.set_title(measure)
+
+            ax2.set_xlabel("Artifact")
+            ax2.set_ylabel(measure)
+            plt.subplots_adjust(right=0.84)
+
+            plt.legend(loc='center right', bbox_to_anchor=(1.5, 0.5))
+
+            if save_img:
+                img_path = f"{save_path}{self.slash}plain_experiment.png"
+                os.makedirs((self.slash).join(img_path.split(self.slash)[:-1]), exist_ok=True)
+                fig.savefig(img_path)
+
+            # plt.setp(((ax1, ax2)), xticks=np.arange(len(self.artifacts)), xticklabels=self.artifacts)
+            plt.show()
+
+
+    def plotResultsPlainExp(self, experiment_name, smote_ratio=None, aug_ratio=None,
+                            across_SMOTE=True, save_img=False):
+
+        if smote_ratio == None:
+            smote_ratios = 1
+        if aug_ratio == None:
+            aug_ratio = 0
+
+        # Loading statistically calculated results as dictionaries
+        # For single files and their HO_trials
+        # List of dictionaries of results. Each entry in the list is a results dictionary for one SMOTE ratio
+        performances_F2, errors_F2 = self.tableResults_Augmentation(measure="weighted_F2", experiment_name=experiment_name)
+        performances_sens, errors_sens = self.tableResults_Augmentation(measure="sensitivity", experiment_name=experiment_name)
+        self.smote_ratios.sort()
+
+        # This function will plot results created in the augmentation experiment (with aug. ratio key in the dict)
+        self.plotResultsHelperPlain(performances_F2=performances_F2, errors_F2=errors_F2,
+                                    performances_sens=performances_sens, errors_sens=errors_sens,
+                                    experiment=self.experiment, smote_ratio=smote_ratio,
+                                    aug_ratio=aug_ratio, across_SMOTE=across_SMOTE,
+                                    save_img=save_img)
 
     def printResults(self, experiment_name, smote_ratios=None, aug_ratios=None, measure='sensitivity',
                      printSTDTable=False, LaTeX=False, across_SMOTE=True):
@@ -602,7 +746,7 @@ class getResults:
             for j, aug_ratio in enumerate(aug_ratios):
                 print("\n\n")
                 print(80 * "#")
-                print("{} scores with smote rate set to {:2f}".format(measure, self.smote_ratios[j]-1))
+                print("{} scores with smote rate set to {:2f}".format(measure, self.smote_ratios[j] - 1))
                 print(100 * "#")
 
                 performance_dict = performances[aug_ratio]
@@ -659,7 +803,6 @@ class getResults:
         if models is None:
             models = self.models
 
-
         # Specifies basepath
         results_basepath = self.slash.join(self.pickle_path.split(self.slash)[:-2])
         exp = self.pickle_path.split(self.slash)[-1]
@@ -676,7 +819,6 @@ class getResults:
                                            windowsOS=self.windowsOS)
             results_all = results_all[()]
 
-
         # For all folds to get predictions of all data points.
 
         y_pred_dict = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(dict))))
@@ -686,7 +828,7 @@ class getResults:
                     for model in models:
                         y_pred = []
                         for fold in self.folds:
-                            #if results_all[aug_ratio][smote_ratio][fold][artifact][model] != defaultdict(dict): # if model is not in merged files
+                            # if results_all[aug_ratio][smote_ratio][fold][artifact][model] != defaultdict(dict): # if model is not in merged files
                             y_pred_fold = results_all[aug_ratio][smote_ratio][fold][artifact][model]['y_pred']
 
                             y_pred.append(y_pred_fold)
@@ -699,11 +841,9 @@ class getResults:
                         except ValueError:
                             y_pred = np.nan
 
-
                         y_pred_dict[aug_ratio][smote_ratio][artifact][model] = y_pred
 
         return y_pred_dict
-
 
     def getCorrelation(self, aug_ratio=0, smote_ratio=1, artifact=None, models=None, print_matrix=True):
 
@@ -714,7 +854,8 @@ class getResults:
             print("Please specify artifact!")
 
         else:
-            y_pred_dict = self.getPredictions(aug_ratios=[aug_ratio], smote_ratios=[smote_ratio], artifacts=[artifact], models=models)
+            y_pred_dict = self.getPredictions(aug_ratios=[aug_ratio], smote_ratios=[smote_ratio], artifacts=[artifact],
+                                              models=models)
             matrix = []
             model_names = []
 
@@ -730,7 +871,7 @@ class getResults:
         corr_matrix = pd.DataFrame(np.corrcoef(matrix), columns=model_names, index=model_names)
 
         if print_matrix:
-            print("#"*80)
+            print("#" * 80)
             print(f"Correlation with augmentation rate: {aug_ratio}, SMOTE-ratio: {smote_ratio}")
             print(corr_matrix)
 
@@ -747,22 +888,17 @@ class getResults:
             corr_matrix = self.getCorrelation(artifact='eyem', print_matrix=False)
 
             # Formula from here: https://lips.cs.princeton.edu/correlation-and-mutual-information/
-            I = -1/2 * np.log(1 - np.round(corr_matrix,4) ** 2)
+            I = -1 / 2 * np.log(1 - np.round(corr_matrix, 4) ** 2)
 
         return I
 
-
-
     def getCorrelationAcrossRatios(self, aug_ratio=0, smote_ratio=1, artifact=None, models=None, print_matrix=True):
 
-
-        #TODO: Insert lines here!
+        # TODO: Insert lines here!
         raise NotImplementedError("CREATE THIS FUNCTION!")
 
-
-
-
-    def EnsemblePredictions(self, select_models, select_aug_ratios, select_smote_ratios, artifacts=None, withFolds=True):
+    def EnsemblePredictions(self, select_models, select_aug_ratios, select_smote_ratios, artifacts=None,
+                            withFolds=True):
 
         if artifacts is None:
             artifacts = self.artifacts
@@ -782,7 +918,6 @@ class getResults:
                 model_pred = y_pred_dict[select_aug_ratios[i]][select_smote_ratios[i]][artifacts[j]][select_models[i]]
                 ensemble_preds.append(model_pred)
 
-
             # Hard voting classifier, since it is on class labels and not probability.
             ensemble_preds = np.array(ensemble_preds)
 
@@ -795,9 +930,9 @@ class getResults:
                     ensemble_preds_art[artifacts[j]] = np.array(ensemble_preds_gathered)
             else:
                 for i, fold in enumerate(self.folds):
-                    for point in tqdm(range(len(ensemble_preds[0,i]))):
+                    for point in tqdm(range(len(ensemble_preds[0, i]))):
                         preds = []
-                        for m, model in enumerate(ensemble_preds[:,i]):
+                        for m, model in enumerate(ensemble_preds[:, i]):
                             preds.append(model[point])
                         ensemble_preds_gathered.append(Counter(preds).most_common(1)[0][0])
                         ensemble_preds_art[artifacts[j]][fold] = np.array(ensemble_preds_gathered)
@@ -806,7 +941,7 @@ class getResults:
 
     def metrics_scores(self, y_true, y_pred):
         # zero_division sets it to 0 as default
-        f2_s = fbeta_score(y_true, y_pred, average='weighted', beta = 2.0, zero_division = 0)
+        f2_s = fbeta_score(y_true, y_pred, average='weighted', beta=2.0, zero_division=0)
 
         conf_matrix = confusion_matrix(y_true, y_pred, labels=[0, 1])
 
@@ -819,7 +954,7 @@ class getResults:
 
         if TP == 0 and FN == 0:
             print("No TP or FN found.")
-            FN = 1 # Random number to account for division by zero
+            FN = 1  # Random number to account for division by zero
 
         sensitivity = (TP / float(TP + FN))
 
@@ -827,13 +962,13 @@ class getResults:
         accuracy, f2_s, sensitivity = np.round([accuracy, f2_s, sensitivity], 5)
         return accuracy, f2_s, sensitivity
 
-    def printScores(self, pred_dict, y_true_filename, smote_ratio=1, aug_ratio=0, model=None, ensemble=False, print_confusion=True):
+    def printScores(self, pred_dict, y_true_filename, smote_ratio=1, aug_ratio=0, model=None, ensemble=False,
+                    print_confusion=True):
 
         if ensemble:
             model = "Ensemble method"
         else:
             pred_dict = pred_dict[model]
-
 
         results_basepath = self.slash.join(self.pickle_path.split(self.slash)[:-2])
 
@@ -868,24 +1003,18 @@ class getResults:
                 plt.title(f"Confusion matrix for {art} artifact with {model}, SMOTE: {smote_ratio}, Aug.: {aug_ratio}")
                 plt.show()
 
-
                 self.plotROC(conf_matrix=conf_matrix, model_name="EXAMPLE!")
-
-
 
     def compressDict(self, pred_dict, smote_ratio=1, aug_ratio=0):
 
         pred_dict_new = defaultdict(dict)
         models = list(pred_dict[aug_ratio][smote_ratio]['eyem'].keys())
 
-
         for artifact in self.artifacts:
             for model in models:
                 pred_dict_new[model][artifact] = pred_dict[aug_ratio][smote_ratio][artifact][model]
 
         return pred_dict_new
-
-
 
     def plotROC(self, conf_matrix, model_name):
 
@@ -932,7 +1061,7 @@ if __name__ == '__main__':
                                            artifacts=['eyem'])
     y_pred_dict = fullSMOTE.compressDict(y_pred_dict, smote_ratio=1, aug_ratio=0)
 
-    fullSMOTE.printScores(pred_dict=y_pred_dict, y_true_filename = "y_true_randomstate_0", model='LDA', ensemble=False, print_confusion=True)
-
+    fullSMOTE.printScores(pred_dict=y_pred_dict, y_true_filename="y_true_randomstate_0", model='LDA', ensemble=False,
+                          print_confusion=True)
 
     print("")
