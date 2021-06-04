@@ -47,8 +47,8 @@ if __name__ == '__main__':
     aug_ratios = np.array([0.5])
 
     """ Specify other parameters"""
-    HO_evals = 1
-    K = 2
+    HO_evals = 50
+    K = 5
     random_state_val = 0
 
     # Example of normal run - with no smote and no augmentation. For illustration, 1-Fold CV.
