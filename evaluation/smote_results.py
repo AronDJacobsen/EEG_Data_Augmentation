@@ -4,8 +4,8 @@ if __name__ == '__main__':
     dir = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia"  # dir = "/Users/philliphoejbjerg/Documents/GitHub/EEG_epilepsia"  # dir = r"/Users/Jacobsen/Documents/GitHub/EEG_epilepsia" + "/"
 
     # Example of merging fully created files from different models.
-    experiment = "smote_f2"  # directory containing the files we will look at
-    experiment_name = '_smote_f2_merged_allModels'
+    experiment = "SMOTE"  # directory containing the files we will look at
+    experiment_name = '_smote_merged_test'
     fullSMOTE = getResults(dir, experiment, experiment_name, merged_file=True, windowsOS=True)
     fullSMOTE.mergeResultFiles(file_name=experiment_name)
 

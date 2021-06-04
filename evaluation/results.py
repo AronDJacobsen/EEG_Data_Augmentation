@@ -31,7 +31,7 @@ class getResults:
         self.smote_ratios = [1, 1.5, 2, 2.5, 3]
         self.folds = [0, 1, 2, 3, 4]
         self.artifacts = ['eyem', 'chew', 'shiv', 'elpp', 'musc', 'null']
-        self.models = ['baseline_perm', 'LR', 'GNB', 'KNN', 'RF', 'LDA', 'MLP', 'AdaBoost', 'SGD']
+        self.models = ['baseline_perm', 'LR', 'GNB', 'RF', 'LDA', 'MLP', 'SGD'] # , 'KNN', 'AdaBoost'
         self.scores = ['y_pred', 'accuracy', 'weighted_F2', 'sensitivity']
 
         print(f"Created object for experiment: {experiment_name}\n")
