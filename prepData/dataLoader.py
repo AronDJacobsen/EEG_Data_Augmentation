@@ -14,7 +14,7 @@ def createSubjectDict(prep_directory, windowsOS=False):
     # Loop through all session to load window-tensors into the "subjects"-dictionary
     index=0
     print("Creating subject dictionary...")
-    for session_test in tqdm(subdirs[:2]):
+    for session_test in tqdm(subdirs):
         subjectID = session_test.split("_")[0]
         if windowsOS:
             dim_tensors = [dim_t.reshape(-1) for tensor_file in glob.glob(prep_directory + session_test + "\\" + "**")
@@ -176,7 +176,7 @@ def SaveNumpyPickles(pickle_path, file_name, file, windowsOS):
 
 
 
-def DeleteNan(X, y, ID_frame):
+def DeleteNan(X, y, ID_frame, save_path, windowsOS=True):
     # NanList in decreasing order, shows window-index with NaN.
     NanList = []
     for i in range(len(X)):
@@ -197,7 +197,11 @@ def DeleteNan(X, y, ID_frame):
             X = np.delete(X, (ele-i), axis = 0) # Since we delete the index completely from the frame, the rest of the indices will be too high - therefore we subtract i
             y = np.delete(y, (ele-i), axis=0)
             ID_frame = np.delete(ID_frame, (ele))
+
         print("Deleted {:d} NaNs from the data.".format(len(NanList)))
+        SaveNumpyPickles(save_path, r"\X_clean", X, windowsOS=windowsOS)
+        SaveNumpyPickles(save_path, r"\y_clean", y, windowsOS=windowsOS)
+        SaveNumpyPickles(save_path, r"\ID_frame_clean", ID_frame, windowsOS=windowsOS)
 
     return X, y, ID_frame
 

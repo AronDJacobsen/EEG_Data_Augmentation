@@ -55,8 +55,11 @@ def processRawData(data_path, save_path, file_selected, windowsOS=False):
         # mne.pick_info(proc_subject["rawData"].info, sel=ch_TPC, copy=False)
 
         # Hardcoding channel pick to avoid false referencing
-        proc_subject["rawData"].pick_channels(ch_names=['Fp1', 'F7', 'T3', 'T5', 'F3', 'C3', 'P3', 'O1', 'Cz',
-                                                        'Fp2', 'F4', 'C4', 'P4', 'O2', 'F8', 'T4', 'T6', 'A1', 'A2'])
+        TUH_pick = ['Fp1', 'Fp2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4', 'O1', 'O2', 'F7',
+                    'F8', 'T3', 'T4', 'T5', 'T6', 'Cz', 'A1', 'A2']
+
+        proc_subject["rawData"].pick_channels(ch_names=TUH_pick)
+        proc_subject["rawData"].reorder_channels(TUH_pick)
 
         # downSampling must be above the filter frequency in FIR to avoid aliasing
         pipeline(proc_subject["rawData"], type="standard_1005", notchfq=60, downSam=150) # TO avoid aliasing for the FIR-filter
