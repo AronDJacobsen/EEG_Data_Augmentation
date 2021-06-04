@@ -1,2 +1,2 @@
-model_checkpoint_path: "generator.ckpt"
-all_model_checkpoint_paths: "generator.ckpt"
+model_checkpoint_path: "Checkpoint__augmentation_GAN_LRshiv_GAN.ckpt"
+all_model_checkpoint_paths: "Checkpoint__augmentation_GAN_LRshiv_GAN.ckpt"

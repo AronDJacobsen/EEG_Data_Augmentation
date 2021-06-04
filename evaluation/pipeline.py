@@ -100,7 +100,7 @@ class pipeline:
         super(pipeline, self)
 
     def runPipeline(self, model, HO_evals, smote_ratios, aug_ratios, experiment, experiment_name,
-                    artifact_names=None, GAN_epochs=20, noise_experiment=None,
+                    artifact_names=None, GAN_epochs=100, noise_experiment=None,
                     DelNan_noiseFiles=False, fast_run=False, K=5, random_state=0, save_y_true=False):
         """
         Parameters:
@@ -295,7 +295,7 @@ class pipeline:
                         if aug_ratio != 0:
 
                             if experiment_name.split("_")[-1] == 'GAN':
-                                Xtrain_new, ytrain_new = useGAN(Xtrain_new, ytrain_new, aug_ratio, GAN_epochs)
+                                Xtrain_new, ytrain_new = useGAN(Xtrain_new, ytrain_new, aug_ratio, GAN_epochs, experiment_name)
 
                             if experiment_name.split("_")[-1] == "MixUp":
                                 Xtrain_new, ytrain_new = useMixUp(Xtrain_new, ytrain_new, aug_ratio)
@@ -344,7 +344,7 @@ class pipeline:
 
                             if experiment_name.split("_")[-1] == 'GAN':
                                 HO_Xtrain_new, HO_ytrain_new = useGAN(HO_Xtrain_new, HO_ytrain_new, aug_ratio,
-                                                                      GAN_epochs)
+                                                                      GAN_epochs, experiment_name)
 
                             if experiment_name.split("_")[-1] == "MixUp":
                                 HO_Xtrain_new, HO_ytrain_new = useMixUp(HO_Xtrain_new, HO_ytrain_new, aug_ratio)

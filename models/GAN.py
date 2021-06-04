@@ -70,7 +70,10 @@ def discriminator(x, n_units=128, reuse=False, alpha=0.01):
         return out, logits
 
 
-def GAN(X, NtoGenerate, z_size = 100, g_hidden_size = 128, d_hidden_size = 128, alpha = 0.01, smooth = 0.1, learning_rate = 0.0002, epochs=100): # Should be used on each of the binary classes.
+def GAN(X, experiment_name, NtoGenerate, z_size = 100, g_hidden_size = 128, d_hidden_size = 128, alpha = 0.01, smooth = 0.1, learning_rate = 0.0002, epochs=100): # Should be used on each of the binary classes.
+
+    checkpoint_name = "Checkpoint_"+experiment_name
+
     # X[np.where(y[:, 1] == 1)]
 
     # Hyperparameters
@@ -165,7 +168,7 @@ def GAN(X, NtoGenerate, z_size = 100, g_hidden_size = 128, d_hidden_size = 128, 
                 generator(input_z, input_size, n_units = g_hidden_size, reuse=True),
                 feed_dict={input_z: sample_z})
             samples.append(gen_samples)
-            saver.save(sess, './checkpoints/generator.ckpt')
+            saver.save(sess, './checkpoints/'+checkpoint_name+'.ckpt')
 
     # Save training generator samples
     with open('train_samples.pkl', 'wb') as f:
@@ -182,7 +185,7 @@ def GAN(X, NtoGenerate, z_size = 100, g_hidden_size = 128, d_hidden_size = 128, 
     # Generating the new observations after training:
     saver = tf.train.Saver(var_list=g_vars)
     with tf.Session() as sess:
-        saver.restore(sess, tf.train.latest_checkpoint('checkpoints'))
+        saver.restore(sess, './checkpoints/'+checkpoint_name+'.ckpt')
         sample_z = np.random.uniform(-1, 1, size=(NtoGenerate, z_size))
         gen_samples = sess.run(
             generator(input_z, input_size, n_units = g_hidden_size, reuse=True),
@@ -197,7 +200,7 @@ def GAN(X, NtoGenerate, z_size = 100, g_hidden_size = 128, d_hidden_size = 128, 
 # gen_samples = GAN(X[np.where(y[:,2] == 1)], 10000)
 
 
-def useGAN(Xtrain_new, ytrain_new, aug_ratio, GAN_epochs):
+def useGAN(Xtrain_new, ytrain_new, aug_ratio, GAN_epochs, experiment_name):
     class_size = int(sum(ytrain_new))  # Sum of all the ones. Since data is balanced, the other class is same size
 
     # Existing data for class 0 and 1 (Since not yet shuffled)
@@ -205,9 +208,9 @@ def useGAN(Xtrain_new, ytrain_new, aug_ratio, GAN_epochs):
     class1 = Xtrain_new[class_size:]
 
     # GAN-augmented data, generated from existing data of each class.
-    GAN_class0 = GAN(class0, NtoGenerate=int(aug_ratio * class_size), epochs=GAN_epochs)
+    GAN_class0 = GAN(class0, experiment_name, NtoGenerate=int(aug_ratio * class_size), epochs=GAN_epochs)
     print("GAN class 0 complete")
-    GAN_class1 = GAN(class1, NtoGenerate=int(aug_ratio * class_size), epochs=GAN_epochs)
+    GAN_class1 = GAN(class1, experiment_name, NtoGenerate=int(aug_ratio * class_size), epochs=GAN_epochs)
     print("GAN class 1 complete")
 
     Xtrain_new = np.concatenate((Xtrain_new, GAN_class0, GAN_class1))

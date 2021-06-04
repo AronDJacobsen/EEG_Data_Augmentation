@@ -2,9 +2,9 @@ from evaluation.pipeline import *
 
 if __name__ == '__main__':
     """ Select path to the data-pickles ! """
-    pickle_path = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia"
+    # pickle_path = r"/zhome/2d/7/138174/Desktop/EEG_epilepsia"
     # pickle_path = r"/Users/Jacobsen/Documents/GitHub/EEG_epilepsia" + "/"
-    # pickle_path = r"/Users/philliphoejbjerg/Documents/GitHub/EEG_epilepsia" + "/"
+    pickle_path = r"/Users/philliphoejbjerg/Documents/GitHub/EEG_epilepsia"
 
     windowsOS = False
 
@@ -34,17 +34,17 @@ if __name__ == '__main__':
     >>> 'noise_experiment'  is the directory of the folder containing the noise files to be used. Should be None when
                             not experimenting with Noise Addition augmentation technique. """
 
-    model = 'LR'
-    aug_method = "_MixUp"  # or '_Noise' or so.
-    artifact = 'chew'
+    model = "LR"
+    aug_method = "_GAN"  # or '_Noise' or so.
+    artifact = "shiv"
 
-    experiment = 'augmentation_trial'  # 'DataAug_color_noiseAdd_LR'
+    experiment = "augmentation_GAN"  # 'DataAug_color_noiseAdd_LR'
     experiment_name = "_" + experiment + "_" + model + artifact + aug_method  # "_DataAug_color_Noise" added to saving files. For augmentation end with "_Noise" or so.
     noise_experiment = None #r"\colornoise30Hz_covarOne"  # None or r"\whitenoise_covarOne" or  r"\colornoise30Hz_covarOne" #
 
     """ Define ratios to use for SMOTE and data augmentation techniques !"""
-    smote_ratios = np.array([0])  # np.array([0, 0.5, 1, 1.5, 2])
-    aug_ratios = np.array([0.5, 1, 1.5, 2])
+    smote_ratios = np.array([0])#np.array([0, 0.5, 1, 1.5, 2])
+    aug_ratios = np.array([0.5])
 
     """ Specify other parameters"""
     HO_evals = 1
