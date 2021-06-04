@@ -47,7 +47,7 @@ if __name__ == '__main__':
     aug_ratios = np.array([0.5])
 
     """ Specify other parameters"""
-    HO_evals = 50
+    HO_evals = 25
     K = 5
     random_state_val = 0
 
