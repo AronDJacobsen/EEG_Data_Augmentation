@@ -1,5 +1,3 @@
-
-
 #### initializing seed ####
 import random
 import numpy as np
@@ -25,6 +23,7 @@ from sklearn.utils import shuffle
 from sklearn.preprocessing import OneHotEncoder
 import pandas as pd
 
+from models.ActiveLearning import *
 from models.GAN import useGAN
 from models.mixup import useMixUp
 from models.noiseAddition import useNoiseAddition, prepareNoiseAddition
@@ -51,7 +50,7 @@ class pipeline:
         else:
             self.slash = "/"
 
-        self.pickle_path = pickle_path + self.slash
+        self.pickle_path = pickle_path #+ self.slash
         self.X_file = X_file
         self.y_file = y_file
         self.ID_file = ID_file
@@ -97,9 +96,9 @@ class pipeline:
                                 'SGD': {'SGD': ('SGD', spacesgd)}}
         super(pipeline, self)
 
-    def runPipeline(self, model, HO_evals, smote_ratios, aug_ratios, experiment, experiment_name,
-                    artifact_names=None, GAN_epochs=100, noise_experiment=None,
-                    DelNan_noiseFiles=False, fast_run=False, K=5, random_state=0, save_y_true=False):
+    def runActivePipeline(self, model, HO_evals, active_ratio, smote_ratios, aug_ratios, experiment, experiment_name, init_amount,
+                          n_pr_query, artifact_names=None, GAN_epochs=100, noise_experiment=None,
+                          DelNan_noiseFiles=False, fast_run=False, K=5, random_state=0, save_y_true=False):
         """
         Parameters:
             :param model (str): Model name. Should follow the naming of the defined models in the
@@ -166,7 +165,8 @@ class pipeline:
         pickle_path_aug = self.pickle_path + r"\augmentation_pickles"
 
         if noise_experiment != None:
-            X_noise, y_noise, ID_frame_noise = prepareNoiseAddition(pickle_path_aug, noise_experiment, self.X_file, self.y_file,
+            X_noise, y_noise, ID_frame_noise = prepareNoiseAddition(pickle_path_aug, noise_experiment, self.X_file,
+                                                                    self.y_file,
                                                                     self.ID_file, windowsOS=self.windowsOS)
 
             if DelNan_noiseFiles:
@@ -177,7 +177,7 @@ class pipeline:
 
         # Dictionary holding keys and values for all functions from the models.py file. Used to "look up" functions in the CV
         # and hyperoptimization part
-        function_dict = models.__dict__
+        function_dict = ActiveModels.__dict__
 
         random_state_val = random_state
 
@@ -196,6 +196,7 @@ class pipeline:
         ho_trials = {}  # fold, artifact, model, hyperopt iterations
         results = {}  # fold, artifact, model, scores
         y_true_dict = {}
+        active_results = {}
 
         # setting fold details
         kf = KFold(n_splits=K, random_state=random_state_val,
@@ -209,13 +210,14 @@ class pipeline:
             #### Initializing dict for this Augmenation ratio:
             ho_trials[aug_ratio] = {}
             results[aug_ratio] = {}
+            active_results[aug_ratio] = {}
 
             for ratio in smote_ratios:
-                ratio += 1  # For consistency with augmentation ratio
+                ratio += 1
 
                 if ratio != 1:
                     print("\n####---------------------------------------####")
-                    print("Running a", ratio - 1, "ratio of (SMOTE upsampling)")
+                    print("Running a", ratio, "ratio of SMOTE")
                     print("####---------------------------------------####")
 
                 i = 0  # CV fold index
@@ -242,153 +244,184 @@ class pipeline:
                     train_indices = [i for i, ID in enumerate(ID_frame) if ID in trainindv]
                     test_indices = [i for i, ID in enumerate(ID_frame) if ID in testindv]
                     testID_list = [ID for i, ID in enumerate(ID_frame) if ID in testindv]
-                    X_train, y_train = X[train_indices, :], y[
-                        train_indices]  # we keep the original and balance new later
+
                     X_test, y_test = X[test_indices, :], y[test_indices]
 
-                    #### initializing hyperopt split #### #TODO: Det her er overflødigt, vi kan bare ændre HO_individuals til trainindv (tror jeg)
-                    train_ID_frame = ID_frame[train_indices]
-                    HO_individuals = np.unique(train_ID_frame)  # for hyperopt split
+                    # TODO: HER!
+                    # Preparing for active learning
+                    Xpool_orig, ypool_orig = X[train_indices, :], y[train_indices]
+
+                    order = np.random.permutation(range(len(Xpool_orig)))
+                    trainset_orig = order[:init_amount]
+
+                    X_train_orig = np.take(Xpool_orig, trainset_orig, axis=0)
+                    y_train_orig = np.take(ypool_orig, trainset_orig, axis=0)
+
+                    poolidx_orig = np.arange(len(Xpool_orig), dtype=np.int)
+                    poolidx_orig = np.setdiff1d(poolidx_orig, trainset_orig)
+
+                    testacc_al = []
+                    testF2_al = []
+                    testSens_al = []
+
+                  # for hyperopt split
 
                     #### initializing dict for this fold ####
                     ho_trials[aug_ratio][ratio][i] = {}  # for this fold
                     results[aug_ratio][ratio][i] = {}
+                    active_results[aug_ratio][i] = {}
 
                     y_true_dict[i] = {}
 
                     #### for each artifact ####
                     for artifact in range(classes):
-
                         print("\nTraining on the class: " + artifact_names[artifact] + "\n")
 
-                        #### initializing data ####
-                        # only include the artifact of interest
-                        # new name for the ones with current artifact
-                        Xtrain = X_train  # only to keep things similar
-                        Xtest = X_test  # only to keep things similar
-                        ytrain = y_train[:, artifact]
-                        ytest = y_test[:, artifact]
+                        trainset = trainset_orig
+                        Xpool, ypool = Xpool_orig, ypool_orig
+                        X_train, y_train = X_train_orig, y_train_orig
+                        poolidx = poolidx_orig
 
-                        ##################################
-                        # on small runs
-                        # ytrain[5:8] = 1
-                        # ytest[5:8] = 1
-                        ##################################
+                        query_round = 0
 
-                        if fast_run:
-                            ytrain[:3] = 1
-                            ytest[:3] = 1
+                        while len(trainset) <= active_ratio * len(train_indices):
 
-                        #### balancing data ####
-                        # now resample majority down to minority to achieve equal
-                        # - new name in order to not interfere with hyperopt
-                        if ratio == 1:  # if no augmentation
-                            Xtrain_new, ytrain_new = rand_undersample(Xtrain, ytrain, arg='majority',
-                                                                      state=random_state_val, multi=False)
-                        else:
-                            # Using mix of undersampling and smote
-                            Xtrain_new, ytrain_new = balanceData(Xtrain, ytrain, ratio, random_state_val=random_state_val)
+                            #### initializing hyperopt split #### #TODO: Det her er overflødigt, vi kan bare ændre HO_individuals til trainindv (tror jeg)
+                            train_ID_frame = ID_frame[trainset]
+                            HO_individuals = np.unique(train_ID_frame)
 
-                        # %% Data Augmentation step:
-                        if aug_ratio != 0:
+                            #### initializing data ####
+                            # only include the artifact of interest
+                            # new name for the ones with current artifact
+                            Xtrain = X_train  # only to keep things similar
+                            Xtest = X_test  # only to keep things similar
+                            ytrain = y_train[:, artifact]
+                            ytest = y_test[:, artifact]
 
-                            if experiment_name.split("_")[-1] == 'GAN':
-                                Xtrain_new, ytrain_new = useGAN(Xtrain_new, ytrain_new, aug_ratio, GAN_epochs, experiment_name)
+                            ##################################
+                            # on small runs
+                            # ytrain[5:8] = 1
+                            # ytest[5:8] = 1
+                            ##################################
 
-                            if experiment_name.split("_")[-1] == "MixUp":
-                                Xtrain_new, ytrain_new = useMixUp(Xtrain_new, ytrain_new, aug_ratio)
+                            if fast_run:
+                                ytrain[:3] = 1
+                                ytest[:3] = 1
 
-                            if experiment_name.split("_")[-1] == "Noise":
-                                X_noise_new = X_noise[train_indices, :]
-                                y_noise_new = y_noise[train_indices, :]
-                                y_noise_new = y_noise_new[:, artifact]
+                            #### balancing data ####
+                            # now resample majority down to minority to achieve equal
+                            # - new name in order to not interfere with hyperopt
+                            if ratio == 1:  # if no smote
+                                Xtrain_new, ytrain_new = rand_undersample(Xtrain, ytrain, arg='majority',
+                                                                          state=random_state_val, multi=False)
+                            else:
+                                # Using mix of undersampling and smote
+                                Xtrain_new, ytrain_new = balanceData(Xtrain, ytrain, ratio,
+                                                                     random_state_val=random_state_val)
 
-                                Xtrain_new, ytrain_new = useNoiseAddition(X_noise_new, y_noise_new, Xtrain_new,
-                                                                          ytrain_new, aug_ratio, random_state_val)
+                            # %% Data Augmentation step:
+                            if aug_ratio != 0:
 
-                        #### creating test environment ####
-                        Xtrain_new, ytrain_new = shuffle(Xtrain_new, ytrain_new, random_state=random_state_val)
-                        Xtest, ytest, testID_list = shuffle(Xtest, ytest, testID_list, random_state=random_state_val)
+                                if experiment_name.split("_")[-1] == 'GAN':
+                                    Xtrain_new, ytrain_new = useGAN(Xtrain_new, ytrain_new, aug_ratio, GAN_epochs,
+                                                                    experiment_name)
 
-                        env = models(Xtrain_new, ytrain_new, Xtest, ytest, state=random_state_val)
+                                if experiment_name.split("_")[-1] == "MixUp":
+                                    Xtrain_new, ytrain_new = useMixUp(Xtrain_new, ytrain_new, aug_ratio)
 
-                        #### initializing validation data for hyperopt ####
-                        trainindv, testindv = train_test_split(HO_individuals, test_size=0.20,
-                                                               random_state=random_state_val, shuffle=True)
+                                if experiment_name.split("_")[-1] == "Noise":
+                                    X_noise_new = X_noise[train_indices, :]
+                                    y_noise_new = y_noise[train_indices, :]
+                                    y_noise_new = y_noise_new[:, artifact]
 
-                        # indices of these individuals from ID_frame
-                        HO_train_indices = [i for i, ID in enumerate(train_ID_frame) if ID in trainindv]
-                        HO_test_indices = [i for i, ID in enumerate(train_ID_frame) if ID in testindv]
+                                    Xtrain_new, ytrain_new = useNoiseAddition(X_noise_new, y_noise_new, Xtrain_new,
+                                                                              ytrain_new, aug_ratio, random_state_val)
 
-                        # constructing sets
-                        HO_Xtrain, HO_ytrain = Xtrain[HO_train_indices, :], ytrain[
-                            HO_train_indices]  # we keep the original and balance new later
-                        HO_Xtest, HO_ytest = Xtrain[HO_test_indices, :], ytrain[HO_test_indices]
+                            #### creating test environment ####
+                            Xtrain_new, ytrain_new = shuffle(Xtrain_new, ytrain_new, random_state=random_state_val)
+                            Xtest, ytest, testID_list = shuffle(Xtest, ytest, testID_list, random_state=random_state_val)
 
-                        if fast_run:
-                            HO_ytrain[:2] = 1
-                            HO_ytest[:2] = 1
+                            env = models(Xtrain_new, ytrain_new, Xtest, ytest, state=random_state_val)
 
-                        #### initializing validation data for hyperopt ####
+                            #### initializing validation data for hyperopt ####
+                            trainindv, testindv = train_test_split(HO_individuals, test_size=0.20,
+                                                                   random_state=random_state_val, shuffle=True)
 
-                        if ratio == 1:  # if no augmentation
-                            HO_Xtrain_new, HO_ytrain_new = rand_undersample(HO_Xtrain, HO_ytrain, arg='majority',
-                                                                            state=random_state_val, multi=False)
-                        else:
-                            # Using mix of undersampling and smote
-                            HO_Xtrain_new, HO_ytrain_new = balanceData(HO_Xtrain, HO_ytrain, ratio, random_state_val=random_state_val)
+                            # indices of these individuals from ID_frame
+                            HO_train_indices = [i for i, ID in enumerate(train_ID_frame) if ID in trainindv]
+                            HO_test_indices = [i for i, ID in enumerate(train_ID_frame) if ID in testindv]
 
-                        if aug_ratio != 0:
 
-                            if experiment_name.split("_")[-1] == 'GAN':
-                                HO_Xtrain_new, HO_ytrain_new = useGAN(HO_Xtrain_new, HO_ytrain_new, aug_ratio,
-                                                                      GAN_epochs, experiment_name)
+                            # constructing sets
+                            HO_Xtrain, HO_ytrain = Xtrain[HO_train_indices, :], ytrain[
+                                HO_train_indices]  # we keep the original and balance new later
+                            HO_Xtest, HO_ytest = Xtrain[HO_test_indices, :], ytrain[HO_test_indices]
 
-                            if experiment_name.split("_")[-1] == "MixUp":
-                                HO_Xtrain_new, HO_ytrain_new = useMixUp(HO_Xtrain_new, HO_ytrain_new, aug_ratio)
+                            if fast_run:
+                                HO_ytrain[:2] = 1
+                                HO_ytest[:2] = 1
 
-                            if experiment_name.split("_")[-1] == "Noise":
-                                X_noise_new = X_noise[HO_train_indices, :]
-                                y_noise_new = y_noise[HO_train_indices, :]
-                                y_noise_new = y_noise_new[:, artifact]
+                            #### initializing validation data for hyperopt ####
 
-                                HO_Xtrain_new, HO_ytrain_new = useNoiseAddition(X_noise_new, y_noise_new, HO_Xtrain_new,
-                                                                                HO_ytrain_new, aug_ratio,
-                                                                                random_state_val)
+                            if ratio == 1:  # if no augmentation
+                                HO_Xtrain_new, HO_ytrain_new = rand_undersample(HO_Xtrain, HO_ytrain, arg='majority',
+                                                                                state=random_state_val, multi=False)
+                            else:
+                                # Using mix of undersampling and smote
+                                HO_Xtrain_new, HO_ytrain_new = balanceData(HO_Xtrain, HO_ytrain, ratio,
+                                                                           random_state_val=random_state_val)
 
-                        # Hyperopt environment
-                        HO_Xtrain_new, HO_ytrain_new = shuffle(HO_Xtrain_new, HO_ytrain_new,
-                                                               random_state=random_state_val)
-                        HO_Xtest, HO_ytest = shuffle(Xtest, ytest, random_state=random_state_val)
+                            if aug_ratio != 0:
 
-                        HO_env = models(HO_Xtrain_new, HO_ytrain_new, HO_Xtest, HO_ytest, state=random_state_val)
+                                if experiment_name.split("_")[-1] == 'GAN':
+                                    HO_Xtrain_new, HO_ytrain_new = useGAN(HO_Xtrain_new, HO_ytrain_new, aug_ratio,
+                                                                          GAN_epochs, experiment_name)
 
-                        #### initializing dict for this artifact ####
-                        ho_trials[aug_ratio][ratio][i][artifact_names[artifact]] = {}  # for this artifact
-                        results[aug_ratio][ratio][i][artifact_names[artifact]] = {}
-                        y_true_dict[i][artifact_names[artifact]] = {}
+                                if experiment_name.split("_")[-1] == "MixUp":
+                                    HO_Xtrain_new, HO_ytrain_new = useMixUp(HO_Xtrain_new, HO_ytrain_new, aug_ratio)
 
-                        #### for each model ####
-                        for key in model_dict:
+                                if experiment_name.split("_")[-1] == "Noise":
+                                    X_noise_new = X_noise[HO_train_indices, :]
+                                    y_noise_new = y_noise[HO_train_indices, :]
+                                    y_noise_new = y_noise_new[:, artifact]
+
+                                    HO_Xtrain_new, HO_ytrain_new = useNoiseAddition(X_noise_new, y_noise_new, HO_Xtrain_new,
+                                                                                    HO_ytrain_new, aug_ratio,
+                                                                                    random_state_val)
+
+                            # Hyperopt environment
+                            HO_Xtrain_new, HO_ytrain_new = shuffle(HO_Xtrain_new, HO_ytrain_new,
+                                                                   random_state=random_state_val)
+                            HO_Xtest, HO_ytest = shuffle(Xtest, ytest, random_state=random_state_val)
+
+                            HO_env = models(HO_Xtrain_new, HO_ytrain_new, HO_Xtest, HO_ytest, state=random_state_val)
+
+                            #### initializing dict for this artifact ####
+                            ho_trials[aug_ratio][ratio][i][artifact_names[artifact]] = {}  # for this artifact
+                            results[aug_ratio][ratio][i][artifact_names[artifact]] = {}
+                            y_true_dict[i][artifact_names[artifact]] = {}
+                            active_results[aug_ratio][i][artifact_names[artifact]] = {}
+
+
                             # https://medium.com/district-data-labs/parameter-tuning-with-hyperopt-faa86acdfdce
                             # https://towardsdatascience.com/hyperparameter-optimization-in-python-part-2-hyperopt-5f661db91324
                             # http://hyperopt.github.io/hyperopt/getting-started/search_spaces/
                             start_time = time()
 
-                            name, space = model_dict[key]
+                            name, space = model_dict[model]
 
                             #### HyperOpt ####
                             if space is not None:  # if hyperopt is defined
 
                                 #### initializing dict for this model ####
-                                ho_trials[aug_ratio][ratio][i][artifact_names[artifact]][key] = {}  # for this model
+                                ho_trials[aug_ratio][ratio][i][artifact_names[artifact]][model] = {}  # for this model
 
-                                print('HyperOpt on: ', key)  # print model name
+                                print('\nHyperOpt on: ', model)  # print model name
 
                                 trials = Trials()
 
                                 def objective(params):
-                                    accuracy, f2_s, sensitivity, y_pred = function_dict[name](HO_env,
+                                    accuracy, f2_s, sensitivity, y_pred, weights = function_dict[name](HO_env,
                                                                                               **params)  # hyperopt environment
                                     # it minimizes
                                     return -sensitivity
@@ -397,9 +430,9 @@ class pipeline:
                                             trials=trials)
 
                                 #### saving evaluations ####
-                                ho_trials[aug_ratio][ratio][i][artifact_names[artifact]][key] = pd.DataFrame(
+                                ho_trials[aug_ratio][ratio][i][artifact_names[artifact]][model] = pd.DataFrame(
                                     [pd.Series(t["misc"]["vals"]).apply(unpack) for t in trials])
-                                ho_trials[aug_ratio][ratio][i][artifact_names[artifact]][key]["sensitivity"] = [
+                                ho_trials[aug_ratio][ratio][i][artifact_names[artifact]][model]["sensitivity"] = [
                                     -t["result"]["loss"] for t in trials]
                                 print('best parameter/s:', best)
 
@@ -412,18 +445,45 @@ class pipeline:
                             end_time = time()
                             took_time = (end_time - start_time)
 
-                            print(key + ": \t" + str(f[:3]) + ". Time: {:f} seconds".format(took_time))
+                            print(model + ": \t" + str(f[:3]) + ". Time: {:f} seconds".format(took_time))
 
-                            acc, F2, sensitivity, y_pred = f
+                            acc, F2, sensitivity, y_pred, weights = f
+                            emc = norm_grad_x_LR(weights, Xpool[poolidx])
 
-                            #### initializing dictionary of results for this model ####
-                            results[aug_ratio][ratio][i][artifact_names[artifact]][key] = {}
+                            ypool_p_sort_idx = np.argsort(emc)
+                            X_train = np.concatenate((X_train, Xpool[poolidx[ypool_p_sort_idx[-n_pr_query:]]]))
+                            y_train = np.concatenate((y_train, ypool[poolidx[ypool_p_sort_idx[-n_pr_query:]]]))
+                            poolidx = np.setdiff1d(poolidx, ypool_p_sort_idx[-n_pr_query:])
+                            print('Model: LR, %i samples (EMC)' % (init_amount + query_round * n_pr_query))
 
-                            #### saving results[aug_ratio] ####
-                            results[aug_ratio][ratio][i][artifact_names[artifact]][key]['y_pred'] = y_pred
-                            results[aug_ratio][ratio][i][artifact_names[artifact]][key]['accuracy'] = acc
-                            results[aug_ratio][ratio][i][artifact_names[artifact]][key]['weighted_F2'] = F2
-                            results[aug_ratio][ratio][i][artifact_names[artifact]][key]['sensitivity'] = sensitivity
+                            testacc_al.append((len(Xtrain), acc))
+                            testF2_al.append((len(Xtrain), F2))
+                            testSens_al.append((len(Xtrain), sensitivity))
+
+                            query_round += 1
+
+                        # Accumulated results with active learning
+                        plt.plot(*tuple(np.array(testacc_al).T))
+                        plt.plot(*tuple(np.array(testF2_al).T))
+                        plt.plot(*tuple(np.array(testSens_al).T))
+                        plt.legend(('Accuracy', 'F2', 'Sensitivity'))
+                        plt.show()
+
+                        active_results[aug_ratio][ratio][i][artifact_names[artifact]][model] = {}
+
+                        active_results[aug_ratio][i][artifact_names[artifact]][model]['accuracy'] = testacc_al
+                        active_results[aug_ratio][i][artifact_names[artifact]][model]['F2'] = testF2_al
+                        active_results[aug_ratio][i][artifact_names[artifact]][model]['sensitivity'] = testSens_al
+
+
+                        #### initializing dictionary of results for this model ####
+                        results[aug_ratio][ratio][i][artifact_names[artifact]][model] = {}
+
+                        #### saving results[aug_ratio] ####
+                        results[aug_ratio][ratio][i][artifact_names[artifact]][model]['y_pred'] = y_pred
+                        results[aug_ratio][ratio][i][artifact_names[artifact]][model]['accuracy'] = acc
+                        results[aug_ratio][ratio][i][artifact_names[artifact]][model]['weighted_F2'] = F2
+                        results[aug_ratio][ratio][i][artifact_names[artifact]][model]['sensitivity'] = sensitivity
 
                         if aug_ratio == 0:
                             y_true_dict[i][artifact_names[artifact]]["y_true"] = env.y_test
@@ -474,7 +534,7 @@ class pipeline:
 
 if __name__ == '__main__':
     """ Select path to the data-pickles ! """
-    pickle_path = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia"
+    pickle_path = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia\true_pickles"
     # pickle_path = r"/Users/Jacobsen/Documents/GitHub/EEG_epilepsia" + "/"
     # pickle_path = r"/Users/philliphoejbjerg/Documents/GitHub/EEG_epilepsia" + "/"
 
@@ -506,15 +566,16 @@ if __name__ == '__main__':
     >>> 'noise_experiment'  is the directory of the folder containing the noise files to be used. Should be None when
                             not experimenting with Noise Addition augmentation technique. """
 
-    model = 'baseline_perm'
-    aug_method = ""  # or '_Noise' or so.
+    model = 'LR'
+    aug_method = "_MixUp"  # or '_Noise' or so.
 
-    experiment = 'smote_f2'  # 'DataAug_color_noiseAdd_LR'
+    experiment = 'active_test'  # 'DataAug_color_noiseAdd_LR'
     experiment_name = experiment + "_" + model + aug_method  # "_DataAug_color_Noise" added to saving files. For augmentation end with "_Noise" or so.
     noise_experiment = None  # r"\whitenoise_covarOne" # r"\colornoise30Hz_covarOne" #
 
     """ Define ratios to use for SMOTE and data augmentation techniques !"""
-    smote_ratios = np.array([0, 0.5, 1, 1.5, 2])
+    smote_ratios = np.array([1])
+    active_ratio = np.array([0.1])
     aug_ratios = np.array([0, 0.5, 1, 1.5, 2])
 
     """ Specify other parameters"""
@@ -523,35 +584,37 @@ if __name__ == '__main__':
     random_state_val = 0
 
     # Example of normal run - with no smote and no augmentation. For illustration, 1-Fold CV.
-    this_pipeline.runPipeline(model=model,
-                              HO_evals=HO_evals,
-                              smote_ratios=smote_ratios, aug_ratios=np.array([0]),
-                              experiment=experiment,
-                              experiment_name=experiment_name,
-                              random_state=random_state_val,
-                              K=K)
+    this_pipeline.runActivePipeline(model=model,
+                                    HO_evals=HO_evals,
+                                    n_pr_query=1000, init_amount=1000,
+                                    active_ratio=0.1,
+                                    smote_ratios=smote_ratios, aug_ratios=np.array([0]),
+                                    experiment=experiment,
+                                    experiment_name=experiment_name,
+                                    random_state=random_state_val,
+                                    K=K)
 
     # Example of running with MixUp and no SMOTE.
     aug_method = "_MixUp"
     experiment_name = experiment + "_" + model + aug_method
 
-    this_pipeline.runPipeline(model=model,
-                              HO_evals=HO_evals,
-                              smote_ratios=np.array([0]), aug_ratios=np.array([0.5]),
-                              experiment=experiment,
-                              experiment_name=experiment_name,
-                              random_state=random_state_val,
-                              K=K)
+    this_pipeline.runActivePipeline(model=model,
+                                    HO_evals=HO_evals,
+                                    active_ratio=0.1, aug_ratios=np.array([0.5]),
+                                    experiment=experiment,
+                                    experiment_name=experiment_name,
+                                    random_state=random_state_val,
+                                    K=K)
 
     # Example of running on a single artifact.
     artifact = 'null'
     experiment_name = experiment + model + artifact + aug_method
 
-    this_pipeline.runPipeline(model=model,
-                              HO_evals=HO_evals,
-                              smote_ratios=np.array([0]), aug_ratios=np.array([0]),
-                              experiment=experiment,
-                              experiment_name=experiment_name,
-                              artifact_names=[artifact],
-                              random_state=random_state_val,
-                              K=K)
+    this_pipeline.runActivePipeline(model=model,
+                                    HO_evals=HO_evals,
+                                    active_ratio=0.1, aug_ratios=np.array([0]),
+                                    experiment=experiment,
+                                    experiment_name=experiment_name,
+                                    artifact_names=[artifact],
+                                    random_state=random_state_val,
+                                    K=K)

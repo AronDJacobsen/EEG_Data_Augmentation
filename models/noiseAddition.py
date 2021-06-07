@@ -6,7 +6,7 @@ import prepData.loadData as loadData
 from prepData.preprocessPipeline import TUH_rename_ch, readRawEdf, pipeline, spectrogramMake, slidingWindow
 from scipy.signal import butter, lfilter, freqz
 from prepData.dataLoader import *
-from balanceData import rand_undersample, binary
+from models.balanceData import rand_undersample, binary
 #from models.balanceData import rand_undersample, binary
 
 ### BUTTERWORTH LOWPASS FILTERS TAKEN FROM
