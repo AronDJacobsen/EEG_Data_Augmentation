@@ -420,7 +420,11 @@ class getResults:
 
         save_path = (self.slash).join([self.dir, "Plots", experiment])
 
-        colorlist = ["lightslategrey", "lightsteelblue", "darkcyan", "firebrick", "lightcoral"]
+        number = 5
+        cmap = plt.get_cmap('coolwarm')
+        colorlist = [cmap(i) for i in np.linspace(0, 1, number)]
+
+        #colorlist = ["lightslategrey", "lightsteelblue", "darkcyan", "firebrick", "lightcoral"]
         # Plotting results
         art = len(self.artifacts)
 
@@ -559,7 +563,11 @@ class getResults:
 
         save_path = (self.slash).join([self.dir, "Plots", "plain_experiment"])
 
-        colorlist = ["royalblue", "lightslategrey", "lightsteelblue", "darkcyan", "lightcoral", "firebrick", "darkorange", "darkkhaki", "olive"]
+        number = 7
+        cmap = plt.get_cmap('coolwarm')
+        colorlist = [cmap(i) for i in np.linspace(0, 1, number)]
+        #colorlist = ["royalblue", "lightslategrey", "lightsteelblue", "darkcyan", "lightcoral", "firebrick", "darkorange", "darkkhaki", "olive"]
+
         # Plotting results
         art = len(self.artifacts)
 

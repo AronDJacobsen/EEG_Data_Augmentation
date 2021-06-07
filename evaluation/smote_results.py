@@ -5,7 +5,7 @@ if __name__ == '__main__':
 
     # Example of merging fully created files from different models.
     experiment = "SMOTE"  # directory containing the files we will look at
-    experiment_name = '_smote_merged_test'
+    experiment_name = '_smote_merged'
     fullSMOTE = getResults(dir, experiment, experiment_name, merged_file=True, windowsOS=True)
     fullSMOTE.mergeResultFiles(file_name=experiment_name)
 
