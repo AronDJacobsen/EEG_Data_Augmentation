@@ -801,7 +801,7 @@ class getResults:
 
     def getPredictions(self, aug_ratios=None, smote_ratios=None, artifacts=None, models=None, withFolds=False):
 
-        correct_models = ['baseline_perm', 'LR', 'GNB', 'KNN', 'RF', 'LDA', 'MLP', 'AdaBoost', 'SGD']
+        correct_models = ['baseline_perm', 'LR', 'GNB', 'RF', 'LDA', 'MLP', 'SGD']
         if self.models != correct_models:
             self.models = correct_models
 

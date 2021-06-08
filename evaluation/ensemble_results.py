@@ -8,17 +8,25 @@ if __name__ == '__main__':
     dir = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia"  # dir = "/Users/philliphoejbjerg/Documents/GitHub/EEG_epilepsia"  # dir = r"/Users/Jacobsen/Documents/GitHub/EEG_epilepsia" + "/"
 
     # Example of merging fully created files from different models.
-    experiment = "smote_f2"  # directory containing the files we will look at
-    experiment_name = '_smote_f2_withoutKNN'
+    experiment = "SMOTE"  # directory containing the files we will look at
+    experiment_name = '_control_experiment'
     fullSMOTE = getResults(dir, experiment, experiment_name, merged_file=True, windowsOS=True)
     fullSMOTE.mergeResultFiles(file_name=experiment_name)
 
     # To work with the merged file we have to change the pickle path to the "merged" folder.
     fullSMOTE.changePicklePath()
-    fullSMOTE.merged_file = True
+    performances, errors = fullSMOTE.tableResults_Augmentation(experiment_name=experiment_name, measure="sensitivity")
 
-    # Creates a dictionary for the predictions.
-    y_pred_dict = fullSMOTE.getPredictions()  # models = ['LDA']
+    artifacts = fullSMOTE.artifacts
+    smote_ratio = 1
+    models = fullSMOTE.models  # 'GNB'
+
+    y_pred_dict = fullSMOTE.getPredictions(models=models,
+                                           aug_ratios=[0],
+                                           smote_ratios=[smote_ratio],
+                                           artifacts=artifacts)
+    y_pred_dict = fullSMOTE.compressDict(y_pred_dict, smote_ratio=1, aug_ratio=0)
+
     corr_matrix = fullSMOTE.getCorrelation(artifact='eyem')
     MI = fullSMOTE.getMutualInformation(artifact='eyem')
     print("Mutual Information:\n" + str(MI))

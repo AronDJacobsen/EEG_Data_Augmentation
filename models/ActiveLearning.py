@@ -22,8 +22,24 @@ def norm_grad_x_LR(theta, x, C=1.):
     return emc
 
 class ActiveModels:
+
+    def __init__(self, X_train,y_train, X_test, y_test, state):
+
+        self.X_train = X_train
+        self.y_train = y_train
+        self.X_test = X_test
+        self.y_test = y_test
+        self.target_names = ["absent", "present"] # "shiv", "elpp", "musc", "null"]
+
+        self.model = None
+
+        self.state = state
+
+        super(ActiveModels, self)
+
     def LR(self, C):
-        model = LogisticRegression(C = C, max_iter = 500)
+        self.model = LogisticRegression(C = C, max_iter = 500)
+        model = self.model
         model.fit(self.X_train, self.y_train)
         y_pred = model.predict(self.X_test)
 

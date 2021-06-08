@@ -23,6 +23,9 @@ from sklearn.utils import shuffle
 from sklearn.preprocessing import OneHotEncoder
 import pandas as pd
 
+from modAL.models import ActiveLearner
+from modAL.expected_error import expected_error_reduction
+
 from models.ActiveLearning import *
 from models.GAN import useGAN
 from models.mixup import useMixUp
@@ -446,6 +449,28 @@ class pipeline:
                             took_time = (end_time - start_time)
 
                             print(model + ": \t" + str(f[:3]) + ". Time: {:f} seconds".format(took_time))
+
+                            """ This part using the modAL library is currently broken. It works if uncertainty sampling
+                            is used ! """
+
+                            AL_env = ActiveModels(X_train=Xtrain, y_train=ytrain,
+                                                  X_test=Xtest, y_test=ytest,
+                                                  state=random_state_val)
+
+                            f = AL_env.LR(**best)
+
+
+                            modAL_learner = ActiveLearner(estimator=AL_env.model,
+                                                          #query_strategy=expected_error_reduction,
+                                                          X_training=AL_env.X_train, y_training=AL_env.y_train)
+                            query_idx = expected_error_reduction(learner=modAL_learner, X=Xpool, n_instances=n_pr_query)
+
+                            query_idx, query_inst = modAL_learner.query(X_pool=Xpool)
+
+
+
+                            #query_strategy=expected_error_reduction,
+                            #X_training=X[[0, 50, 100]], y_training=y[[0, 50, 100]])
 
                             acc, F2, sensitivity, y_pred, weights = f
                             emc = norm_grad_x_LR(weights, Xpool[poolidx])
