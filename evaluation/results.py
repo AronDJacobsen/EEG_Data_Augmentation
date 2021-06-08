@@ -9,7 +9,7 @@ import pandas as pd
 from tqdm import tqdm
 from models.models import *
 import seaborn as sn
-from sklearn.metrics import auc
+from sklearn.metrics import auc, multilabel_confusion_matrix
 
 
 class getResults:
@@ -31,7 +31,7 @@ class getResults:
         self.smote_ratios = [1, 1.5, 2, 2.5, 3]
         self.folds = [0, 1, 2, 3, 4]
         self.artifacts = ['eyem', 'chew', 'shiv', 'elpp', 'musc', 'null']
-        self.models = ['baseline_perm', 'LR', 'GNB', 'RF', 'LDA', 'MLP', 'SGD'] # , 'KNN', 'AdaBoost'
+        self.models = ['baseline_perm', 'LR', 'GNB', 'RF', 'LDA', 'MLP', 'SGD']  # , 'KNN', 'AdaBoost'
         self.scores = ['y_pred', 'accuracy', 'weighted_F2', 'sensitivity']
 
         print(f"Created object for experiment: {experiment_name}\n")
@@ -129,6 +129,7 @@ class getResults:
             all_results_dict = {}
 
             # Extract information from the original pickles from the experiments and save them in a new nested dictionary.
+            file_names.append(file_names[0])
             for model_file in file_names:
                 results = LoadNumpyPickles(self.pickle_path + self.slash, model_file, windowsOS=self.windowsOS)[()]
 
@@ -424,7 +425,7 @@ class getResults:
         cmap = plt.get_cmap('coolwarm')
         colorlist = [cmap(i) for i in np.linspace(0, 1, number)]
 
-        #colorlist = ["lightslategrey", "lightsteelblue", "darkcyan", "firebrick", "lightcoral"]
+        # colorlist = ["lightslategrey", "lightsteelblue", "darkcyan", "firebrick", "lightcoral"]
         # Plotting results
         art = len(self.artifacts)
 
@@ -553,8 +554,9 @@ class getResults:
                                save_img=save_img, aug_technique=aug_technique,
                                measure=measure)
 
-    def plotResultsHelperPlain(self, performances_F2, errors_F2, performances_sens, errors_sens, experiment, smote_ratio=None, aug_ratio=None, measure="sensitiviy",
-                          across_SMOTE=True, save_img=False):
+    def plotResultsHelperPlain(self, performances_F2, errors_F2, performances_sens, errors_sens, experiment,
+                               smote_ratio=None, aug_ratio=None, measure="sensitiviy",
+                               across_SMOTE=True, save_img=False):
 
         if smote_ratio == None:
             smote_ratio = 1
@@ -566,7 +568,7 @@ class getResults:
         number = 7
         cmap = plt.get_cmap('coolwarm')
         colorlist = [cmap(i) for i in np.linspace(0, 1, number)]
-        #colorlist = ["royalblue", "lightslategrey", "lightsteelblue", "darkcyan", "lightcoral", "firebrick", "darkorange", "darkkhaki", "olive"]
+        # colorlist = ["royalblue", "lightslategrey", "lightsteelblue", "darkcyan", "lightcoral", "firebrick", "darkorange", "darkkhaki", "olive"]
 
         # Plotting results
         art = len(self.artifacts)
@@ -671,7 +673,6 @@ class getResults:
             # plt.setp(((ax1, ax2)), xticks=np.arange(len(self.artifacts)), xticklabels=self.artifacts)
             plt.show()
 
-
     def plotResultsPlainExp(self, experiment_name, smote_ratio=None, aug_ratio=None,
                             across_SMOTE=True, save_img=False):
 
@@ -683,8 +684,10 @@ class getResults:
         # Loading statistically calculated results as dictionaries
         # For single files and their HO_trials
         # List of dictionaries of results. Each entry in the list is a results dictionary for one SMOTE ratio
-        performances_F2, errors_F2 = self.tableResults_Augmentation(measure="weighted_F2", experiment_name=experiment_name)
-        performances_sens, errors_sens = self.tableResults_Augmentation(measure="sensitivity", experiment_name=experiment_name)
+        performances_F2, errors_F2 = self.tableResults_Augmentation(measure="weighted_F2",
+                                                                    experiment_name=experiment_name)
+        performances_sens, errors_sens = self.tableResults_Augmentation(measure="sensitivity",
+                                                                        experiment_name=experiment_name)
         self.smote_ratios.sort()
 
         # This function will plot results created in the augmentation experiment (with aug. ratio key in the dict)
@@ -970,7 +973,7 @@ class getResults:
         accuracy, f2_s, sensitivity = np.round([accuracy, f2_s, sensitivity], 5)
         return accuracy, f2_s, sensitivity
 
-    def printScores(self, pred_dict, y_true_filename, smote_ratio=1, aug_ratio=0, model=None, ensemble=False,
+    def printScores(self, pred_dict, y_true_filename, artifacts, smote_ratio=1, aug_ratio=0, model=None, ensemble=False,
                     print_confusion=True):
 
         if ensemble:
@@ -995,23 +998,22 @@ class getResults:
             y_true_art = np.concatenate(y_true_art)
             y_true_dict[artifact] = y_true_art
 
-        for art in self.artifacts:
+        for art in artifacts:
             scores = self.metrics_scores(y_true=y_true_dict[art], y_pred=pred_dict[art])
-            print(f"\nResults for ensemble classifier on {art}")
+            print(f"\nResults on {art}. Ensemble classifier = {ensemble}")
             print("Accuracy, F2, sensitivity")
             print(scores)
 
             if print_confusion:
                 conf_matrix = confusion_matrix(y_true=y_true_dict[art], y_pred=pred_dict[art], labels=[0, 1])
                 conf_matrix = conf_matrix / np.linalg.norm(conf_matrix)
+                conf_matrix.astype('float') / conf_matrix.sum(axis=1)[:, np.newaxis]
 
                 sn.heatmap(conf_matrix, annot=True, cmap=plt.cm.Blues)
                 plt.xlabel("Predicted label")
                 plt.ylabel("Actual label")
                 plt.title(f"Confusion matrix for {art} artifact with {model}, SMOTE: {smote_ratio}, Aug.: {aug_ratio}")
                 plt.show()
-
-                self.plotROC(conf_matrix=conf_matrix, model_name="EXAMPLE!")
 
     def compressDict(self, pred_dict, smote_ratio=1, aug_ratio=0):
 
@@ -1024,38 +1026,85 @@ class getResults:
 
         return pred_dict_new
 
-    def plotROC(self, conf_matrix, model_name):
+    def plot_multi_label_confusion(self, pred_dict, y_true_filename, artifacts, smote_ratio=1, aug_ratio=0,
+                                   aug_technique=None, models=None, ensemble=False):
+        pred_dict_orig = pred_dict
+        for model in models:
 
-        TP = conf_matrix[1][1]
-        TN = conf_matrix[0][0]
-        FP = conf_matrix[0][1]
-        FN = conf_matrix[1][0]
+            if ensemble:
+                model = "Ensemble method"
+            else:
+                pred_dict = pred_dict_orig[model]
 
-        fpr = FP / (FP + TN)
-        tpr = TP / (TP + FN)
+            results_basepath = self.slash.join(self.pickle_path.split(self.slash)[:-2])
 
-        roc_auc = auc(fpr, tpr)
+            y_true = LoadNumpyPickles(
+                pickle_path=(self.slash).join([results_basepath, "y_true"]),
+                file_name=self.slash + y_true_filename + '.npy', windowsOS=self.windowsOS)
+            y_true = y_true[()]
 
-        plt.figure()
-        lw = 2
-        plt.plot(fpr, tpr, color='darkorange',
-                 lw=lw, label=model_name % roc_auc)
-        plt.plot([0, 1], [0, 1], color='navy', lw=lw, linestyle='--')
-        plt.xlim([0.0, 1.0])
-        plt.ylim([0.0, 1.05])
-        plt.xlabel('False Positive Rate')
-        plt.ylabel('True Positive Rate')
-        plt.title('Receiver operating characteristic example')
-        plt.legend(loc="lower right")
-        plt.show()
+            y_true_dict = {}
+
+            for artifact in self.artifacts:
+                y_true_art = []
+                for i in self.folds:
+                    y_true_art.append(y_true[i][artifact]['y_true'])
+
+                y_true_art = np.concatenate(y_true_art)
+                y_true_dict[artifact] = y_true_art
+
+            predictions = np.array([item for item in pred_dict.values()]).T
+            actual = np.array([item for item in y_true_dict.values()]).T
+
+            multi_cm = multilabel_confusion_matrix(y_true=actual, y_pred=predictions)
+            multi_cm = [cm.astype('float') / cm.sum(axis=1)[:, np.newaxis] for cm in multi_cm]
+
+            fig, axs = plt.subplots(2, 3)  # , sharex=True, sharey=True)
+
+            cbar_ax = fig.add_axes([0.89, .3, .03, .4])
+            plt.subplots_adjust(left=0.1, right=0.85)
+
+            for i, artifact in enumerate(self.artifacts):
+                j = 0
+
+                if i > 2:
+                    j = 1
+
+                conf_matrix = sn.heatmap(multi_cm[i], annot=True, cmap=plt.cm.Blues,
+                                         ax=axs[j, i % 3], cbar_ax=cbar_ax,
+                                         vmin=0, vmax=1)
+                conf_matrix.set_aspect('equal', 'box')
+
+                axs[j, 0].tick_params()
+                axs[j, 1].tick_params()
+
+                if i % 3 == 0:
+                    conf_matrix.set_ylabel("Actual label")
+                if j == 1:
+                    conf_matrix.set_xlabel("Predicted label")
+
+                conf_matrix.set_title(artifact)
+
+            if aug_technique == None:
+                fig.suptitle(f"Model: {model}, SMOTE: {smote_ratio}")
+            else:
+                fig.suptitle(f"Model: {model}, SMOTE: {smote_ratio}, {aug_technique}: {aug_ratio}")
+
+            save_path = (self.slash).join([self.dir, "Plots"+self.slash+"confusion_matrix", f"SMOTE{smote_ratio}_aug{aug_technique}{aug_ratio}"])
+
+            img_path = f"{save_path}{self.slash}{model}.png"
+            os.makedirs((self.slash).join(img_path.split(self.slash)[:-1]), exist_ok=True)
+            fig.savefig(img_path)
+
+            fig.show()
 
 
 if __name__ == '__main__':
     dir = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia"  # dir = "/Users/philliphoejbjerg/Documents/GitHub/EEG_epilepsia"  # dir = r"/Users/Jacobsen/Documents/GitHub/EEG_epilepsia" + "/"
 
     # Example of merging fully created files from different models.
-    experiment = "smote_f2"  # directory containing the files we will look at
-    experiment_name = '_smote_f2_merge_withoutKNN'
+    experiment = "SMOTE"  # directory containing the files we will look at
+    experiment_name = '_control_experiment'
     fullSMOTE = getResults(dir, experiment, experiment_name, merged_file=True, windowsOS=True)
     fullSMOTE.mergeResultFiles(file_name=experiment_name)
 
@@ -1063,13 +1112,21 @@ if __name__ == '__main__':
     fullSMOTE.changePicklePath()
     performances, errors = fullSMOTE.tableResults_Augmentation(experiment_name=experiment_name, measure="sensitivity")
 
-    y_pred_dict = fullSMOTE.getPredictions(models=['LDA'],
+    artifacts = fullSMOTE.artifacts
+    smote_ratio = 1
+    models = fullSMOTE.models #'GNB'
+
+    y_pred_dict = fullSMOTE.getPredictions(models=models,
                                            aug_ratios=[0],
-                                           smote_ratios=[1],
-                                           artifacts=['eyem'])
+                                           smote_ratios=[smote_ratio],
+                                           artifacts=artifacts)
     y_pred_dict = fullSMOTE.compressDict(y_pred_dict, smote_ratio=1, aug_ratio=0)
 
-    fullSMOTE.printScores(pred_dict=y_pred_dict, y_true_filename="y_true_randomstate_0", model='LDA', ensemble=False,
-                          print_confusion=True)
+    # fullSMOTE.printScores(pred_dict=y_pred_dict, y_true_filename="y_true_5fold_randomstate_0", model='LDA',
+    #                      artifacts=artifacts, ensemble=False, print_confusion=True)
+
+    fullSMOTE.plot_multi_label_confusion(pred_dict=y_pred_dict, y_true_filename="y_true_5fold_randomstate_0",
+                                         models=models,
+                                         artifacts=fullSMOTE.artifacts, smote_ratio=smote_ratio - 1, ensemble=False)
 
     print("")

@@ -44,7 +44,7 @@ SMOTE / balancing pipeline found in "evaluation.pipeline.py"-file and ...
 Augmentation pipeline and Ensemble pipeline are found in evaluation as well
 and are created similarly to the SMOTE / balancing pipeline.
 
-
+Active Learning pipeline includes coding parts taken from exercises in the course 02463 on Active Learning and agency.
 
 ### Results
 Her

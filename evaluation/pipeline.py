@@ -51,7 +51,7 @@ class pipeline:
         else:
             self.slash = "/"
 
-        self.pickle_path = pickle_path + self.slash
+        self.pickle_path = pickle_path
         self.X_file = X_file
         self.y_file = y_file
         self.ID_file = ID_file
@@ -146,9 +146,9 @@ class pipeline:
                         throughout CV-folds for the specified artifact(s).
         """
 
-        X = LoadNumpyPickles(pickle_path=self.pickle_path, file_name=self.X_file, windowsOS=self.windowsOS)
-        y = LoadNumpyPickles(pickle_path=self.pickle_path, file_name=self.y_file, windowsOS=self.windowsOS)
-        ID_frame = LoadNumpyPickles(pickle_path=self.pickle_path, file_name=self.ID_file, windowsOS=self.windowsOS)
+        X = LoadNumpyPickles(pickle_path=self.pickle_path + self.slash + "true_pickles", file_name=self.X_file, windowsOS=self.windowsOS)
+        y = LoadNumpyPickles(pickle_path=self.pickle_path + self.slash + "true_pickles", file_name=self.y_file, windowsOS=self.windowsOS)
+        ID_frame = LoadNumpyPickles(pickle_path=self.pickle_path + self.slash + "true_pickles", file_name=self.ID_file, windowsOS=self.windowsOS)
 
         # extract a subset for faster running time
         # X, y, ID_frame = subset(X, y, ID_frame, no_indiv=30)
@@ -521,6 +521,16 @@ if __name__ == '__main__':
     HO_evals = 25
     K = 5
     random_state_val = 0
+
+    # Obtaining y_true_file
+    this_pipeline.runPipeline(model=model,
+                              HO_evals=HO_evals,
+                              smote_ratios=np.array([0]), aug_ratios=np.array([0]),
+                              experiment=experiment,
+                              experiment_name=experiment_name,
+                              random_state=random_state_val,
+                              K=K, save_y_true=True)
+
 
     # Example of normal run - with no smote and no augmentation. For illustration, 1-Fold CV.
     this_pipeline.runPipeline(model=model,
