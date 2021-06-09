@@ -434,7 +434,7 @@ class pipeline:
 
                 cross_val_time_end = time()
                 cross_val_time = cross_val_time_end - cross_val_time_start
-                print("The cross-validation for ratio" + str(ratio) + " took " + str(
+                print("The cross-validation for ratio" + str(ratio - 1) + " took " + str(
                     np.round(cross_val_time, 3)) + " seconds = " + str(np.round(cross_val_time / 60, 3)) + " minutes")
                 print('\n\n')
                 results[aug_ratio][ratio]['time'] = cross_val_time
