@@ -84,14 +84,14 @@ class ActiveResults:
 
 
 
-def plotActiveResults(dictionary, init_percent, n_pr_query_percent, measures=['F2'], control_values=None, control_std=None, aug_method=None):
+def plotActiveResults(dictionary, init_percent, n_pr_query_percent, measures=['F2'], aug_ratios=None, control_values=None, control_std=None, aug_method=None):
 
-    if aug_method == None:
-        raise AttributeError("Augmentation technique not specified!")
+    if aug_ratios == None:
+        aug_ratios = [0,0.5,1,1.5,2]
 
     artifact_names = ['eyem', 'chew', 'shiv', 'elpp', 'musc', 'null']
 
-    aug_ratios = list(dictionary.keys())
+    aug_ratios = aug_ratios
     smote_ratios = list(dictionary[aug_ratios[0]].keys())
     folds = list(dictionary[aug_ratios[0]][smote_ratios[0]].keys())
     artifacts = list(dictionary[aug_ratios[0]][smote_ratios[0]][folds[0]].keys())
@@ -156,19 +156,26 @@ def plotActiveResults(dictionary, init_percent, n_pr_query_percent, measures=['F
                 errors_list = scores_results[artifact][measure][aug_ratio]['error']
                 errors = np.array([err[1] for err in errors_list])
 
-                plt.plot(*tuple(np.array(scores_list).T), color=color_list[c])
-                plt.ylim(bottom=0.3, top=1)
+                #plt.plot(*tuple(np.array(scores_list).T), color=color_list[c])
+
                 xs, ys = tuple(np.array(scores_list).T)
 
-                plt.errorbar(xs + offset_errorbar[c], ys, yerr=errors, color=color_list[c], label=f"{aug_method}: {aug_ratio}")
+                if aug_method != None:
+                    plt.errorbar(xs + offset_errorbar[c], ys, yerr=errors, color=color_list[c], label=f"{aug_method}: {aug_ratio}")
+                else:
+                    plt.errorbar(xs + offset_errorbar[c], ys, yerr=errors, color=color_list[c], label=f"W/O augmentation")
+                plt.ylim(bottom=0, top=1)
 
-            plt.hlines(xmin=init_percent, xmax=init_percent + n_pr_query_percent * (i-1), y = control_values[artifact], colors = 'grey', linestyles = "--", label=f"Control: {measure} = {control_values[artifact]}")
+            plt.hlines(xmin=init_percent, xmax=init_percent + n_pr_query_percent * (i-1), y = control_values[artifact], colors = 'grey', linestyles = "--", label=f"Control exp. mean: {control_values[artifact]}")
             plt.gca().fill_between(xs, control_values[artifact] - 2 * control_std[artifact], control_values[artifact] + 2 * control_std[artifact], color='lightblue', alpha=0.5,
-                                   label=r"$2\sigma$")
+                                   label=fr"Control exp. dev.: 2 $\sigma$ ($\sigma$={control_std[artifact]})")
             plt.legend(loc='lower left')
             plt.xlabel("Percentage of pool used in training data")
             plt.ylabel(f"Performance: {measure}")
-            plt.title(f"{artifact}")
+            plt.title(f"{artifact}, SMOTE: {smote_ratio-1}")
+            savepath = ("\\").join(dir.split("\\")[:-1]) + r"\Plots" + r"\active_plots"
+            os.makedirs(savepath, exist_ok=True)
+            plt.savefig(savepath + fr"\SMOTE{smote_ratio}_init{init_percent}_query{n_pr_query_percent}_art{artifact}_metric{measure}.png")
             plt.show()
 
 
@@ -259,13 +266,29 @@ if __name__ == '__main__':
     experiment = "activeefficiency_experiment"  # directory containing the files we will look at
     experiment_name = '_ActiveImprovement_pilot'
 
-    activeImprovement = ActiveResults(dir, experiment, experiment_name, model='LR', windowsOS=True)
+    activeImprovement = ActiveResults(dir, experiment, experiment_name, smote_ratio=0, model='LR', windowsOS=True)
     active_dict = activeImprovement.extractActiveResults()
 
-    control_values_artifact = {'eyem': 0.8, 'chew': 0.93, 'shiv': 0.9, 'elpp': 0.79, 'musc': 0.81, 'null': 0.77}
-    control_std = {'eyem': 0.1, 'chew': 0.1, 'shiv': 0.1, 'elpp': 0.1, 'musc': 0.1, 'null': 0.1}
+    control_values_artifact = {'eyem': 0.8, 'chew': 0.93, 'shiv': 0.91, 'elpp': 0.8, 'musc': 0.82, 'null': 0.76}
+    control_std = {'eyem': 0.02, 'chew': 0.02, 'shiv': 0.03, 'elpp': 0.03, 'musc': 0.04, 'null': 0.03}
+    plotActiveResults(active_dict, init_percent=0.1, n_pr_query_percent=0.01, aug_ratios=[0], control_values=control_values_artifact, control_std=control_std, measures=['F2'], aug_method=None)
 
-    plotActiveResults(active_dict, init_percent=0.1, n_pr_query_percent=0.05, control_values=control_values_artifact, control_std=control_std, measures=['F2'],aug_method="MixUp")
+    control_values_artifact = {'eyem': 0.72, 'chew': 0.81, 'shiv': 0.49, 'elpp': 0.49, 'musc': 0.6, 'null': 0.75}
+    control_std = {'eyem': 0.04, 'chew': 0.06, 'shiv': 0.34, 'elpp': 0.11, 'musc': 0.11, 'null': 0.03}
+    plotActiveResults(active_dict, init_percent=0.1, n_pr_query_percent=0.01, aug_ratios=[0], control_values=control_values_artifact, control_std=control_std, measures=['sensitivity'], aug_method=None)
+
+
+    experiment = "act"
+    experiment_name = "multiple_augRatios"
+    activeImprovement = ActiveResults(dir, experiment, experiment_name, smote_ratio=1, model='LR', windowsOS=True)
+    active_dict = activeImprovement.extractActiveResults()
+
+    control_values_artifact = {'eyem': 0.8, 'chew': 0.93, 'shiv': 0.91, 'elpp': 0.8, 'musc': 0.82, 'null': 0.76}
+    control_std = {'eyem': 0.02, 'chew': 0.02, 'shiv': 0.03, 'elpp': 0.03, 'musc': 0.04, 'null': 0.03}
+    plotActiveResults(active_dict, init_percent=0.1, n_pr_query_percent=0.05,
+                      control_values=control_values_artifact, control_std=control_std, measures=['F2'],
+                      aug_method='MixUp')
+
     plotActiveBalance(active_dict, init_percent=0.1, n_pr_query_percent=0.05, measures=['F2'], aug_method='MixUp')
 
     experiment = "efficiency_experiment"  # directory containing the files we will look at
