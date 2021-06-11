@@ -9,7 +9,7 @@ import pandas as pd
 from tqdm import tqdm
 from models.models import *
 import seaborn as sn
-from sklearn.metrics import auc, multilabel_confusion_matrix
+from sklearn.metrics import auc, multilabel_confusion_matrix, balanced_accuracy_score
 
 
 class getResults:
@@ -255,7 +255,28 @@ class getResults:
             SaveNumpyPickles(save_path, self.slash + "results" + file_name, all_results_dict, self.windowsOS)
             print(f"\nNew file created ({'results' + file_name})! Saved to:\n {save_path}")
 
-    def tableResults_Augmentation(self, experiment_name, measure="sensitivity"):
+    def tableResults_Augmentation(self, experiment_name, y_true_path=None, smote_ratios=None, measure="sensitivity"):
+
+        if smote_ratios == None:
+            smote_ratios = [1]
+
+        if measure == "balanced_acc":
+            if y_true_path == None:
+                raise AttributeError("Path to the pickle containing the true labels is not specified.")
+            y_true_path_list = y_true_path.split("\\")
+
+            results_y_true = LoadNumpyPickles(pickle_path=("\\").join(y_true_path_list[:-1]),
+                                              file_name=self.slash + y_true_path_list[-1],
+                                              windowsOS=self.windowsOS)
+            results_y_true = results_y_true[()]
+            y_true_dict = {}
+
+            for artifact in self.artifacts[:6]:
+                y_true_art = []
+                for i in self.folds:
+                    y_true_art.append(results_y_true[i][artifact]['y_true'])
+
+                y_true_dict[artifact] = y_true_art
 
         # Specifies basepath
         results_basepath = self.slash.join(self.pickle_path.split(self.slash)[:-2])
@@ -297,7 +318,7 @@ class getResults:
             table_smote_dict = defaultdict(dict)
             table_smote_std_dict = defaultdict(dict)
 
-            for smote_ratio in self.smote_ratios:
+            for smote_ratio in smote_ratios:
                 table = defaultdict(dict)  # {}
                 table_std = defaultdict(dict)  # {}
 
@@ -320,10 +341,23 @@ class getResults:
                                 empty = True
 
                             else:
-                                store_scores.append(results[smote_ratio][fold][artifact][model][measure])
-                                temp_acc.append(results[smote_ratio][fold][artifact][model]['accuracy'])
-                                temp_f2.append(results[smote_ratio][fold][artifact][model][measure])#'weighted_F2'])
-                                empty = False
+                                if measure == "balanced_acc":
+                                    # TODO: HER!
+                                    actual = y_true_dict[artifact][fold]
+                                    predictions = results[smote_ratio][fold][artifact][model]['y_pred']
+                                    ba = balanced_accuracy_score(y_true=actual, y_pred=predictions)
+
+                                    store_scores.append(ba)
+                                    temp_acc.append(results[smote_ratio][fold][artifact][model]['accuracy'])
+                                    temp_f2.append(ba)  # Not f2 - naming is incorrect but calculation is good!
+                                    empty = False
+
+                                else:
+                                    store_scores.append(results[smote_ratio][fold][artifact][model][measure])
+                                    temp_acc.append(results[smote_ratio][fold][artifact][model]['accuracy'])
+                                    temp_f2.append(
+                                        results[smote_ratio][fold][artifact][model][measure])  # 'weighted_F2'])
+                                    empty = False
 
                         acc[idx_mod, idx_art] = np.mean(temp_acc)
                         f2s[idx_mod, idx_art] = np.mean(temp_f2)
@@ -468,10 +502,10 @@ class getResults:
 
                     if aug_technique == None:
                         plt.title(
-                            f"{measure} without augmentation on the '{name}'-class")
+                            f"No augmentation, the '{name}'-class")
                     else:
                         plt.title(
-                            f"{measure} with {aug_technique} augmentation on the '{name}'-class - Aug. ratio = {aug_ratios[j]}")
+                            f"{aug_technique} augmentation, the '{name}'-class - Aug. ratio = {aug_ratios[j]}")
 
                     plt.xlabel("Model")
                     plt.ylabel(measure)
@@ -517,10 +551,10 @@ class getResults:
 
                     if aug_technique == None:
                         plt.title(
-                            f"{measure} with {aug_technique} augmentation on the '{name}'-class - SMOTE = {smote_ratios[j] - 1}")
+                            f"No augmentation, the '{name}'-class - SMOTE = {smote_ratios[j] - 1}")
                     else:
                         plt.title(
-                            f"{measure} with {aug_technique} augmentation on the '{name}'-class - SMOTE = {smote_ratios[j] - 1}")
+                            f"{aug_technique} augmentation, the '{name}'-class - SMOTE = {smote_ratios[j] - 1}")
 
                     plt.xlabel("Model")
                     plt.ylabel(measure)
@@ -533,7 +567,8 @@ class getResults:
                         plt.savefig(img_path)
                     plt.show()
 
-    def plotResults(self, experiment_name, aug_technique, smote_ratios=None, aug_ratios=None, measure='sensitivity',
+    def plotResults(self, experiment_name, aug_technique, y_true_path=None, smote_ratios=None, aug_ratios=None,
+                    measure='sensitivity',
                     across_SMOTE=True, save_img=False):
 
         if smote_ratios == None:
@@ -544,7 +579,9 @@ class getResults:
         # Loading statistically calculated results as dictionaries
         # For single files and their HO_trials
         # List of dictionaries of results. Each entry in the list is a results dictionary for one SMOTE ratio
-        performances, errors = self.tableResults_Augmentation(measure=measure, experiment_name=experiment_name)
+        performances, errors = self.tableResults_Augmentation(measure=measure, y_true_path=y_true_path,
+                                                              smote_ratios=smote_ratios,
+                                                              experiment_name=experiment_name)
         self.smote_ratios.sort()
 
         # This function will plot results created in the augmentation experiment (with aug. ratio key in the dict)
@@ -577,7 +614,7 @@ class getResults:
 
             fig, ((ax1, ax2)) = plt.subplots(1, 2, figsize=(10, 5))
 
-            measure = "weighted_F2"
+            measure = "balanced_acc"
             for indv_model, name in enumerate(self.models):
                 # for i, artifact in enumerate(self.artifacts):
                 performance_dict = performances_F2[aug_ratio][smote_ratio]
@@ -613,13 +650,15 @@ class getResults:
             ax1.set_ylim(0, 1)
             ax1.set_xticks(np.arange(len(self.artifacts)))
             ax1.set_xticklabels(self.artifacts)
+            if measure == "balanced_acc":
+                measure = "Balanced acc."
             ax1.set_title(measure)
 
             ax1.set_xlabel("Artifact")
             ax1.set_ylabel(measure)
             # ax1.subplots_adjust(bottom=0.2, right=0.75)
 
-            measure = 'sensitivity'
+            measure = 'weighted_F2'
             for indv_model, name in enumerate(self.models):
                 # for i, artifact in enumerate(self.artifacts):
                 performance_dict = performances_sens[aug_ratio][smote_ratio]
@@ -657,7 +696,10 @@ class getResults:
             ax2.set_xticklabels(self.artifacts)
             # ax2.set_yticks()
 
-            ax2.set_title(measure)
+            if measure == "weighted_F2":
+                measure = "F2"
+
+            ax2.set_title("F2")
 
             ax2.set_xlabel("Artifact")
             ax2.set_ylabel(measure)
@@ -673,20 +715,22 @@ class getResults:
             # plt.setp(((ax1, ax2)), xticks=np.arange(len(self.artifacts)), xticklabels=self.artifacts)
             plt.show()
 
-    def plotResultsPlainExp(self, experiment_name, smote_ratio=None, aug_ratio=None,
+    def plotResultsPlainExp(self, experiment_name, y_true_path=None, smote_ratio=None, aug_ratio=None,
                             across_SMOTE=True, save_img=False):
 
         if smote_ratio == None:
-            smote_ratios = 1
+            smote_ratio = 1
         if aug_ratio == None:
             aug_ratio = 0
 
         # Loading statistically calculated results as dictionaries
         # For single files and their HO_trials
         # List of dictionaries of results. Each entry in the list is a results dictionary for one SMOTE ratio
-        performances_F2, errors_F2 = self.tableResults_Augmentation(measure="weighted_F2",
+        performances_F2, errors_F2 = self.tableResults_Augmentation(measure="balanced_acc", y_true_path=y_true_path,
+                                                                    smote_ratios=[smote_ratio],
                                                                     experiment_name=experiment_name)
-        performances_sens, errors_sens = self.tableResults_Augmentation(measure="sensitivity",
+        performances_sens, errors_sens = self.tableResults_Augmentation(measure="weighted_F2", y_true_path=y_true_path,
+                                                                        smote_ratios=[smote_ratio],
                                                                         experiment_name=experiment_name)
         self.smote_ratios.sort()
 
@@ -697,7 +741,7 @@ class getResults:
                                     aug_ratio=aug_ratio, across_SMOTE=across_SMOTE,
                                     save_img=save_img)
 
-    def printResults(self, experiment_name, smote_ratios=None, aug_ratios=None, measure='sensitivity',
+    def printResults(self, experiment_name, y_true_path=None, smote_ratios=None, aug_ratios=None, measure='sensitivity',
                      printSTDTable=False, LaTeX=False, across_SMOTE=True):
 
         if smote_ratios == None:
@@ -705,7 +749,9 @@ class getResults:
         if aug_ratios == None:
             aug_ratios = self.aug_ratios
 
-        performances, errors = self.tableResults_Augmentation(measure=measure, experiment_name=experiment_name)
+        performances, errors = self.tableResults_Augmentation(measure=measure, y_true_path=y_true_path,
+                                                              smote_ratios=smote_ratios,
+                                                              experiment_name=experiment_name)
         self.smote_ratios.sort()
 
         if across_SMOTE:
@@ -727,7 +773,7 @@ class getResults:
                     df_eval = pd.DataFrame.from_dict(performance)
                     df_eval.index = self.models
                     if measure == 'weighted_F2':
-                        df_eval = np.round(df_eval, 2) #* 100
+                        df_eval = np.round(df_eval, 2)  # * 100
                     else:
                         df_eval = np.round(df_eval, 4) * 100
 
@@ -751,7 +797,7 @@ class getResults:
                             df_eval_std = np.round(df_eval_std, 4) * 100
 
                         if LaTeX:
-                            column_things = self.artifacts
+                            column_things = self.artifacts.copy()
                             column_things.append(f'Weighted {measure}')
                             df = np.empty((len(self.models), len(column_things)))
                             df = pd.DataFrame(df, index=self.models, columns=column_things)
@@ -772,7 +818,6 @@ class getResults:
                             print('\nSTANDARD DEVIATIONS')
                             print("SMOTE ratio:" + str(smote_ratio) + "\n")
                             print(df_eval_std.to_string())
-
 
                     print("")
                     print(100 * "#")
@@ -796,7 +841,7 @@ class getResults:
                     df_eval.index = self.models
 
                     if measure == 'weighted_F2':
-                        df_eval = np.round(df_eval, 2) #* 100
+                        df_eval = np.round(df_eval, 2)  # * 100
                     else:
                         df_eval = np.round(df_eval, 4) * 100
 
@@ -820,8 +865,9 @@ class getResults:
                             df_eval_std = np.round(df_eval_std, 4) * 100
 
                         if LaTeX:
-                            df = np.empty((len(self.models) + 1, len(self.artifacts) + 1))
-                            column_things = self.artifacts.append(f'Weighted {measure}')
+                            column_things = self.artifacts.copy()
+                            column_things.append(f'Weighted {measure}')
+                            df = np.empty((len(self.models), len(column_things)))
                             df = pd.DataFrame(df, index=self.models, columns=column_things)
                             for i in range(len(self.models)):
                                 for j, artifact in enumerate(column_things):
@@ -1135,7 +1181,8 @@ class getResults:
             else:
                 fig.suptitle(f"Model: {model}, SMOTE: {smote_ratio}, {aug_technique}: {aug_ratio}")
 
-            save_path = (self.slash).join([self.dir, "Plots"+self.slash+"confusion_matrix", f"SMOTE{smote_ratio}_aug{aug_technique}{aug_ratio}"])
+            save_path = (self.slash).join([self.dir, "Plots" + self.slash + "confusion_matrix",
+                                           f"SMOTE{smote_ratio}_aug{aug_technique}{aug_ratio}"])
 
             img_path = f"{save_path}{self.slash}{model}.png"
             os.makedirs((self.slash).join(img_path.split(self.slash)[:-1]), exist_ok=True)
@@ -1155,24 +1202,38 @@ if __name__ == '__main__':
 
     # To work with the merged file we have to change the pickle path to the "merged" folder.
     fullSMOTE.changePicklePath()
-    performances, errors = fullSMOTE.tableResults_Augmentation(experiment_name=experiment_name, measure="sensitivity")
+    y_true_path = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia\results\y_true\y_true_5fold_randomstate_0.npy"
+    # performances, errors = fullSMOTE.tableResults_Augmentation(experiment_name=experiment_name, y_true_path=y_true_path, smote_ratios=[1], measure="balanced_acc")
+
+    fullSMOTE.plotResultsPlainExp(experiment_name=experiment_name, y_true_path=y_true_path, across_SMOTE=True,
+                                  save_img=True)
 
     fullSMOTE.printResults(measure="weighted_F2",
                            experiment_name=experiment_name,
+                           y_true_path=y_true_path,
                            smote_ratios=[1],
                            aug_ratios=[0],
                            printSTDTable=True,
                            LaTeX=True)
-    fullSMOTE.printResults(measure="sensitivity",
+    fullSMOTE.printResults(measure="balanced_acc",
                            experiment_name=experiment_name,
+                           y_true_path=y_true_path,
                            smote_ratios=[1],
                            aug_ratios=[0],
                            printSTDTable=True,
                            LaTeX=True)
 
+    fullSMOTE.plotResults(experiment_name,
+                          aug_technique=None,
+                          y_true_path=y_true_path,
+                          smote_ratios=[1],
+                          aug_ratios=[0],
+                          measure='balanced_acc',
+                          across_SMOTE=True, save_img=True)
+
     artifacts = fullSMOTE.artifacts
     smote_ratio = 1
-    models = fullSMOTE.models #'GNB'
+    models = fullSMOTE.models  # 'GNB'
 
     y_pred_dict = fullSMOTE.getPredictions(models=models,
                                            aug_ratios=[0],
