@@ -322,7 +322,7 @@ class getResults:
                             else:
                                 store_scores.append(results[smote_ratio][fold][artifact][model][measure])
                                 temp_acc.append(results[smote_ratio][fold][artifact][model]['accuracy'])
-                                temp_f2.append(results[smote_ratio][fold][artifact][model]['weighted_F2'])
+                                temp_f2.append(results[smote_ratio][fold][artifact][model][measure])#'weighted_F2'])
                                 empty = False
 
                         acc[idx_mod, idx_art] = np.mean(temp_acc)
@@ -340,11 +340,11 @@ class getResults:
                     table_std[artifact] = measure_std
 
                 table['avg. accuracy'] = np.mean(acc, axis=1)
-                table['avg. weighted f2'] = np.mean(f2s, axis=1)
+                table[f'avg. {measure}'] = np.mean(f2s, axis=1)
 
                 # Mean standard deviation
                 table_std['avg. accuracy'] = np.mean(acc_std, axis=1)
-                table_std['avg. weighted f2'] = np.mean(f2s_std, axis=1)
+                table_std[f'avg. {measure}'] = np.mean(f2s_std, axis=1)
 
                 table_smote_dict[smote_ratio] = table
                 table_smote_std_dict[smote_ratio] = table_std
@@ -726,7 +726,10 @@ class getResults:
                     # Print dataframes
                     df_eval = pd.DataFrame.from_dict(performance)
                     df_eval.index = self.models
-                    df_eval = np.round(df_eval * 100, 2)
+                    if measure == 'weighted_F2':
+                        df_eval = np.round(df_eval, 2) #* 100
+                    else:
+                        df_eval = np.round(df_eval, 4) * 100
 
                     if LaTeX:
                         df_latex = df_eval.to_latex()
@@ -739,17 +742,37 @@ class getResults:
                         # print(df_eval)
 
                     if printSTDTable:
-                        df_eval = pd.DataFrame.from_dict(error)
-                        df_eval.index = self.models
-                        df_eval = np.round(df_eval * 100, 2)
+                        df_eval_std = pd.DataFrame.from_dict(error)
+                        df_eval_std.index = self.models
+
+                        if measure == 'weighted_F2':
+                            df_eval_std = np.round(df_eval_std, 2)  # * 100
+                        else:
+                            df_eval_std = np.round(df_eval_std, 4) * 100
+
                         if LaTeX:
-                            df_latex = df_eval.to_latex()
+                            column_things = self.artifacts
+                            column_things.append(f'Weighted {measure}')
+                            df = np.empty((len(self.models), len(column_things)))
+                            df = pd.DataFrame(df, index=self.models, columns=column_things)
+                            for i in range(len(self.models)):
+                                for j, artifact in enumerate(column_things):
+                                    if artifact == f"Weighted {measure}":
+
+                                        df.iloc[i, j] = str(
+                                            f"{np.round(np.mean(df_eval.iloc[i, :6]), 2)} $\pm$ {np.round(np.mean(df_eval_std.iloc[i, :6]), 2)}")
+                                    else:
+                                        df.iloc[i, j] = str(
+                                            f"{np.round(df_eval.iloc[i, j], 2)} $\pm$ {np.round(df_eval_std.iloc[i, j], 2)}")
+
+                            df_latex = df.to_latex()
                             print(df_latex)
 
                         else:
                             print('\nSTANDARD DEVIATIONS')
-                            print("SMOTE RATIO:" + str(ratio - 1) + "\n")
-                            print(df_eval.to_string())
+                            print("SMOTE ratio:" + str(smote_ratio) + "\n")
+                            print(df_eval_std.to_string())
+
 
                     print("")
                     print(100 * "#")
@@ -771,7 +794,11 @@ class getResults:
                     # Print dataframes
                     df_eval = pd.DataFrame.from_dict(performance)
                     df_eval.index = self.models
-                    df_eval = np.round(df_eval * 100, 2)
+
+                    if measure == 'weighted_F2':
+                        df_eval = np.round(df_eval, 2) #* 100
+                    else:
+                        df_eval = np.round(df_eval, 4) * 100
 
                     if LaTeX:
                         df_latex = df_eval.to_latex()
@@ -784,17 +811,35 @@ class getResults:
                         # print(df_eval)
 
                     if printSTDTable:
-                        df_eval = pd.DataFrame.from_dict(error)
-                        df_eval.index = self.models
-                        df_eval = np.round(df_eval * 100, 2)
+                        df_eval_std = pd.DataFrame.from_dict(error)
+                        df_eval_std.index = self.models
+
+                        if measure == 'weighted_F2':
+                            df_eval_std = np.round(df_eval_std, 2)  # * 100
+                        else:
+                            df_eval_std = np.round(df_eval_std, 4) * 100
+
                         if LaTeX:
-                            df_latex = df_eval.to_latex()
+                            df = np.empty((len(self.models) + 1, len(self.artifacts) + 1))
+                            column_things = self.artifacts.append(f'Weighted {measure}')
+                            df = pd.DataFrame(df, index=self.models, columns=column_things)
+                            for i in range(len(self.models)):
+                                for j, artifact in enumerate(column_things):
+                                    if artifact == f"Weighted {measure}":
+
+                                        df.iloc[i, j] = str(
+                                            f"{np.round(np.mean(df_eval.iloc[i, :6]), 2)} $\pm$ {np.round(np.mean(df_eval_std.iloc[i, :6]), 2)}")
+                                    else:
+                                        df.iloc[i, j] = str(
+                                            f"{np.round(df_eval.iloc[i, j], 2)} $\pm$ {np.round(df_eval_std.iloc[i, j], 2)}")
+
+                            df_latex = df.to_latex()
                             print(df_latex)
 
                         else:
                             print('\nSTANDARD DEVIATIONS')
                             print("Aug. ratio:" + str(aug_ratio) + "\n")
-                            print(df_eval.to_string())
+                            print(df_eval_std.to_string())
 
                     print("")
                     print(100 * "#")
@@ -1112,6 +1157,19 @@ if __name__ == '__main__':
     fullSMOTE.changePicklePath()
     performances, errors = fullSMOTE.tableResults_Augmentation(experiment_name=experiment_name, measure="sensitivity")
 
+    fullSMOTE.printResults(measure="weighted_F2",
+                           experiment_name=experiment_name,
+                           smote_ratios=[1],
+                           aug_ratios=[0],
+                           printSTDTable=True,
+                           LaTeX=True)
+    fullSMOTE.printResults(measure="sensitivity",
+                           experiment_name=experiment_name,
+                           smote_ratios=[1],
+                           aug_ratios=[0],
+                           printSTDTable=True,
+                           LaTeX=True)
+
     artifacts = fullSMOTE.artifacts
     smote_ratio = 1
     models = fullSMOTE.models #'GNB'
@@ -1122,8 +1180,8 @@ if __name__ == '__main__':
                                            artifacts=artifacts)
     y_pred_dict = fullSMOTE.compressDict(y_pred_dict, smote_ratio=1, aug_ratio=0)
 
-    # fullSMOTE.printScores(pred_dict=y_pred_dict, y_true_filename="y_true_5fold_randomstate_0", model='LDA',
-    #                      artifacts=artifacts, ensemble=False, print_confusion=True)
+    fullSMOTE.printScores(pred_dict=y_pred_dict, y_true_filename="y_true_5fold_randomstate_0", model='LDA',
+                          artifacts=artifacts, ensemble=False, print_confusion=True)
 
     fullSMOTE.plot_multi_label_confusion(pred_dict=y_pred_dict, y_true_filename="y_true_5fold_randomstate_0",
                                          models=models,
