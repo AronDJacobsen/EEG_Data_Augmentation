@@ -1,2 +1,2 @@
-model_checkpoint_path: "Checkpoint__augmentation_GAN_LRshiv_GAN.ckpt"
-all_model_checkpoint_paths: "Checkpoint__augmentation_GAN_LRshiv_GAN.ckpt"
+model_checkpoint_path: "Checkpoint_random_sampler_test_LReyem_GAN.ckpt"
+all_model_checkpoint_paths: "Checkpoint_random_sampler_test_LReyem_GAN.ckpt"

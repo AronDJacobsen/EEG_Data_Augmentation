@@ -33,6 +33,7 @@ class getResults:
         self.artifacts = ['eyem', 'chew', 'shiv', 'elpp', 'musc', 'null']
         self.models = ['baseline_perm', 'LR', 'GNB', 'RF', 'LDA', 'MLP', 'SGD']  # , 'KNN', 'AdaBoost'
         self.scores = ['y_pred', 'accuracy', 'weighted_F2', 'sensitivity']
+        self.improvementExperiment = False
 
         print(f"Created object for experiment: {experiment_name}\n")
 
@@ -519,7 +520,122 @@ class getResults:
                         plt.savefig(img_path)
                     plt.show()
 
-        else:
+        if self.improvementExperiment:
+            best = np.zeros((len(self.artifacts), len(self.models)))
+            best_errors = np.zeros((len(self.artifacts), len(self.models)))
+            best_augRatios = pd.DataFrame(100*np.ones((len(self.artifacts), len(self.models))), index=self.artifacts, columns=self.models)
+
+            number = len(self.models)
+            cmap = plt.get_cmap('coolwarm')
+            colorlist = [cmap(i) for i in np.linspace(0, 1, number)]
+
+            if aug_ratios[0] == 0:
+                aug_ratios = aug_ratios[1:]
+
+            for j, smote_ratio in enumerate(smote_ratios):
+                for indv_model, name in enumerate(self.models):
+                    scoresOverAugModel = np.zeros((len(self.artifacts), len(aug_ratios)))
+                    errorsOverAugModel = np.zeros((len(self.artifacts), len(aug_ratios)))
+
+                    for indv_art, artif in enumerate(self.artifacts):
+                        for i, aug_ratio in enumerate(aug_ratios):
+
+                            performance_dict = performances_dict[aug_ratio][smote_ratio]
+                            error_dict = errors_dict[aug_ratio][smote_ratio]
+
+                            performance_vals = np.array(list(performance_dict.values())[:art])
+                            error_vals = np.array(list(error_dict.values())[:art])
+
+                            scoresOverAugModel[indv_art, i] = performance_vals[indv_art, indv_model]
+                            errorsOverAugModel[indv_art, i] = error_vals[indv_art, indv_model]
+
+                    maxPos = np.argmax(scoresOverAugModel, axis=1)
+                    maxVal = np.max(scoresOverAugModel, axis=1)
+                    maxValError = [errorsOverAugModel[pos, maxPos[pos]] for pos in range(len(self.artifacts))]
+
+                    best[:, indv_model] = maxVal
+                    best_errors[:, indv_model] = maxValError
+                    best_augRatios.iloc[:, indv_model] = [aug_ratios[maxPos[pos]] for pos in range(len(self.artifacts))]
+
+                    w = 0.15
+                    w = 0.75 / len(self.models)
+
+                    X_axis = np.arange(len(self.artifacts)) - 0.33
+                    plt.bar(x=X_axis + w * indv_model,
+                            height=best[:, indv_model],
+                            width=w,
+                            color=colorlist[indv_model],
+                            label=f"{name}")
+
+                    plt.errorbar(x=X_axis + w * indv_model, y=best[:, indv_model],
+                                 yerr=best_errors[:, indv_model],
+                                 fmt='.', color='k')
+
+
+                    models = self.models
+
+                # ax1.set_xticks(np.arange(len(self.artifacts)), self.artifacts)#, rotation=-15)
+                plt.ylim(0, 1)
+                plt.xticks(np.arange(len(self.artifacts)), labels=self.artifacts)
+                if measure == "balanced_acc":
+                    measure = "Balanced acc."
+                plt.title(f"{aug_technique}, {measure}")
+
+                plt.xlabel("Artifact")
+                plt.ylabel(measure)
+                if save_img:
+                    img_path = f"{(self.slash).join([save_path, measure])}{self.slash}ImprovementExperiment.png"
+                    os.makedirs((self.slash).join(img_path.split(self.slash)[:-1]), exist_ok=True)
+                    plt.savefig(img_path)
+                plt.legend(loc='center right', bbox_to_anchor=(1.36, 0.5))
+                plt.subplots_adjust(bottom=0.2, right=0.775)
+                plt.show()
+                # ax1.subplots_adjust(bottom=0.2, right=0.75)
+            print("Best augmentation ratios (excluding 0)")
+            print(best_augRatios)
+
+            LaTeX = True
+
+            # Print dataframes
+            df_eval = pd.DataFrame(best).T
+
+            if measure == 'weighted_F2':
+                df_eval = np.round(df_eval, 2)  # * 100
+            else:
+                df_eval = np.round(df_eval, 4) * 100
+
+            df_latex = df_eval.to_latex()
+            print(df_latex)
+
+            df_eval_std = pd.DataFrame(best_errors).T
+
+            if measure == 'weighted_F2':
+                df_eval_std = np.round(df_eval_std, 2)  # * 100
+            else:
+                df_eval_std = np.round(df_eval_std, 4) * 100
+
+            if LaTeX:
+                column_things = self.artifacts.copy()
+                column_things.append(f'Weighted {measure}')
+                df = np.empty((len(self.models), len(column_things)))
+                df = pd.DataFrame(df, index=self.models, columns=column_things)
+                for i in range(len(self.models)):
+                    for j, artifact in enumerate(column_things):
+                        if artifact == f"Weighted {measure}":
+
+                            df.iloc[i, j] = str(
+                                f"{np.round(np.mean(df_eval.iloc[i, :6]), 2)} $\pm$ {np.round(np.mean(df_eval_std.iloc[i, :6]), 2)}")
+                        else:
+                            df.iloc[i, j] = str(
+                                f"{np.round(df_eval.iloc[i, j], 2)} $\pm$ {np.round(df_eval_std.iloc[i, j], 2)}")
+
+                df_latex = df.to_latex()
+                print(df_latex)
+
+            print("")
+            print(100 * "#")
+
+        if across_SMOTE == False and self.improvementExperiment == False:
             for indv_art, name in enumerate(self.artifacts):
                 for j, smote_ratio in enumerate(smote_ratios):
                     for i, aug_ratio in enumerate(aug_ratios):
@@ -614,7 +730,7 @@ class getResults:
 
             fig, ((ax1, ax2)) = plt.subplots(1, 2, figsize=(10, 5))
 
-            measure = "balanced_acc"
+            measure = "sensitivity"
             for indv_model, name in enumerate(self.models):
                 # for i, artifact in enumerate(self.artifacts):
                 performance_dict = performances_F2[aug_ratio][smote_ratio]
@@ -658,7 +774,7 @@ class getResults:
             ax1.set_ylabel(measure)
             # ax1.subplots_adjust(bottom=0.2, right=0.75)
 
-            measure = 'weighted_F2'
+            measure = 'balanced_acc'
             for indv_model, name in enumerate(self.models):
                 # for i, artifact in enumerate(self.artifacts):
                 performance_dict = performances_sens[aug_ratio][smote_ratio]
@@ -698,8 +814,10 @@ class getResults:
 
             if measure == "weighted_F2":
                 measure = "F2"
+            if measure == "balanced_acc":
+                measure = "Balanced acc."
 
-            ax2.set_title("F2")
+            ax2.set_title(measure)
 
             ax2.set_xlabel("Artifact")
             ax2.set_ylabel(measure)
@@ -726,10 +844,10 @@ class getResults:
         # Loading statistically calculated results as dictionaries
         # For single files and their HO_trials
         # List of dictionaries of results. Each entry in the list is a results dictionary for one SMOTE ratio
-        performances_F2, errors_F2 = self.tableResults_Augmentation(measure="balanced_acc", y_true_path=y_true_path,
+        performances_F2, errors_F2 = self.tableResults_Augmentation(measure="sensitivity", y_true_path=y_true_path,
                                                                     smote_ratios=[smote_ratio],
                                                                     experiment_name=experiment_name)
-        performances_sens, errors_sens = self.tableResults_Augmentation(measure="weighted_F2", y_true_path=y_true_path,
+        performances_sens, errors_sens = self.tableResults_Augmentation(measure="balanced_acc", y_true_path=y_true_path,
                                                                         smote_ratios=[smote_ratio],
                                                                         experiment_name=experiment_name)
         self.smote_ratios.sort()
@@ -740,6 +858,189 @@ class getResults:
                                     experiment=self.experiment, smote_ratio=smote_ratio,
                                     aug_ratio=aug_ratio, across_SMOTE=across_SMOTE,
                                     save_img=save_img)
+
+    def plotResultsHelperImprovement(self, performances_bacc, errors_bacc, performances_F2, errors_F2, experiment,
+                               smote_ratio=None, aug_technique=None, aug_ratios=None, measure="sensitiviy",
+                               across_SMOTE=True, save_img=False):
+
+        if smote_ratio == None:
+            smote_ratio = 1
+        if aug_ratios == None:
+            aug_ratios = self.aug_ratios
+
+        #save_path = (self.slash).join([self.dir, "Plots", "plain_experiment"])
+
+        best = np.zeros((len(self.artifacts), len(self.models)))
+        best_errors = np.zeros((len(self.artifacts), len(self.models)))
+        best_augRatios = pd.DataFrame(100 * np.ones((len(self.artifacts), len(self.models))))
+
+        number = len(self.models)
+        cmap = plt.get_cmap('coolwarm')
+        colorlist = [cmap(i) for i in np.linspace(0, 1, number)]
+        art = 6
+
+        fig, ((ax1, ax2)) = plt.subplots(1, 2, figsize=(10, 5))
+
+        measure = "sensitivity"
+
+        for j, smote_ratio in enumerate([smote_ratio]):
+            for indv_model, name in enumerate(self.models):
+                scoresOverAugModel = np.zeros((len(self.artifacts), len(self.aug_ratios)))
+                errorsOverAugModel = np.zeros((len(self.artifacts), len(self.aug_ratios)))
+
+                for indv_art, artif in enumerate(self.artifacts):
+                    for i, aug_ratio in enumerate(aug_ratios):
+                        performance_dict = performances_bacc[aug_ratio][smote_ratio]
+                        error_dict = errors_bacc[aug_ratio][smote_ratio]
+
+                        performance_vals = np.array(list(performance_dict.values())[:art])
+                        error_vals = np.array(list(error_dict.values())[:art])
+
+                        scoresOverAugModel[indv_art, i] = performance_vals[indv_art, indv_model]
+                        errorsOverAugModel[indv_art, i] = error_vals[indv_art, indv_model]
+
+                maxPos = np.argmax(scoresOverAugModel, axis=1)
+                maxVal = np.max(scoresOverAugModel, axis=1)
+                maxValError = [errorsOverAugModel[pos, maxPos[pos]] for pos in range(len(self.artifacts))]
+
+                best[:, indv_model] = maxVal
+                best_errors[:, indv_model] = maxValError
+                best_augRatios.iloc[:, indv_model] = [aug_ratios[maxPos[pos]] for pos in range(len(self.artifacts))]
+
+                w = 0.15
+                w = 0.75 / len(self.models)
+
+                X_axis = np.arange(len(self.artifacts)) - 0.33
+                ax1.bar(x=X_axis + w * indv_model,
+                        height=best[:, indv_model],
+                        width=w,
+                        color=colorlist[indv_model],
+                        label=f"{name}")
+
+                ax1.errorbar(x=X_axis + w * indv_model, y=best[:, indv_model],
+                             yerr=best_errors[:, indv_model],
+                             fmt='.', color='k')
+
+                print(best_augRatios.iloc[:, indv_model])
+
+                models = self.models
+
+            # ax1.set_xticks(np.arange(len(self.artifacts)), self.artifacts)#, rotation=-15)
+            ax1.set_ylim(0, 1)
+            ax1.set_xticks(np.arange(len(self.artifacts)))
+            ax1.set_xticklabels(self.artifacts)
+
+            if measure == "balanced_acc":
+                measure = "Balanced acc."
+            if measure == "weighted_F2":
+                measure = "F2"
+            ax1.set_title(f"{aug_technique}, {measure}")
+
+            ax1.set_xlabel("Artifact")
+            ax1.set_ylabel(measure)
+
+            measure = "balanced_acc"
+
+            for j, smote_ratio in enumerate([smote_ratio]):
+                for indv_model, name in enumerate(self.models):
+                    scoresOverAugModel = np.zeros((len(self.artifacts), len(self.aug_ratios)))
+                    errorsOverAugModel = np.zeros((len(self.artifacts), len(self.aug_ratios)))
+
+                    for indv_art, artif in enumerate(self.artifacts):
+                        for i, aug_ratio in enumerate(aug_ratios):
+                            performance_dict = performances_F2[aug_ratio][smote_ratio]
+                            error_dict = errors_F2[aug_ratio][smote_ratio]
+
+                            performance_vals = np.array(list(performance_dict.values())[:art])
+                            error_vals = np.array(list(error_dict.values())[:art])
+
+                            scoresOverAugModel[indv_art, i] = performance_vals[indv_art, indv_model]
+                            errorsOverAugModel[indv_art, i] = error_vals[indv_art, indv_model]
+
+                    maxPos = np.argmax(scoresOverAugModel, axis=1)
+                    maxVal = np.max(scoresOverAugModel, axis=1)
+                    maxValError = [errorsOverAugModel[pos, maxPos[pos]] for pos in range(len(self.artifacts))]
+
+                    best[:, indv_model] = maxVal
+                    best_errors[:, indv_model] = maxValError
+                    best_augRatios.iloc[:, indv_model] = [aug_ratios[maxPos[pos]] for pos in range(len(self.artifacts))]
+
+                    w = 0.15
+                    w = 0.75 / len(self.models)
+
+                    X_axis = np.arange(len(self.artifacts)) - 0.33
+                    ax2.bar(x=X_axis + w * indv_model,
+                            height=best[:, indv_model],
+                            width=w,
+                            color=colorlist[indv_model],
+                            label=f"{name}")
+
+                    ax2.errorbar(x=X_axis + w * indv_model, y=best[:, indv_model],
+                                 yerr=best_errors[:, indv_model],
+                                 fmt='.', color='k')
+
+                    print(best_augRatios.iloc[:, indv_model])
+
+                    models = self.models
+
+                # ax1.set_xticks(np.arange(len(self.artifacts)), self.artifacts)#, rotation=-15)
+                ax2.set_ylim(0, 1)
+                ax2.set_xticks(np.arange(len(self.artifacts)))
+                ax2.set_xticklabels(self.artifacts)
+
+                if measure == "balanced_acc":
+                    measure = "Balanced acc."
+                if measure == "weighted_F2":
+                    measure = "F2"
+                ax2.set_title(f"{aug_technique}, {measure}")
+
+                ax2.set_xlabel("Artifact")
+                ax2.set_ylabel(measure)
+
+            plt.subplots_adjust(right=0.84)
+
+            plt.legend(loc='center right', bbox_to_anchor=(1.5, 0.5))
+
+            save_path = (self.slash).join([self.dir, "Plots", self.experiment])
+            if save_img:
+                img_path = f"{save_path}{self.slash}ImprovementResults.png"
+                os.makedirs((self.slash).join(img_path.split(self.slash)[:-1]), exist_ok=True)
+                fig.savefig(img_path)
+            plt.show()
+            # ax1.subplots_adjust(bottom=0.2, right=0.75)
+
+        print("")
+        print(pd.DataFrame(best_augRatios))
+
+
+
+    def plotResultsImprovementExp(self, experiment_name, y_true_path=None, smote_ratio=None, aug_ratios=None,
+                            across_SMOTE=True, save_img=False, aug_technique=None):
+
+        if smote_ratio == None:
+            smote_ratio = 1
+        if aug_ratios == None:
+            aug_ratio = self.aug_ratios
+
+        # Loading statistically calculated results as dictionaries
+        # For single files and their HO_trials
+        # List of dictionaries of results. Each entry in the list is a results dictionary for one SMOTE ratio
+        performances_bacc, errors_bacc = self.tableResults_Augmentation(measure="sensitivity", y_true_path=y_true_path,
+                                                                    smote_ratios=[smote_ratio],
+                                                                    experiment_name=experiment_name)
+        performances_F2, errors_F2 = self.tableResults_Augmentation(measure="balanced_acc", y_true_path=y_true_path,
+                                                                        smote_ratios=[smote_ratio],
+                                                                        experiment_name=experiment_name)
+        self.smote_ratios.sort()
+
+        # This function will plot results created in the augmentation experiment (with aug. ratio key in the dict)
+        self.plotResultsHelperImprovement(performances_bacc=performances_bacc, errors_bacc=errors_bacc,
+                                          performances_F2=performances_F2, errors_F2=errors_F2,
+                                          experiment=self.experiment, smote_ratio=smote_ratio,
+                                          aug_ratios=aug_ratios, across_SMOTE=across_SMOTE,
+                                          aug_technique=aug_technique,
+                                          save_img=save_img)
+
 
     def printResults(self, experiment_name, y_true_path=None, smote_ratios=None, aug_ratios=None, measure='sensitivity',
                      printSTDTable=False, LaTeX=False, across_SMOTE=True):
@@ -922,7 +1223,6 @@ class getResults:
             results_all = results_all[()]
 
         # For all folds to get predictions of all data points.
-
         y_pred_dict = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(dict))))
         for aug_ratio in aug_ratios:
             for smote_ratio in smote_ratios:
@@ -1189,6 +1489,32 @@ class getResults:
             fig.savefig(img_path)
 
             fig.show()
+
+    def plotAllModelsBestAug(self, experiment_name: object, aug_technique: object, y_true_path: object = None, smote_ratios: object = None,
+                             aug_ratios: object = None,
+                             measure: object = 'balanced_acc', save_img: object = False) -> object:
+        across_SMOTE = False
+        self.improvementExperiment = True
+
+        if smote_ratios == None:
+            smote_ratios = [1]
+        if aug_ratios == None:
+            aug_ratios = self.aug_ratios
+
+        # Loading statistically calculated results as dictionaries
+        # For single files and their HO_trials
+        # List of dictionaries of results. Each entry in the list is a results dictionary for one SMOTE ratio
+        performances, errors = self.tableResults_Augmentation(measure=measure, y_true_path=y_true_path,
+                                                              smote_ratios=smote_ratios,
+                                                              experiment_name=experiment_name)
+        smote_ratios.sort()
+
+        # This function will plot results created in the augmentation experiment (with aug. ratio key in the dict)
+        self.plotResultsHelper(performances_dict=performances, errors_dict=errors,
+                                     experiment=self.experiment, smote_ratios=smote_ratios,
+                                     aug_ratios=aug_ratios, across_SMOTE=across_SMOTE,
+                                     save_img=save_img, aug_technique=aug_technique,
+                                     measure=measure)
 
 
 if __name__ == '__main__':

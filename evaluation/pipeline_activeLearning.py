@@ -97,7 +97,7 @@ class pipeline:
         super(pipeline, self)
 
     def runActivePipeline(self, model, HO_evals, active_ratio, smote_ratios, aug_ratios, experiment, experiment_name, init_amount_percent,
-                          n_pr_query_percent, artifact_names=None, GAN_epochs=100, noise_experiment=None,
+                          n_pr_query_percent, artifact_names=None, GAN_epochs=100, noise_experiment=None, randomSampler = False,
                           DelNan_noiseFiles=False, fast_run=False, K=5, random_state=0, save_y_true=False):
         """
         Parameters:
@@ -467,13 +467,24 @@ class pipeline:
                             """
 
                             acc, F2, sensitivity, y_pred, weights = f
-                            emc = norm_grad_x_LR(weights, Xpool[poolidx])
 
-                            ypool_p_sort_idx = np.argsort(emc)
-                            X_train = np.concatenate((X_train, Xpool[poolidx[ypool_p_sort_idx[-n_pr_query:]]]))
-                            y_train = np.concatenate((y_train, ypool[poolidx[ypool_p_sort_idx[-n_pr_query:]]]))
-                            poolidx = np.setdiff1d(poolidx, ypool_p_sort_idx[-n_pr_query:])
-                            print('Model: LR, %i samples (EMC)' % (init_amount + query_round * n_pr_query))
+                            if randomSampler:
+                                order_sub = np.random.permutation(poolidx)
+                                newIdxsPool = order_sub[:n_pr_query]
+
+                                X_train = np.concatenate((X_train, Xpool[newIdxsPool]))
+                                y_train = np.concatenate((y_train, ypool[newIdxsPool]))
+                                poolidx = np.setdiff1d(poolidx, newIdxsPool)
+                                print('Model: LR, %i samples (Random)' % (init_amount + query_round * n_pr_query))
+
+                            else:
+                                emc = norm_grad_x_LR(weights, Xpool[poolidx])
+
+                                ypool_p_sort_idx = np.argsort(emc)
+                                X_train = np.concatenate((X_train, Xpool[poolidx[ypool_p_sort_idx[-n_pr_query:]]]))
+                                y_train = np.concatenate((y_train, ypool[poolidx[ypool_p_sort_idx[-n_pr_query:]]]))
+                                poolidx = np.setdiff1d(poolidx, ypool_p_sort_idx[-n_pr_query:])
+                                print('Model: LR, %i samples (EMC)' % (init_amount + query_round * n_pr_query))
 
                             counts = np.unique(ytrain, return_counts=True)[1]
 
@@ -569,7 +580,7 @@ class pipeline:
 
 if __name__ == '__main__':
     """ Select path to the data-pickles ! """
-    pickle_path = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia\true_pickles"
+    pickle_path = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia"
     # pickle_path = r"/Users/Jacobsen/Documents/GitHub/EEG_epilepsia" + "/"
     # pickle_path = r"/Users/philliphoejbjerg/Documents/GitHub/EEG_epilepsia" + "/"
 
@@ -602,24 +613,28 @@ if __name__ == '__main__':
                             not experimenting with Noise Addition augmentation technique. """
 
     model = 'LR'
-    aug_method = "_MixUp"  # or '_Noise' or so.
+    aug_method = "_GAN"  # or '_Noise' or so.
+    artifact = "eyem"
 
-    experiment = 'efficiency_experiment'  # 'DataAug_color_noiseAdd_LR'
-    experiment_name = experiment + "_" + model + aug_method  # "_DataAug_color_Noise" added to saving files. For augmentation end with "_Noise" or so.
-    noise_experiment = None  # r"\whitenoise_covarOne" # r"\colornoise30Hz_covarOne" #
+    experiment = 'random_sampler_test'  # 'DataAug_color_noiseAdd_LR'
+    experiment_name = experiment + "_" + model + artifact + aug_method  # "_DataAug_color_Noise" added to saving files. For augmentation end with "_Noise" or so.
+    noise_experiment = None #r"\colornoise30Hz_covarOne" #
+    #noise_experiment = r"\whitenoise_covarOne" # r"\colornoise30Hz_covarOne" #
 
     """ Specify other parameters"""
-    HO_evals = 2
+    HO_evals = 25
     K = 5
     random_state_val = 0
 
     this_pipeline.runActivePipeline(model=model,
+                                    randomSampler=True,
                                     HO_evals=HO_evals,
-                                    n_pr_query_percent=0.05, init_amount_percent=0.1,
+                                    n_pr_query_percent=0.01, init_amount_percent=0.1,
                                     active_ratio=0.3,
-                                    smote_ratios=np.array([1]), aug_ratios=np.array([0, 0.5, 1, 1.5, 2]),
+                                    smote_ratios=np.array([0]), aug_ratios=np.array([0, 0.5, 1, 1.5, 2]),
                                     experiment=experiment,
                                     experiment_name=experiment_name,
-                                    artifact_names=['eyem', 'chew', 'shiv', 'elpp', 'musc', 'null'],
+                                    noise_experiment=noise_experiment,
+                                    artifact_names=[artifact],
                                     random_state=random_state_val,
                                     K=K)
