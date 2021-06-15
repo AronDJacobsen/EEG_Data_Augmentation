@@ -103,8 +103,9 @@ def plotActiveResults(dictionary, init_percent, n_pr_query_percent, measures=['F
     if control_std == None:
         control_std = len(artifacts) * [0]
 
-    artifact = artifacts[
-        0]  # TODO: Currently saving the data without using this index since accumulated scores are wrongly appended to list in pipeline
+    #artifact = artifacts[0]
+
+    # TODO: Currently saving the data without using this index since accumulated scores are wrongly appended to list in pipeline
 
     offset_errorbar = np.linspace(-0.002, 0.002, len(aug_ratios))
 
@@ -115,30 +116,33 @@ def plotActiveResults(dictionary, init_percent, n_pr_query_percent, measures=['F
         for smote_ratio in smote_ratios:
             for model in models:
                 for score in scores[:3]:
-                    for fold in folds:
-                        results = dictionary[aug_ratio][smote_ratio][fold][artifact][model][score]
-                        if results == {}:
-                            pass
-                        else:
-                            check_artifact = results[0][0]
-                            artifact_number = -1
-
-                            for element in results:
-                                # Check whether the results are on a new artifact - only necessary due to a f**kup in the pipeline...
-                                if element[0] == check_artifact:
-                                    i = 0
-                                    artifact_number += 1
-                                    art = artifact_names[artifact_number]
-
-                                # if fold == 0 :
-                                if dict_for_plots[art][init_percent + i * n_pr_query_percent] == {}:
-                                    dict_for_plots[art][init_percent + i * n_pr_query_percent] = [element[1]]
-                                else:
-                                    dict_for_plots[art][init_percent + i * n_pr_query_percent].append(element[1])
-
-                                i += 1
-
                     for artifact in artifacts:
+                        for fold in folds:
+                            results = dictionary[aug_ratio][smote_ratio][fold][artifact][model][score]
+                            if results == {}:
+                                pass
+                            else:
+                                #check_artifact = results[0][0]
+                                #artifact_number = -1
+
+                                i = 0
+                                for element in results:
+
+                                    # Check whether the results are on a new artifact - only necessary due to a f**kup in the pipeline...
+                                    #if element[0] == check_artifact:
+                                    #    i = 0
+                                    #    artifact_number += 1
+                                    #    art = artifact_names[artifact_number]
+
+                                    #if dict_for_plots[artifact][init_percent + i * n_pr_query_percent] == {}:
+                                    if fold == 0:
+                                        dict_for_plots[artifact][init_percent + i * n_pr_query_percent] = [element[1]]
+                                    else:
+                                        dict_for_plots[artifact][init_percent + i * n_pr_query_percent].append(element[1])
+
+                                    i += 1
+
+
                         mu, error = [], []
                         for percentage, score_list in dict_for_plots[artifact].items():
                             mu.append((percentage, np.mean(score_list)))
@@ -263,58 +267,41 @@ def plotActiveBalance(dictionary, init_percent, n_pr_query_percent, measures=['F
 
 
 if __name__ == '__main__':
-    dir = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia\true_pickles"  # dir = "/Users/philliphoejbjerg/Documents/GitHub/EEG_epilepsia"  # dir = r"/Users/Jacobsen/Documents/GitHub/EEG_epilepsia" + "/"
+    dir = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia"  # dir = "/Users/philliphoejbjerg/Documents/GitHub/EEG_epilepsia"  # dir = r"/Users/Jacobsen/Documents/GitHub/EEG_epilepsia" + "/"
 
     # Example of merging fully created files from different models.
-    experiment = "activeefficiency_experiment"  # directory containing the files we will look at
-    experiment_name = '_ActiveImprovement_pilot'
+    experiment = "activerandomSampling_MixUp"  # directory containing the files we will look at
+    experiment_name = '_randomSampling_MixUp'
 
-    activeImprovement = ActiveResults(dir, experiment, experiment_name, smote_ratio=0, model='LR', windowsOS=True)
-    active_dict = activeImprovement.extractActiveResults()
+    experiments = {'MixUp': "activerandomSampling_Mixup", 'ColorNoise': "activerandomSampling_colorNoise",
+                   'WhiteNoise': "activerandomSampling_whiteNoise"}#, 'GAN': "activerandomSampling_GAN"}
 
-    control_values_artifact = {'eyem': 0.8, 'chew': 0.93, 'shiv': 0.91, 'elpp': 0.8, 'musc': 0.82, 'null': 0.76}
-    control_std = {'eyem': 0.02, 'chew': 0.02, 'shiv': 0.03, 'elpp': 0.03, 'musc': 0.04, 'null': 0.03}
-    plotActiveResults(active_dict, init_percent=0.1, n_pr_query_percent=0.01, aug_ratios=[0],
-                      control_values=control_values_artifact, control_std=control_std, measures=['F2'], aug_method=None)
+    experiment_names = ['_randomSampling_MixUp', '_randomSampling_GAN',
+                        '_randomSampling_colorNoise', '_randomSampling_whiteNoise']
+    measures = ['sensitivity']#, 'balanced_acc']
 
-    control_values_artifact = {'eyem': 0.72, 'chew': 0.81, 'shiv': 0.49, 'elpp': 0.49, 'musc': 0.6, 'null': 0.75}
-    control_std = {'eyem': 0.04, 'chew': 0.06, 'shiv': 0.34, 'elpp': 0.11, 'musc': 0.11, 'null': 0.03}
-    plotActiveResults(active_dict, init_percent=0.1, n_pr_query_percent=0.01, aug_ratios=[0],
-                      control_values=control_values_artifact, control_std=control_std, measures=['sensitivity'],
-                      aug_method=None)
+    control_values = {'sensitivity': {'eyem': 0.72, 'chew': 0.81, 'shiv': 0.49, 'elpp': 0.49, 'musc': 0.6, 'null': 0.75},
+                      'balanced_acc':  {'eyem': 0.75, 'chew': 0.86, 'shiv': 0.69, 'elpp': 0.63, 'musc': 0.70, 'null': 0.70}}
+    control_stds = {'sensitivity':  {'eyem': 0.04, 'chew': 0.06, 'shiv': 0.34, 'elpp': 0.11, 'musc': 0.11, 'null': 0.03},
+                    'balanced_acc': {'eyem': 0.02, 'chew': 0.02, 'shiv': 0.16, 'elpp': 0.04, 'musc': 0.05, 'null': 0.03}}
 
-    # Example of merging fully created files from different models.
-    experiment = "activeefficiency_experiment_smote1"  # directory containing the files we will look at
-    experiment_name = '_ActiveImprovement_pilot'
+    for measure in measures:
+        for i, (aug_method, experiment) in enumerate(experiments.items()):
+            experiment_name = experiment_names[i]
 
-    activeImprovement = ActiveResults(dir, experiment, experiment_name, smote_ratio=1, model='LR', windowsOS=True)
-    active_dict = activeImprovement.extractActiveResults()
+            activeImprovement = ActiveResults(dir, experiment, experiment_name, smote_ratio=0, model='LR', windowsOS=True)
+            active_dict = activeImprovement.extractActiveResults()
 
-    control_values_artifact = {'eyem': 0.8, 'chew': 0.93, 'shiv': 0.91, 'elpp': 0.8, 'musc': 0.82, 'null': 0.76}
-    control_std = {'eyem': 0.02, 'chew': 0.02, 'shiv': 0.03, 'elpp': 0.03, 'musc': 0.04, 'null': 0.03}
-    plotActiveResults(active_dict, init_percent=0.1, n_pr_query_percent=0.025,
-                      control_values=control_values_artifact, control_std=control_std, measures=['F2'],
-                      aug_method='MixUp')
+            # Sensitivity - control experiment
+            control_values_artifact = control_values[measure]
+            control_std = control_stds[measure]
+            plotActiveResults(active_dict, init_percent=0.1, n_pr_query_percent=0.01, aug_ratios=activeImprovement.aug_ratios,
+                              control_values=control_values_artifact, control_std=control_std, measures=[measure], aug_method=aug_method)
 
-    control_values_artifact = {'eyem': 0.72, 'chew': 0.81, 'shiv': 0.49, 'elpp': 0.49, 'musc': 0.6, 'null': 0.75}
-    control_std = {'eyem': 0.04, 'chew': 0.06, 'shiv': 0.34, 'elpp': 0.11, 'musc': 0.11, 'null': 0.03}
-    plotActiveResults(active_dict, init_percent=0.1, n_pr_query_percent=0.025,
-                      control_values=control_values_artifact, control_std=control_std, measures=['sensitivity'],
-                      aug_method='MixUp')
 
-    experiment = "act"
-    experiment_name = "multiple_augRatios"
-    activeImprovement = ActiveResults(dir, experiment, experiment_name, smote_ratio=1, model='LR', windowsOS=True)
-    active_dict = activeImprovement.extractActiveResults()
 
-    control_values_artifact = {'eyem': 0.8, 'chew': 0.93, 'shiv': 0.91, 'elpp': 0.8, 'musc': 0.82, 'null': 0.76}
-    control_std = {'eyem': 0.02, 'chew': 0.02, 'shiv': 0.03, 'elpp': 0.03, 'musc': 0.04, 'null': 0.03}
-    plotActiveResults(active_dict, init_percent=0.1, n_pr_query_percent=0.05,
-                      control_values=control_values_artifact, control_std=control_std, measures=['F2'],
-                      aug_method='MixUp')
 
-    plotActiveBalance(active_dict, init_percent=0.1, n_pr_query_percent=0.05, measures=['F2'], aug_method='MixUp')
-
+    """
     experiment = "efficiency_experiment"  # directory containing the files we will look at
     experiment_name = '_Active_pilot'
 
@@ -343,5 +330,5 @@ if __name__ == '__main__':
                                       artifacts=active.artifacts, smote_ratio=smote_ratio - 1, ensemble=False)
 
     # Kør forsøg med n_queries på 0.25 % af poolen og op til 30% af poolen.
-
+    """
     print("")

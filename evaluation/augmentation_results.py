@@ -31,7 +31,7 @@ if __name__ == '__main__':
 
         ensembleExp.plotAugTechnique(bestDict=bestDict, measure=measure, smote_ratio=1, mean=False, max_Aug=True, exclude_baseline=True)
         ensembleExp.plotAugTechnique(bestDict=bestDict, measure=measure, smote_ratio=2, mean=False, max_Aug=True, exclude_baseline=True)
-        ensembleExp.plotAugTechnique(bestDict=bestDict, measure=measure, smote_ratio=None, mean=True, max_Aug=False, exclude_baseline=True)
+        ensembleExp.plotAugTechnique(bestDict=bestDict, measure=measure, smote_ratio=None, mean=False, max_Aug=True, exclude_baseline=True)
 
     experiments = ["augmentation_colorNoise", "augmentation_whiteNoise", "augmentation_GAN", "augmentation_MixUp"]
     aug_techniques = ["colored noise", "white noise", "GAN", "MixUp"]

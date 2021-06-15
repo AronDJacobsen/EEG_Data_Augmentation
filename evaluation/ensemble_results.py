@@ -264,9 +264,9 @@ class getResultsEnsemble:
                 plt.subplots_adjust(bottom=0.2, right=0.775)
 
         if smote_ratio == None:
-            img_path = f"{(self.slash).join([self.dir, 'Plots', self.experiment_name, measure])}{self.slash}augTechniquesComparison_SMOTEmixed.png"
+            img_path = f"{(self.slash).join([self.dir, 'Plots', self.experiment_name, measure])}{self.slash}augTechniquesComparison_SMOTEmixed_Mean={mean}.png"
         else:
-            img_path = f"{(self.slash).join([self.dir, 'Plots', self.experiment_name, measure])}{self.slash}augTechniquesComparison_SMOTE{smote_ratio-1}.png"
+            img_path = f"{(self.slash).join([self.dir, 'Plots', self.experiment_name, measure])}{self.slash}augTechniquesComparison_SMOTE{smote_ratio-1}Mean={mean}.png"
         os.makedirs((self.slash).join(img_path.split(self.slash)[:-1]), exist_ok=True)
         plt.savefig(img_path)
         plt.show()
@@ -291,9 +291,9 @@ class getResultsEnsemble:
         plt.legend()
 
         if smote_ratio == None:
-            img_path = f"{(self.slash).join([self.dir, 'Plots', self.experiment_name, measure])}{self.slash}sortedScores_SMOTEmixed.png"
+            img_path = f"{(self.slash).join([self.dir, 'Plots', self.experiment_name, measure])}{self.slash}sortedScores_SMOTEmixed_Mean{mean}.png"
         else:
-            img_path = f"{(self.slash).join([self.dir, 'Plots', self.experiment_name, measure])}{self.slash}sortedScores_SMOTE{smote_ratio-1}.png"
+            img_path = f"{(self.slash).join([self.dir, 'Plots', self.experiment_name, measure])}{self.slash}sortedScores_SMOTE{smote_ratio-1}Mean{mean}.png"
         os.makedirs((self.slash).join(img_path.split(self.slash)[:-1]), exist_ok=True)
         plt.savefig(img_path)
         plt.show()
@@ -418,7 +418,7 @@ if __name__ == '__main__':
     else:
         bestDict = LoadNumpyPickles(pickle_path=bestDictPicklepath, file_name=loadedBestDictName, windowsOS=windowsOS)[()]
 
-    ensembleExp.printNBestModels(bestDict=bestDict, N_best=20, exclude_baseline=True)
+    ensembleExp.printNBestModels(bestDict=bestDict, N_best=100, exclude_baseline=True)
 
     ensembleExp.plotAugTechnique(bestDict=bestDict, mean=True, max_Aug=False, measure=measure, exclude_baseline=True)
 
