@@ -108,8 +108,8 @@ if __name__ == '__main__':
     #experiments = ["colorNoiseimprovement", "whiteNoiseimprovement", "GANimprovement", "MixUpimprovement"]
     #experiments = ["augmentation_colorNoise", "augmentation_whiteNoise", "augmentation_GAN", "augmentation_MixUp"]
 
-    #methods = ["colorNoise", "whiteNoise", "GAN", "MixUp"]
-    methods = ["MixUp"]
+    methods = ["colorNoise", "whiteNoise", "GAN", "MixUp"]
+    #methods = ["MixUp"]
 
     df = pd.DataFrame(columns=artifact_names, index=methods)
 
