@@ -170,6 +170,77 @@ class getResultsEnsemble:
 
         return y_pred_dict
 
+
+    def plotAugTechniqueAverage(self, bestDict, artifacts=None, exclude_baseline=True):
+
+        if artifacts == None:
+            artifacts = self.artifacts
+
+        Aug_comparisonDict = defaultdict(dict)
+
+        for a, artifact in enumerate(artifacts):
+            techniques = np.unique(bestDict['technique'][artifact])
+            for i, technique in enumerate(techniques):
+                if exclude_baseline:
+                    pos_tech1 = np.where(bestDict['technique'][artifact] == technique)[0]
+                    pos_tech2 = np.where(bestDict['models'][artifact] != 'baseline_perm')[0]
+                    pos_tech = np.intersect1d(pos_tech1, pos_tech2)
+                else:
+                    pos_tech = np.where(bestDict['technique'][artifact] == technique)
+
+                scores_tech = bestDict['scores'][artifact][pos_tech]
+                Aug_comparisonDict[technique] = scores_tech
+
+                number = len(techniques)
+                cmap = plt.get_cmap('coolwarm')
+                colorlist = [cmap(i) for i in np.linspace(0, 1, number)]
+
+                w = 0.15
+                w = 0.75 / len(techniques)
+                if len(techniques) == 1:
+                    X_axis = np.arange(len(self.models))
+                else:
+                    X_axis = a - 0.3
+
+                plt.bar(x=X_axis + w * i,
+                        height=np.mean(Aug_comparisonDict[technique]),
+                        width=w,
+                        color=colorlist[i],
+                        label=technique)
+
+                plt.errorbar(x=X_axis + w * i, y=np.mean(Aug_comparisonDict[technique]),
+                             yerr=np.std(Aug_comparisonDict[technique]),
+                             fmt='.', color='k')
+
+            plt.xticks(np.arange(len(artifacts)), artifacts, rotation=0)
+            plt.ylim(0, 1)
+
+            plt.title(f"Mean across Aug. methods, Baseline exluded: {exclude_baseline}")
+
+            plt.xlabel("Artifacts")
+            plt.ylabel(measure)
+
+            if a == 0:
+                plt.legend(loc='center right', bbox_to_anchor=(1.36, 0.5))
+                plt.subplots_adjust(bottom=0.2, right=0.775)
+
+        img_path = f"{(self.slash).join([self.pickle_path, measure])}{self.slash}augTechniquesComparison.png"
+        os.makedirs((self.slash).join(img_path.split(self.slash)[:-1]), exist_ok=True)
+        plt.savefig(img_path)
+        plt.show()
+
+        for i, technique in enumerate(techniques):
+            scores = Aug_comparisonDict[technique]
+            plt.plot(np.arange(len(scores)), scores, label=technique, color=colorlist[i])
+        plt.ylim(0, 1)
+        plt.xlabel("Number of models evaluated")
+        plt.ylabel(measure)
+        plt.legend()
+        plt.show()
+
+
+
+
     def printNBestModels(self, bestDict, N_best=20, exclude_baseline=False, exclude_zero_aug=False):
 
         for artifact in self.artifacts:
@@ -289,6 +360,8 @@ if __name__ == '__main__':
         bestDict = LoadNumpyPickles(pickle_path=bestDictPicklepath, file_name=loadedBestDictName, windowsOS=windowsOS)[()]
 
     ensembleExp.printNBestModels(bestDict=bestDict, N_best=20, exclude_baseline=True)
+
+    ensembleExp.plotAugTechniqueAverage(bestDict=bestDict, exclude_baseline=True)
 
     y_pred_dict = ensembleExp.getPredictionsEnsemble(best_pred_dict=bestDict, experiments=experiments, N_best=20, artifacts=['eyem'])
 

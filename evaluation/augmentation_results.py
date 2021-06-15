@@ -43,7 +43,7 @@ if __name__ == '__main__':
                                         save_img=save_img)"""
 
         augExp.plotResultsImprovementExp(experiment_name=experiment_name,
-                                         smote_ratio=smote_ratio,
+                                         smote_ratio=smote + 1,
                                          y_true_path=y_true_path,
                                          aug_technique=aug_technique,
                                          save_img=True)
