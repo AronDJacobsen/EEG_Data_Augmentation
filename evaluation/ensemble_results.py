@@ -171,7 +171,11 @@ class getResultsEnsemble:
         return y_pred_dict
 
 
-    def plotAugTechniqueAverage(self, bestDict, artifacts=None, exclude_baseline=True):
+    def plotAugTechnique(self, bestDict, mean=True, max_Aug=False, smote_ratio=None, measure='Balanced acc', artifacts=None, exclude_baseline=True):
+
+        smote_ratio_old = smote_ratio
+        if mean == max_Aug:
+            raise AttributeError("Only one of either mean or max_Aug can be chosen!")
 
         if artifacts == None:
             artifacts = self.artifacts
@@ -181,12 +185,27 @@ class getResultsEnsemble:
         for a, artifact in enumerate(artifacts):
             techniques = np.unique(bestDict['technique'][artifact])
             for i, technique in enumerate(techniques):
+                if technique == "control":
+                    smote_ratio_old = smote_ratio
+                    smote_ratio = 1
+
                 if exclude_baseline:
                     pos_tech1 = np.where(bestDict['technique'][artifact] == technique)[0]
                     pos_tech2 = np.where(bestDict['models'][artifact] != 'baseline_perm')[0]
-                    pos_tech = np.intersect1d(pos_tech1, pos_tech2)
+                    pos_tech3 = np.where(bestDict['smote_ratios'][artifact] == smote_ratio)[0]
+
+                    if smote_ratio != None:
+                        pos_tech = np.intersect1d(pos_tech1, pos_tech2)
+                        pos_tech = np.intersect1d(pos_tech, pos_tech3)
+                    else:
+                        pos_tech = np.intersect1d(pos_tech1, pos_tech2)
                 else:
                     pos_tech = np.where(bestDict['technique'][artifact] == technique)
+                    if smote_ratio != None:
+                        pos_tech3 = np.where(bestDict['smote_ratios'][artifact] == smote_ratio)[0]
+                        pos_tech = np.intersect1d(pos_tech3, pos_tech)
+
+
 
                 scores_tech = bestDict['scores'][artifact][pos_tech]
                 Aug_comparisonDict[technique] = scores_tech
@@ -202,20 +221,40 @@ class getResultsEnsemble:
                 else:
                     X_axis = a - 0.3
 
-                plt.bar(x=X_axis + w * i,
-                        height=np.mean(Aug_comparisonDict[technique]),
-                        width=w,
-                        color=colorlist[i],
-                        label=technique)
+                if mean:
+                    height = np.mean(Aug_comparisonDict[technique])
+                    yerr = np.std(Aug_comparisonDict[technique])
+                elif max_Aug:
+                    height = Aug_comparisonDict[technique][0]
+                    yerr = bestDict['errors'][artifact][pos_tech][0]
 
-                plt.errorbar(x=X_axis + w * i, y=np.mean(Aug_comparisonDict[technique]),
-                             yerr=np.std(Aug_comparisonDict[technique]),
+                if smote_ratio == None:
+                    plt.bar(x=X_axis + w * i,
+                            height=height,
+                            width=w,
+                            color=colorlist[i],
+                            label=f"{technique} (SMOTE: mixed)")
+                else:
+                    plt.bar(x=X_axis + w * i,
+                            height=height,
+                            width=w,
+                            color=colorlist[i],
+                            label=f"{technique} (SMOTE {smote_ratio - 1})")
+
+
+                plt.errorbar(x=X_axis + w * i, y=height,
+                             yerr=yerr,
                              fmt='.', color='k')
+
+                smote_ratio = smote_ratio_old
 
             plt.xticks(np.arange(len(artifacts)), artifacts, rotation=0)
             plt.ylim(0, 1)
 
-            plt.title(f"Mean across Aug. methods, Baseline exluded: {exclude_baseline}")
+            if mean:
+                plt.title(f"Mean across aug. methods, Baseline excluded: {exclude_baseline}")
+            if max_Aug:
+                plt.title(f"Max performance within aug. methods, Baseline excluded: {exclude_baseline}")
 
             plt.xlabel("Artifacts")
             plt.ylabel(measure)
@@ -224,20 +263,40 @@ class getResultsEnsemble:
                 plt.legend(loc='center right', bbox_to_anchor=(1.36, 0.5))
                 plt.subplots_adjust(bottom=0.2, right=0.775)
 
-        img_path = f"{(self.slash).join([self.pickle_path, measure])}{self.slash}augTechniquesComparison.png"
+        if smote_ratio == None:
+            img_path = f"{(self.slash).join([self.dir, 'Plots', self.experiment_name, measure])}{self.slash}augTechniquesComparison_SMOTEmixed.png"
+        else:
+            img_path = f"{(self.slash).join([self.dir, 'Plots', self.experiment_name, measure])}{self.slash}augTechniquesComparison_SMOTE{smote_ratio-1}.png"
         os.makedirs((self.slash).join(img_path.split(self.slash)[:-1]), exist_ok=True)
         plt.savefig(img_path)
         plt.show()
 
         for i, technique in enumerate(techniques):
+            smote_ratio_old = smote_ratio
+            if technique == "control":
+                smote_ratio = 1
+
             scores = Aug_comparisonDict[technique]
-            plt.plot(np.arange(len(scores)), scores, label=technique, color=colorlist[i])
+            if smote_ratio == None:
+                plt.plot(np.arange(len(scores))/len(scores), scores, label=f"{technique} (SMOTE: mixed)", color=colorlist[i])
+
+            else:
+                plt.plot(np.arange(len(scores))/len(scores), scores, label=f"{technique} (SMOTE {smote_ratio-1})", color=colorlist[i])
+            smote_ratio = smote_ratio_old
+
         plt.ylim(0, 1)
-        plt.xlabel("Number of models evaluated")
+        plt.title(f"Sorted performance of aug. methods")
+        plt.xlabel("Percentage of models (within aug. method) evaluated")
         plt.ylabel(measure)
         plt.legend()
-        plt.show()
 
+        if smote_ratio == None:
+            img_path = f"{(self.slash).join([self.dir, 'Plots', self.experiment_name, measure])}{self.slash}sortedScores_SMOTEmixed.png"
+        else:
+            img_path = f"{(self.slash).join([self.dir, 'Plots', self.experiment_name, measure])}{self.slash}sortedScores_SMOTE{smote_ratio-1}.png"
+        os.makedirs((self.slash).join(img_path.split(self.slash)[:-1]), exist_ok=True)
+        plt.savefig(img_path)
+        plt.show()
 
 
 
@@ -361,7 +420,7 @@ if __name__ == '__main__':
 
     ensembleExp.printNBestModels(bestDict=bestDict, N_best=20, exclude_baseline=True)
 
-    ensembleExp.plotAugTechniqueAverage(bestDict=bestDict, exclude_baseline=True)
+    ensembleExp.plotAugTechnique(bestDict=bestDict, mean=True, max_Aug=False, measure=measure, exclude_baseline=True)
 
     y_pred_dict = ensembleExp.getPredictionsEnsemble(best_pred_dict=bestDict, experiments=experiments, N_best=20, artifacts=['eyem'])
 

@@ -124,7 +124,7 @@ class getResults:
                 for experiment in ensemble_files:
                     file_path = (self.slash).join([self.basepath, "performance", experiment, ""])
                     file_names.append([results_file.split(self.slash)[-1] for results_file in
-                              glob.glob(file_path + "**")])
+                                       glob.glob(file_path + "**")])
 
                     path1 = (self.slash).join(self.pickle_path.split(self.slash)[:-1])
                     pickle_paths.append((self.slash).join([path1, experiment]))
@@ -146,7 +146,8 @@ class getResults:
             for model_idx, model_file in enumerate(file_names):
 
                 if ensemble_files != []:
-                    results = LoadNumpyPickles(pickle_paths[model_idx] + self.slash, model_file, windowsOS=self.windowsOS)[()]
+                    results = \
+                    LoadNumpyPickles(pickle_paths[model_idx] + self.slash, model_file, windowsOS=self.windowsOS)[()]
                 else:
                     results = LoadNumpyPickles(self.pickle_path + self.slash, model_file, windowsOS=self.windowsOS)[()]
 
@@ -539,7 +540,8 @@ class getResults:
         if self.improvementExperiment:
             best = np.zeros((len(self.artifacts), len(self.models)))
             best_errors = np.zeros((len(self.artifacts), len(self.models)))
-            best_augRatios = pd.DataFrame(100*np.ones((len(self.artifacts), len(self.models))), index=self.artifacts, columns=self.models)
+            best_augRatios = pd.DataFrame(100 * np.ones((len(self.artifacts), len(self.models))), index=self.artifacts,
+                                          columns=self.models)
 
             number = len(self.models)
             cmap = plt.get_cmap('coolwarm')
@@ -555,7 +557,6 @@ class getResults:
 
                     for indv_art, artif in enumerate(self.artifacts):
                         for i, aug_ratio in enumerate(aug_ratios):
-
                             performance_dict = performances_dict[aug_ratio][smote_ratio]
                             error_dict = errors_dict[aug_ratio][smote_ratio]
 
@@ -586,7 +587,6 @@ class getResults:
                     plt.errorbar(x=X_axis + w * indv_model, y=best[:, indv_model],
                                  yerr=best_errors[:, indv_model],
                                  fmt='.', color='k')
-
 
                     models = self.models
 
@@ -875,16 +875,18 @@ class getResults:
                                     aug_ratio=aug_ratio, across_SMOTE=across_SMOTE,
                                     save_img=save_img)
 
-    def plotResultsHelperImprovement(self, performances_bacc, errors_bacc, performances_F2, errors_F2, experiment,
-                               smote_ratio=None, aug_technique=None, aug_ratios=None, measure="sensitiviy",
-                               across_SMOTE=True, save_img=False):
+    def plotResultsHelperImprovement(self, performances_bacc, errors_bacc, performances_F2, errors_F2, bacc_control,
+                                     sens_control, sens_std_control, bacc_std_control,
+                                     experiment, smote_ratio=None, aug_technique=None, aug_ratios=None,
+                                     measure="sensitiviy",
+                                     across_SMOTE=True, save_img=False):
 
         if smote_ratio == None:
             smote_ratio = 1
         if aug_ratios == None:
             aug_ratios = self.aug_ratios
 
-        #save_path = (self.slash).join([self.dir, "Plots", "plain_experiment"])
+        # save_path = (self.slash).join([self.dir, "Plots", "plain_experiment"])
 
         best = np.zeros((len(self.artifacts), len(self.models)))
         best_errors = np.zeros((len(self.artifacts), len(self.models)))
@@ -928,19 +930,24 @@ class getResults:
 
                 X_axis = np.arange(len(self.artifacts)) - 0.33
                 ax1.bar(x=X_axis + w * indv_model,
-                        height=best[:, indv_model],
+                        height=best[:, indv_model] - sens_control[indv_art],
                         width=w,
                         color=colorlist[indv_model],
                         label=f"{name}")
 
-                ax1.errorbar(x=X_axis + w * indv_model, y=best[:, indv_model],
-                             yerr=best_errors[:, indv_model],
+                pooledError = np.sqrt((best_errors[:, indv_model]**2 + sens_std_control[indv_art]**2) / 2)
+
+                ax1.errorbar(x=X_axis + w * indv_model, y=best[:, indv_model] - sens_control[indv_art],
+                             yerr=pooledError, #best_errors[:, indv_model],
                              fmt='.', color='k')
 
                 models = self.models
 
             # ax1.set_xticks(np.arange(len(self.artifacts)), self.artifacts)#, rotation=-15)
-            ax1.set_ylim(0, 1)
+            if np.all(sens_control == 0):
+                ax1.set_ylim(0, 1)
+            else:
+                ax1.set_ylim(-1, 1)
             ax1.set_xticks(np.arange(len(self.artifacts)))
             ax1.set_xticklabels(self.artifacts)
 
@@ -984,21 +991,24 @@ class getResults:
 
                     X_axis = np.arange(len(self.artifacts)) - 0.33
                     ax2.bar(x=X_axis + w * indv_model,
-                            height=best[:, indv_model],
+                            height=best[:, indv_model] - bacc_control[indv_art],
                             width=w,
                             color=colorlist[indv_model],
                             label=f"{name}")
 
-                    ax2.errorbar(x=X_axis + w * indv_model, y=best[:, indv_model],
-                                 yerr=best_errors[:, indv_model],
-                                 fmt='.', color='k')
+                    pooledError = np.sqrt((best_errors[:, indv_model] ** 2 + bacc_std_control[indv_art] ** 2) / 2)
 
-                    print(best_augRatios.iloc[:, indv_model])
+                    ax2.errorbar(x=X_axis + w * indv_model, y=best[:, indv_model] - bacc_control[indv_art],
+                                 yerr=pooledError, #best_errors[:, indv_model],
+                                 fmt='.', color='k')
 
                     models = self.models
 
                 # ax1.set_xticks(np.arange(len(self.artifacts)), self.artifacts)#, rotation=-15)
-                ax2.set_ylim(0, 1)
+                if np.all(bacc_control == 0):
+                    ax2.set_ylim(0, 1)
+                else:
+                    ax2.set_ylim(-1, 1)
                 ax2.set_xticks(np.arange(len(self.artifacts)))
                 ax2.set_xticklabels(self.artifacts)
 
@@ -1017,7 +1027,7 @@ class getResults:
 
             save_path = (self.slash).join([self.dir, "Plots", self.experiment])
             if save_img:
-                img_path = f"{save_path}{self.slash}ImprovementResults.png"
+                img_path = f"{save_path}{self.slash}ImprovementResults_{self.experiment}.png"
                 os.makedirs((self.slash).join(img_path.split(self.slash)[:-1]), exist_ok=True)
                 fig.savefig(img_path)
             plt.show()
@@ -1026,10 +1036,17 @@ class getResults:
         print("")
         print(pd.DataFrame(best_augRatios))
 
-
-
     def plotResultsImprovementExp(self, experiment_name, y_true_path=None, smote_ratio=None, aug_ratios=None,
-                            across_SMOTE=True, save_img=False, aug_technique=None):
+                                  across_SMOTE=True, save_img=False, aug_technique=None, bacc_control=None,
+                                  sens_std_control=None, bacc_std_control=None,
+                                  sens_control=None):
+
+        if bacc_control == None:
+            bacc_control = np.zeros(len(self.artifacts))
+            bacc_std_control = np.zeros(len(self.artifacts))
+        if sens_control == None:
+            sens_control = np.zeros(len(self.artifacts))
+            sens_std_control = np.zeros(len(self.artifacts))
 
         if smote_ratio == None:
             smote_ratio = 1
@@ -1040,11 +1057,12 @@ class getResults:
         # For single files and their HO_trials
         # List of dictionaries of results. Each entry in the list is a results dictionary for one SMOTE ratio
         performances_bacc, errors_bacc = self.tableResults_Augmentation(measure="sensitivity", y_true_path=y_true_path,
-                                                                    smote_ratios=[smote_ratio],
-                                                                    experiment_name=experiment_name)
-        performances_F2, errors_F2 = self.tableResults_Augmentation(measure="balanced_acc", y_true_path=y_true_path,
                                                                         smote_ratios=[smote_ratio],
                                                                         experiment_name=experiment_name)
+        #TODO: Ændre til balanced_acc
+        performances_F2, errors_F2 = self.tableResults_Augmentation(measure="sensitivity", y_true_path=y_true_path,
+                                                                    smote_ratios=[smote_ratio],
+                                                                    experiment_name=experiment_name)
         self.smote_ratios.sort()
 
         # This function will plot results created in the augmentation experiment (with aug. ratio key in the dict)
@@ -1053,8 +1071,9 @@ class getResults:
                                           experiment=self.experiment, smote_ratio=smote_ratio,
                                           aug_ratios=aug_ratios, across_SMOTE=across_SMOTE,
                                           aug_technique=aug_technique,
+                                          bacc_control=bacc_control, bacc_std_control=bacc_std_control,
+                                          sens_control=sens_control, sens_std_control=sens_std_control,
                                           save_img=save_img)
-
 
     def printResults(self, experiment_name, y_true_path=None, smote_ratios=None, aug_ratios=None, measure='sensitivity',
                      printSTDTable=False, LaTeX=False, across_SMOTE=True):
@@ -1260,7 +1279,6 @@ class getResults:
                         y_pred_dict[aug_ratio][smote_ratio][artifact][model] = y_pred
 
         return y_pred_dict
-
 
     def getCorrelation(self, aug_ratio=0, smote_ratio=1, artifact=None, models=None, print_matrix=True):
 
@@ -1505,7 +1523,8 @@ class getResults:
 
             fig.show()
 
-    def plotAllModelsBestAug(self, experiment_name: object, aug_technique: object, y_true_path: object = None, smote_ratios: object = None,
+    def plotAllModelsBestAug(self, experiment_name: object, aug_technique: object, y_true_path: object = None,
+                             smote_ratios: object = None,
                              aug_ratios: object = None,
                              measure: object = 'balanced_acc', save_img: object = False) -> object:
         across_SMOTE = False
@@ -1526,10 +1545,10 @@ class getResults:
 
         # This function will plot results created in the augmentation experiment (with aug. ratio key in the dict)
         self.plotResultsHelper(performances_dict=performances, errors_dict=errors,
-                                     experiment=self.experiment, smote_ratios=smote_ratios,
-                                     aug_ratios=aug_ratios, across_SMOTE=across_SMOTE,
-                                     save_img=save_img, aug_technique=aug_technique,
-                                     measure=measure)
+                               experiment=self.experiment, smote_ratios=smote_ratios,
+                               aug_ratios=aug_ratios, across_SMOTE=across_SMOTE,
+                               save_img=save_img, aug_technique=aug_technique,
+                               measure=measure)
 
 
 if __name__ == '__main__':
@@ -1549,7 +1568,7 @@ if __name__ == '__main__':
     fullSMOTE.plotResultsPlainExp(experiment_name=experiment_name, y_true_path=y_true_path, across_SMOTE=True,
                                   save_img=True)
 
-    fullSMOTE.printResults(measure="weighted_F2",
+    fullSMOTE.printResults(measure="sensitivity",
                            experiment_name=experiment_name,
                            y_true_path=y_true_path,
                            smote_ratios=[1],
