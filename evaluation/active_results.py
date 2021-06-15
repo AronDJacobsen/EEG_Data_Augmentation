@@ -16,7 +16,8 @@ class ActiveResults:
         self.basepath = self.slash.join(self.pickle_path.split(self.slash)[:-2])
 
         self.aug_ratios = [0, 0.5, 1, 1.5, 2]
-        self.smote_ratios = [smote_ratio + 1] # + 1 since the experiment running with smote and result-layout are not consistent
+        self.smote_ratios = [
+            smote_ratio + 1]  # + 1 since the experiment running with smote and result-layout are not consistent
         self.folds = [0, 1, 2, 3, 4]
         self.artifacts = ['eyem', 'chew', 'shiv', 'elpp', 'musc', 'null']
         self.models = ['LR']
@@ -40,7 +41,7 @@ class ActiveResults:
         all_results_dict = {}
 
         # Extract information from the original pickles from the experiments and save them in a new nested dictionary.
-        #file_names.append(file_names[0])
+        # file_names.append(file_names[0])
         for model_file in file_names:
             results = LoadNumpyPickles(self.pickle_path + self.slash, model_file, windowsOS=self.windowsOS)[()]
 
@@ -83,11 +84,10 @@ class ActiveResults:
         return all_results_dict
 
 
-
-def plotActiveResults(dictionary, init_percent, n_pr_query_percent, measures=['F2'], aug_ratios=None, control_values=None, control_std=None, aug_method=None):
-
+def plotActiveResults(dictionary, init_percent, n_pr_query_percent, measures=['F2'], aug_ratios=None,
+                      control_values=None, control_std=None, aug_method=None):
     if aug_ratios == None:
-        aug_ratios = [0,0.5,1,1.5,2]
+        aug_ratios = [0, 0.5, 1, 1.5, 2]
 
     artifact_names = ['eyem', 'chew', 'shiv', 'elpp', 'musc', 'null']
 
@@ -103,7 +103,8 @@ def plotActiveResults(dictionary, init_percent, n_pr_query_percent, measures=['F
     if control_std == None:
         control_std = len(artifacts) * [0]
 
-    artifact = artifacts[0] #TODO: Currently saving the data without using this index since accumulated scores are wrongly appended to list in pipeline
+    artifact = artifacts[
+        0]  # TODO: Currently saving the data without using this index since accumulated scores are wrongly appended to list in pipeline
 
     offset_errorbar = np.linspace(-0.002, 0.002, len(aug_ratios))
 
@@ -129,14 +130,13 @@ def plotActiveResults(dictionary, init_percent, n_pr_query_percent, measures=['F
                                     artifact_number += 1
                                     art = artifact_names[artifact_number]
 
-                                #if fold == 0 :
+                                # if fold == 0 :
                                 if dict_for_plots[art][init_percent + i * n_pr_query_percent] == {}:
                                     dict_for_plots[art][init_percent + i * n_pr_query_percent] = [element[1]]
                                 else:
                                     dict_for_plots[art][init_percent + i * n_pr_query_percent].append(element[1])
 
                                 i += 1
-
 
                     for artifact in artifacts:
                         mu, error = [], []
@@ -156,31 +156,34 @@ def plotActiveResults(dictionary, init_percent, n_pr_query_percent, measures=['F
                 errors_list = scores_results[artifact][measure][aug_ratio]['error']
                 errors = np.array([err[1] for err in errors_list])
 
-                #plt.plot(*tuple(np.array(scores_list).T), color=color_list[c])
+                # plt.plot(*tuple(np.array(scores_list).T), color=color_list[c])
 
                 xs, ys = tuple(np.array(scores_list).T)
 
                 if aug_method != None:
-                    plt.errorbar(xs + offset_errorbar[c], ys, yerr=errors, color=color_list[c], label=f"{aug_method}: {aug_ratio}")
+                    plt.errorbar(xs + offset_errorbar[c], ys, yerr=errors, color=color_list[c],
+                                 label=f"{aug_method}: {aug_ratio}")
                 else:
                     plt.errorbar(xs, ys, yerr=errors, color=color_list[c], label=f"W/O augmentation")
                 plt.ylim(bottom=0, top=1)
 
-            plt.hlines(xmin=init_percent, xmax=init_percent + n_pr_query_percent * (i-1), y = control_values[artifact], colors = 'grey', linestyles = "--", label=f"Control exp. mean: {control_values[artifact]}")
-            plt.gca().fill_between(xs, control_values[artifact] - 1 * control_std[artifact], control_values[artifact] + 1 * control_std[artifact], color='lightblue', alpha=0.5,
+            plt.hlines(xmin=init_percent, xmax=init_percent + n_pr_query_percent * (i - 1), y=control_values[artifact],
+                       colors='grey', linestyles="--", label=f"Control exp. mean: {control_values[artifact]}")
+            plt.gca().fill_between(xs, control_values[artifact] - 1 * control_std[artifact],
+                                   control_values[artifact] + 1 * control_std[artifact], color='lightblue', alpha=0.5,
                                    label=fr"Control exp. dev.: 2 $\sigma$ ($\sigma$={control_std[artifact]})")
             plt.legend(loc='lower left')
             plt.xlabel("Percentage of pool used in training data")
             plt.ylabel(f"Performance: {measure}")
-            plt.title(f"{artifact}, SMOTE: {smote_ratio-1}")
+            plt.title(f"{artifact}, SMOTE: {smote_ratio - 1}")
             savepath = ("\\").join(dir.split("\\")[:-1]) + r"\Plots" + r"\active_plots"
             os.makedirs(savepath, exist_ok=True)
-            plt.savefig(savepath + fr"\SMOTE{smote_ratio-1}_init{init_percent}_query{n_pr_query_percent}_art{artifact}_metric{measure}.png")
+            plt.savefig(
+                savepath + fr"\SMOTE{smote_ratio - 1}_init{init_percent}_query{n_pr_query_percent}_art{artifact}_metric{measure}.png")
             plt.show()
 
 
 def plotActiveBalance(dictionary, init_percent, n_pr_query_percent, measures=['F2'], aug_method=None):
-
     if aug_method == None:
         raise AttributeError("Augmentation technique not specified!")
 
@@ -193,7 +196,8 @@ def plotActiveBalance(dictionary, init_percent, n_pr_query_percent, measures=['F
     models = list(dictionary[aug_ratios[0]][smote_ratios[0]][folds[0]][artifacts[0]].keys())
     scores = list(dictionary[aug_ratios[0]][smote_ratios[0]][folds[0]][artifacts[0]][models[0]].keys())
 
-    artifact = artifacts[0]  # TODO: Currently saving the data without using this index since accumulated scores are wrongly appended to list in pipeline
+    artifact = artifacts[
+        0]  # TODO: Currently saving the data without using this index since accumulated scores are wrongly appended to list in pipeline
 
     offset_errorbar = np.linspace(-0.002, 0.002, len(aug_ratios))
 
@@ -245,7 +249,7 @@ def plotActiveBalance(dictionary, init_percent, n_pr_query_percent, measures=['F
             errors = np.array([err[1] for err in errors_list])
 
             plt.plot(*tuple(np.array(scores_list).T), color=color_list[c])
-            #plt.ylim(bottom=0, top=1)
+            # plt.ylim(bottom=0, top=1)
             xs, ys = tuple(np.array(scores_list).T)
 
             plt.errorbar(xs + offset_errorbar[c], ys, yerr=errors, color=color_list[c],
@@ -256,7 +260,6 @@ def plotActiveBalance(dictionary, init_percent, n_pr_query_percent, measures=['F
         plt.ylabel(f"Balance (present / absent)")
         plt.title(f"{artifact}")
         plt.show()
-
 
 
 if __name__ == '__main__':
@@ -271,12 +274,14 @@ if __name__ == '__main__':
 
     control_values_artifact = {'eyem': 0.8, 'chew': 0.93, 'shiv': 0.91, 'elpp': 0.8, 'musc': 0.82, 'null': 0.76}
     control_std = {'eyem': 0.02, 'chew': 0.02, 'shiv': 0.03, 'elpp': 0.03, 'musc': 0.04, 'null': 0.03}
-    plotActiveResults(active_dict, init_percent=0.1, n_pr_query_percent=0.01, aug_ratios=[0], control_values=control_values_artifact, control_std=control_std, measures=['F2'], aug_method=None)
+    plotActiveResults(active_dict, init_percent=0.1, n_pr_query_percent=0.01, aug_ratios=[0],
+                      control_values=control_values_artifact, control_std=control_std, measures=['F2'], aug_method=None)
 
     control_values_artifact = {'eyem': 0.72, 'chew': 0.81, 'shiv': 0.49, 'elpp': 0.49, 'musc': 0.6, 'null': 0.75}
     control_std = {'eyem': 0.04, 'chew': 0.06, 'shiv': 0.34, 'elpp': 0.11, 'musc': 0.11, 'null': 0.03}
-    plotActiveResults(active_dict, init_percent=0.1, n_pr_query_percent=0.01, aug_ratios=[0], control_values=control_values_artifact, control_std=control_std, measures=['sensitivity'], aug_method=None)
-
+    plotActiveResults(active_dict, init_percent=0.1, n_pr_query_percent=0.01, aug_ratios=[0],
+                      control_values=control_values_artifact, control_std=control_std, measures=['sensitivity'],
+                      aug_method=None)
 
     # Example of merging fully created files from different models.
     experiment = "activeefficiency_experiment_smote1"  # directory containing the files we will look at
@@ -288,14 +293,14 @@ if __name__ == '__main__':
     control_values_artifact = {'eyem': 0.8, 'chew': 0.93, 'shiv': 0.91, 'elpp': 0.8, 'musc': 0.82, 'null': 0.76}
     control_std = {'eyem': 0.02, 'chew': 0.02, 'shiv': 0.03, 'elpp': 0.03, 'musc': 0.04, 'null': 0.03}
     plotActiveResults(active_dict, init_percent=0.1, n_pr_query_percent=0.025,
-                      control_values=control_values_artifact, control_std=control_std, measures=['F2'], aug_method='MixUp')
+                      control_values=control_values_artifact, control_std=control_std, measures=['F2'],
+                      aug_method='MixUp')
 
     control_values_artifact = {'eyem': 0.72, 'chew': 0.81, 'shiv': 0.49, 'elpp': 0.49, 'musc': 0.6, 'null': 0.75}
     control_std = {'eyem': 0.04, 'chew': 0.06, 'shiv': 0.34, 'elpp': 0.11, 'musc': 0.11, 'null': 0.03}
     plotActiveResults(active_dict, init_percent=0.1, n_pr_query_percent=0.025,
                       control_values=control_values_artifact, control_std=control_std, measures=['sensitivity'],
                       aug_method='MixUp')
-
 
     experiment = "act"
     experiment_name = "multiple_augRatios"
@@ -325,17 +330,17 @@ if __name__ == '__main__':
     models = active.models  # 'GNB'
 
     y_pred_dict = active.getPredictions(models=models,
-                                           aug_ratios=[0],
-                                           smote_ratios=[smote_ratio],
-                                           artifacts=artifacts)
+                                        aug_ratios=[0],
+                                        smote_ratios=[smote_ratio],
+                                        artifacts=artifacts)
     y_pred_dict = active.compressDict(y_pred_dict, smote_ratio=1, aug_ratio=0)
 
     # fullSMOTE.printScores(pred_dict=y_pred_dict, y_true_filename="y_true_5fold_randomstate_0", model='LDA',
     #                      artifacts=artifacts, ensemble=False, print_confusion=True)
 
     active.plot_multi_label_confusion(pred_dict=y_pred_dict, y_true_filename="y_true_5fold_randomstate_0",
-                                         models=models,
-                                         artifacts=active.artifacts, smote_ratio=smote_ratio - 1, ensemble=False)
+                                      models=models,
+                                      artifacts=active.artifacts, smote_ratio=smote_ratio - 1, ensemble=False)
 
     # Kør forsøg med n_queries på 0.25 % af poolen og op til 30% af poolen.
 

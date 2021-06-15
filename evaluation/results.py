@@ -110,7 +110,7 @@ class getResults:
         print(f"\n ---> Pickle path changed to: {self.pickle_path}")
 
     def mergeResultFiles(self, file_name="merged", merge_smote_files=False, merge_aug_files=False, exclude_models=None,
-                         merge_smote=False, model_name='AdaBoost'):
+                         merge_smote=False, model_name='AdaBoost', ensemble_files=[]):
 
         if self.merged_file == False:
             raise Exception("Merged file set to 'False'")
@@ -118,10 +118,22 @@ class getResults:
             if exclude_models is None:
                 exclude_models = ['baseline_major']
 
-            # Find files to be merged
-            file_path = (self.slash).join([self.basepath, "performance", self.experiment, ""])
-            file_names = [results_file.split(self.slash)[-1] for results_file in
-                          glob.glob(file_path + "**")]
+            if ensemble_files != []:
+                file_names = []
+                pickle_paths = []
+                for experiment in ensemble_files:
+                    file_path = (self.slash).join([self.basepath, "performance", experiment, ""])
+                    file_names.append([results_file.split(self.slash)[-1] for results_file in
+                              glob.glob(file_path + "**")])
+
+                    path1 = (self.slash).join(self.pickle_path.split(self.slash)[:-1])
+                    pickle_paths.append((self.slash).join([path1, experiment]))
+                file_names = list(np.concatenate(file_names))
+            else:
+                # Find files to be merged
+                file_path = (self.slash).join([self.basepath, "performance", self.experiment, ""])
+                file_names = [results_file.split(self.slash)[-1] for results_file in
+                              glob.glob(file_path + "**")]
 
             if len(file_names) == 0:
                 raise FileNotFoundError("There are no files in the specified directory.")
@@ -131,8 +143,12 @@ class getResults:
 
             # Extract information from the original pickles from the experiments and save them in a new nested dictionary.
             file_names.append(file_names[0])
-            for model_file in file_names:
-                results = LoadNumpyPickles(self.pickle_path + self.slash, model_file, windowsOS=self.windowsOS)[()]
+            for model_idx, model_file in enumerate(file_names):
+
+                if ensemble_files != []:
+                    results = LoadNumpyPickles(pickle_paths[model_idx] + self.slash, model_file, windowsOS=self.windowsOS)[()]
+                else:
+                    results = LoadNumpyPickles(self.pickle_path + self.slash, model_file, windowsOS=self.windowsOS)[()]
 
                 if merge_aug_files and merge_smote_files:
                     raise AttributeError("Only possible to merge one file-type at a time!")
@@ -592,7 +608,7 @@ class getResults:
                 plt.show()
                 # ax1.subplots_adjust(bottom=0.2, right=0.75)
             print("Best augmentation ratios (excluding 0)")
-            print(best_augRatios)
+            print(best_augRatios.to_latex())
 
             LaTeX = True
 
@@ -921,8 +937,6 @@ class getResults:
                              yerr=best_errors[:, indv_model],
                              fmt='.', color='k')
 
-                print(best_augRatios.iloc[:, indv_model])
-
                 models = self.models
 
             # ax1.set_xticks(np.arange(len(self.artifacts)), self.artifacts)#, rotation=-15)
@@ -1246,6 +1260,7 @@ class getResults:
                         y_pred_dict[aug_ratio][smote_ratio][artifact][model] = y_pred
 
         return y_pred_dict
+
 
     def getCorrelation(self, aug_ratio=0, smote_ratio=1, artifact=None, models=None, print_matrix=True):
 
