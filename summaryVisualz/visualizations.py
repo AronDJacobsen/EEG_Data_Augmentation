@@ -1,7 +1,7 @@
 import numpy as np
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
-from bioinfokit.visuz import cluster
+#from bioinfokit.visuz import cluster
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from prepData.dataLoader import LoadNumpyPickles
@@ -221,8 +221,11 @@ def investigateAugmentation(X, y, X_aug, y_aug, colors, artifact, method, view_c
 if __name__ == '__main__':
 
     random_state_val = 0
-    windowsOS = True
-    pickle_path = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia"
+    windowsOS = False
+    #pickle_path = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia"
+    pickle_path = r"/Users/Jacobsen/Documents/GitHub/EEG_epilepsia" + "/"
+
+
 
     #Pick artifact for investigation
     artifact = 'eyem'
@@ -243,6 +246,7 @@ if __name__ == '__main__':
 
     artifact_names = ['eyem', 'chew', 'shiv', 'elpp', 'musc', 'null']
     artifact_pos = [i for i, name in enumerate(artifact_names) if name==artifact][0]
+
 
     y = y[:, artifact_pos]
 
@@ -298,11 +302,15 @@ if __name__ == '__main__':
 
 
     # Noise addition - most of this code is just taken from the pipeline...
-    pickle_path_aug = pickle_path + r"\augmentation_pickles"
+    if windowsOS:
+        pickle_path_aug = pickle_path + r"\augmentation_pickles"
+        noise_experiment = r"\whitenoise_covarOne"
+    else:
+        pickle_path_aug = pickle_path + "augmentation_pickles" + "/"
+        noise_experiment = "whitenoise_covarOne" + "/"
 
-    experiment = 'DataAug_white_noiseAdd_LR'  # 'DataAug_color_noiseAdd_LR'
-    experiment_name = "_DataAug_white_Noise"  # "_DataAug_color_Noise" added to saving files
-    noise_experiment = r"\whitenoise_covarOne"
+    #experiment = 'DataAug_white_noiseAdd_LR'  # 'DataAug_color_noiseAdd_LR'
+    #experiment_name = "_DataAug_white_Noise"  # "_DataAug_color_Noise" added to saving files
 
     X_noise = LoadNumpyPickles(pickle_path_aug + noise_experiment, file_name=X_file, windowsOS=windowsOS)
     y_noise = LoadNumpyPickles(pickle_path_aug + noise_experiment, file_name=y_file, windowsOS=windowsOS)
@@ -349,7 +357,7 @@ if __name__ == '__main__':
     y_onehot_encoded = OneHotEncoder(sparse=False).fit_transform(y_under.reshape(len(y_under), 1))
 
     # Running mixup
-    mix_X, mix_y, _ = mixup(X_under, y_onehot_encoded, ratio)
+    mix_X, mix_y, _ = mixup(X_under, y_onehot_encoded, ratio) # only the augmented
 
     # Undoing the onehot-encoding
     mix_y = np.argmax(mix_y, axis=1)

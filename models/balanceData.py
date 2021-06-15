@@ -55,7 +55,7 @@ def binary(X, y, ID_frame):
 
 
 
-def smote(X, y, multi, state):
+def smote(X, y, multi, state, k_neighbors=None):
 
     #undersample majority
     #balance_b = Counter(y)
@@ -65,7 +65,10 @@ def smote(X, y, multi, state):
 
 
     #oversample minority
-    over = SMOTE(random_state = state) # increase minority to have % of majority
+    if k_neighbors != None:
+        over = SMOTE(random_state = state, k_neighbors=k_neighbors) # increase minority to have % of majority
+    else:
+        over = SMOTE(random_state = state) # increase minority to have % of majority
 
     X_over, y_over = over.fit_resample(X, y)
     # how is the balance now?
