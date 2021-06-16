@@ -52,16 +52,19 @@ if __name__ == '__main__':
     pd.set_option("display.max_rows", None, "display.max_columns", None)
 
     #Albert
-    dir = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia"
-    y_true_path = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia\results\y_true"
+    #dir = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia"
+    #y_true_path = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia\results\y_true"
+    #windowsOS = True
+
 
     #Aron
-    #dir = r"/Users/Jacobsen/Documents/GitHub/EEG_epilepsia" + "/"
-    #y_true_path = r"/Users/Jacobsen/Documents/GitHub/EEG_epilepsia/results/y_true" + "/"
+    dir = r"/Users/Jacobsen/Documents/GitHub/EEG_epilepsia" + "/"
+    y_true_path = r"/Users/Jacobsen/Documents/GitHub/EEG_epilepsia/results/y_true" + "/"
+    windowsOS = False
 
 
-    windowsOS = True
-
+    #methods = ["colorNoise", "whiteNoise", "GAN", "MixUp"]
+    methods = ["MixUp"] # fast run
 
     #smote(T/F), best_model, best_ratio
     #hardcoding
@@ -103,13 +106,20 @@ if __name__ == '__main__':
         }
     }
 
+    best_control = {
+        'eyem': 'LDA',
+        'chew': 'LR',
+        'shiv': 'RF',
+        'elpp': 'RF',
+        'musc': 'RF',
+        'null': 'SGD'
+    }
+
     artifact_names = ['eyem', 'chew', 'shiv', 'elpp', 'musc', 'null']
 
     #experiments = ["colorNoiseimprovement", "whiteNoiseimprovement", "GANimprovement", "MixUpimprovement"]
     #experiments = ["augmentation_colorNoise", "augmentation_whiteNoise", "augmentation_GAN", "augmentation_MixUp"]
 
-    methods = ["colorNoise", "whiteNoise", "GAN", "MixUp"]
-    #methods = ["MixUp"]
 
     df = pd.DataFrame(columns=artifact_names, index=methods)
 
@@ -155,6 +165,8 @@ if __name__ == '__main__':
             #finding best for this artifact and method
             smote, best_model, best_ratio = best[method][artifact]
 
+            best_control_model = best_control[artifact]
+
             #getting predictions
 
             if not smote: # if augmentation was best model
@@ -164,9 +176,9 @@ if __name__ == '__main__':
                 # best models predictions
                 B = y[best_model][artifact]
 
-                y_c = obj_aug.getPredictions(models=[best_model], aug_ratios=[0], smote_ratios = [1], withFolds=False)
+                y_c = obj_aug.getPredictions(models=[best_control_model], aug_ratios=[0], smote_ratios = [1], withFolds=False)
                 y_c = obj_aug.compressDict(y_c, smote_ratio=1, aug_ratio=0)
-                A = y_c[best_model][artifact]
+                A = y_c[best_control_model][artifact]
 
             else: # if improvement was best model
                 # getting predictions
@@ -176,9 +188,9 @@ if __name__ == '__main__':
                 B = y[best_model][artifact]
 
                 #getting control predictions
-                y_c = obj_improv.getPredictions(models=[best_model], aug_ratios=[0], smote_ratios = [1], withFolds=False)
+                y_c = obj_improv.getPredictions(models=[best_control_model], aug_ratios=[0], smote_ratios = [1], withFolds=False)
                 y_c = obj_improv.compressDict(y_c, smote_ratio=1, aug_ratio=0)
-                A = y_c[best_model][artifact]
+                A = y_c[best_control_model][artifact]
 
             # McNemar, from toolbox in data mining course
             [thetahat, CI, p] = mcnemar(y_true, A, B, alpha = 0.05)
