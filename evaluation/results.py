@@ -22,6 +22,9 @@ class getResults:
 
         self.experiment = experiment
         self.pickle_path = (self.slash).join([dir, "results", "performance", experiment])
+        if not windowsOS:
+            self.pickle_path = (self.slash).join([dir[:-1], "results", "performance", experiment])
+
         self.merged_file = merged_file
 
         self.experiment_name = experiment_name
@@ -146,8 +149,7 @@ class getResults:
             for model_idx, model_file in enumerate(file_names):
 
                 if ensemble_files != []:
-                    results = \
-                    LoadNumpyPickles(pickle_paths[model_idx] + self.slash, model_file, windowsOS=self.windowsOS)[()]
+                    results = LoadNumpyPickles(pickle_paths[model_idx] + self.slash, model_file, windowsOS=self.windowsOS)[()]
                 else:
                     results = LoadNumpyPickles(self.pickle_path + self.slash, model_file, windowsOS=self.windowsOS)[()]
 
@@ -1241,14 +1243,17 @@ class getResults:
 
         # Specifies basepath
         results_basepath = self.slash.join(self.pickle_path.split(self.slash)[:-2])
+
         exp = self.pickle_path.split(self.slash)[-1]
 
         # Loads merged file or not.
         if self.merged_file:
-            results_all = LoadNumpyPickles(
-                pickle_path=(self.slash).join([results_basepath, "merged_files", exp]),
-                file_name=self.slash + "results" + self.experiment_name + '.npy', windowsOS=self.windowsOS)
-            results_all = results_all[()]
+            if not self.windowsOS:
+                results_all = LoadNumpyPickles(pickle_path=(self.slash).join([results_basepath, "merged_files", exp])+'/', file_name=self.slash + "results" + self.experiment_name + '.npy', windowsOS=self.windowsOS)
+                results_all = results_all[()]
+            else:
+                results_all = LoadNumpyPickles(pickle_path=(self.slash).join([results_basepath, "merged_files", exp]), file_name=self.slash + "results" + self.experiment_name + '.npy', windowsOS=self.windowsOS)
+                results_all = results_all[()]
         else:
             results_all = LoadNumpyPickles(pickle_path=(self.slash).join([results_basepath, "performance", exp]),
                                            file_name=self.slash + "results" + self.experiment_name + '.npy',
