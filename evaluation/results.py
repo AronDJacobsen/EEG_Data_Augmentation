@@ -1311,47 +1311,6 @@ class getResults:
         # TODO: Insert lines here!
         raise NotImplementedError("CREATE THIS FUNCTION!")
 
-    def EnsemblePredictions(self, select_models, select_aug_ratios, select_smote_ratios, artifacts=None,
-                            withFolds=True):
-
-        if artifacts is None:
-            artifacts = self.artifacts
-
-        n_classifiers = len(select_models)
-        y_pred_dict = self.getPredictions(models=self.models,
-                                          aug_ratios=self.aug_ratios,
-                                          smote_ratios=self.smote_ratios,
-                                          artifacts=self.artifacts,
-                                          withFolds=withFolds)
-
-        ensemble_preds_art = defaultdict(dict)
-
-        for j in range(len(artifacts)):
-            ensemble_preds = []
-            for i in range(n_classifiers):
-                model_pred = y_pred_dict[select_aug_ratios[i]][select_smote_ratios[i]][artifacts[j]][select_models[i]]
-                ensemble_preds.append(model_pred)
-
-            # Hard voting classifier, since it is on class labels and not probability.
-            ensemble_preds = np.array(ensemble_preds)
-
-            print(f"\nCreating ensemble predictions for {artifacts[j]}")
-            ensemble_preds_gathered = []
-
-            if withFolds == False:
-                for lst in tqdm(ensemble_preds.T):
-                    ensemble_preds_gathered.append(Counter(lst).most_common(1)[0][0])
-                    ensemble_preds_art[artifacts[j]] = np.array(ensemble_preds_gathered)
-            else:
-                for i, fold in enumerate(self.folds):
-                    for point in tqdm(range(len(ensemble_preds[0, i]))):
-                        preds = []
-                        for m, model in enumerate(ensemble_preds[:, i]):
-                            preds.append(model[point])
-                        ensemble_preds_gathered.append(Counter(preds).most_common(1)[0][0])
-                        ensemble_preds_art[artifacts[j]][fold] = np.array(ensemble_preds_gathered)
-
-        return ensemble_preds_art
 
     def metrics_scores(self, y_true, y_pred):
         # zero_division sets it to 0 as default

@@ -1,4 +1,6 @@
 from results import *
+from tqdm import tqdm
+import seaborn as sns
 
 
 class getResultsEnsemble:
@@ -41,7 +43,7 @@ class getResultsEnsemble:
         artifact_smoteRatios = {artifact: [] for artifact in results_object.artifacts}
         artifact_predictions = {artifact: [] for artifact in results_object.artifacts}
 
-        for experiment, (smote_ratio, technique) in experiments.items():
+        for experiment, (smote_ratio, technique) in tqdm(experiments.items()):
             results_object = getResults(dir, experiment, experiment_name, merged_file=True, windowsOS=True)
             results_object.mergeResultFiles(file_name=experiment_name)
 
@@ -70,7 +72,7 @@ class getResultsEnsemble:
                         artifact_technique[artifact].append(technique)
                         artifact_predictions[artifact].append(preds)
 
-        for artifact in results_object.artifacts:
+        for artifact in tqdm(results_object.artifacts):
             order = np.argsort(-np.array(artifact_scores[artifact]))
 
             if N_best == None:
@@ -84,7 +86,7 @@ class getResultsEnsemble:
             belonging_aug = np.take(artifact_augRatios[artifact], order[:n])
             belonging_smote = np.take(artifact_smoteRatios[artifact], order[:n])
             belonging_technique = np.take(artifact_technique[artifact], order[:n])
-            belonging_preds = np.take(artifact_predictions[artifact], order[:n])
+            belonging_preds = np.take(artifact_predictions[artifact], order[:n], axis=0)
 
             artifact_scores[artifact] = best_scores
             artifact_errors[artifact] = belonging_error
@@ -215,20 +217,19 @@ class getResultsEnsemble:
 
         return pred_dict_new
 
-    def getCorrelation(self, y_pred_dict, artifact=None, latex=False):
+    def getCorrelation(self, bestDict, artifact=None, N_best=20, latex=False):
 
         if artifact == None:
             print("Please specify artifact!")
         else:
-            matrix = []
-            model_names = []
+            preds = bestDict['predictions'][artifact][:N_best]
+            model_names = np.arange(N_best) + 1
 
-            for (name, preds) in y_pred_dict[artifact]:
-                matrix.append(preds)
-                model_names.append(name)
+        corr_matrix = pd.DataFrame(np.corrcoef(preds), columns=model_names, index=model_names)
 
-
-        corr_matrix = pd.DataFrame(np.corrcoef(matrix), columns=model_names, index=model_names)
+        sns.heatmap(corr_matrix, cmap='Blues')
+        plt.title(artifact)
+        plt.show()
 
         print("#" * 80)
         print(f"Correlation matrix: class = {artifact}")
@@ -237,20 +238,14 @@ class getResultsEnsemble:
         else:
             print(corr_matrix)
 
-        mat_trans = np.transpose(matrix)
-
-        pred_check = [np.all(mat_trans[i] == 1) or np.all(mat_trans[i] == 0) for i in range(len(matrix))]
-        print(f"All models predictions are identical: {np.all(pred_check)}")
-
-
         return corr_matrix
 
-    def getMutualInformation(self, y_pred_dict, artifact=None):
+    def getMutualInformation(self, bestDict, artifact=None):
 
         if artifact == None:
             print("Please specify artifact!")
         else:
-            corr_matrix = self.getCorrelation(y_pred_dict=y_pred_dict, artifact='eyem')
+            corr_matrix = self.getCorrelation(bestDict=bestDict, artifact='eyem')
 
             # Formula from here: https://lips.cs.princeton.edu/correlation-and-mutual-information/
             I = -1 / 2 * np.log(1 - np.round(corr_matrix, 4) ** 2)
@@ -260,6 +255,49 @@ class getResultsEnsemble:
             print(I)
 
         return I
+
+    def EnsemblePredictions(self, bestDict, select_models, select_aug_ratios, select_smote_ratios, select_aug_techniques, artifact=None,
+                            withFolds=True):
+
+        select_smote_ratios = np.array(select_smote_ratios) + 1
+        if artifact is None:
+            raise AttributeError("Please specify artifact!")
+        else:
+
+            n_classifiers = len(select_models)
+            preds = []
+
+            for i in range(n_classifiers):
+                model_pos = np.where(bestDict['models'][artifact] == select_models[i])
+                tech_pos = np.where(bestDict['technique'][artifact] == select_aug_techniques[i])
+                aug_pos = np.where(bestDict['augRatios'][artifact] == select_aug_ratios[i])
+                smote_pos = np.where(bestDict['smote_ratios'][artifact] == select_smote_ratios[i])
+
+                temp = np.intersect1d(model_pos, tech_pos)
+                temp = np.intersect1d(temp, aug_pos)
+                temp = np.intersect1d(temp, smote_pos)
+
+                preds.append(bestDict['predictions'][artifact][temp])
+
+            print(f"\nCreating ensemble predictions for {artifact}")
+            ensemble_preds = []
+
+            preds = np.array([arr[0] for arr in preds])
+
+            #TODO: SOMETHING WRONG WITH CONVERTION TO LIST - just need to do the majority vote, then all is set.
+            if withFolds == False:
+                for arr in tqdm(preds):
+                    ensemble_preds.append(Counter(arr.to_list()[0]).most_common(1)[0][0])
+            else:
+                for i, fold in enumerate(self.folds):
+                    for point in tqdm(range(len(ensemble_preds[0, i]))):
+                        preds = []
+                        for m, model in enumerate(ensemble_preds[:, i]):
+                            preds.append(model[point])
+                        ensemble_preds_gathered.append(Counter(preds).most_common(1)[0][0])
+                        ensemble_preds_art[artifacts[j]][fold] = np.array(ensemble_preds_gathered)
+
+            return ensemble_preds
 
     def plotAugTechnique(self, bestDict, mean=True, max_Aug=False, smote_ratio=None, measure='Balanced acc', artifacts=None, exclude_baseline=True):
 
@@ -470,12 +508,13 @@ class getResultsEnsemble:
 
     def printNBestModels(self, bestDict, N_best=20, exclude_baseline=False, exclude_zero_aug=False):
 
+
         for artifact in self.artifacts:
             print("\n" + 100 * "-")
             print(f"Artifact: {artifact}\n")
 
             i = 0
-            stop = 0
+            stop = 1
             while stop < N_best:
                 tech = bestDict['technique'][artifact][i]
                 if exclude_zero_aug == False:
@@ -579,7 +618,7 @@ if __name__ == '__main__':
     measure = 'balanced_acc'
     N_best = 20
 
-    loadedBestDictName = None #slash + "orderedPredictions_AllBestbalanced_acc.npy"
+    loadedBestDictName = slash + "orderedPredictions_20balanced_acc.npy"
     bestDictPicklepath = (slash).join([dir, "results", experiment_name])
 
     if loadedBestDictName == None:
@@ -593,18 +632,24 @@ if __name__ == '__main__':
     ensembleExp.printNBestModels(bestDict=bestDict, N_best=N_best, exclude_baseline=True)
     ensembleExp.plotAugTechnique(bestDict=bestDict, mean=True, max_Aug=False, measure=measure, exclude_baseline=True)
 
-    y_pred_dict = ensembleExp.getPredictionsEnsemble(best_pred_dict=bestDict, experiments=experiments, N_best=N_best, artifacts=None)
-    y_pred_dict = ensembleExp.compressDict(y_pred_dict)
+    #y_pred_dict = ensembleExp.getPredictionsEnsemble(best_pred_dict=bestDict, experiments=experiments, N_best=N_best, artifacts=None)
+    #y_pred_dict = ensembleExp.compressDict(y_pred_dict)
 
-    corr_matrix = ensembleExp.getCorrelation(y_pred_dict=y_pred_dict, artifact='eyem')
-    corr_matrix = ensembleExp.getCorrelation(y_pred_dict=y_pred_dict, artifact='null')
+    corr_matrix = ensembleExp.getCorrelation(bestDict=bestDict, N_best=5, artifact='eyem')#, latex=True)
 
-    MI = ensembleExp.getMutualInformation(y_pred_dict=y_pred_dict, artifact='eyem')
+    MI = ensembleExp.getMutualInformation(bestDict=bestDict, artifact='eyem')
 
     # The input should be a list of models, a list of aug_ratios for each model and a list of smote_ratios for each
     # model. For future experiments it should take a list with augmentation_techniques in as well.
-    ensemble_pred_dict = fullSMOTE.EnsemblePredictions(['LDA', 'GNB', 'MLP', 'LR', 'SGD'], [0, 0, 0, 0, 0],
-                                                       [1, 1, 1, 1, 1], withFolds=False)
+    ensemble_pred_dict = ensembleExp.EnsemblePredictions(bestDict=bestDict,
+                                                         artifact='eyem',
+                                                         select_models =['RF', 'RF', 'RF', 'RF', 'RF'],
+                                                         select_aug_techniques=['white', 'MixUp', 'color', 'color', 'white'],
+                                                         select_aug_ratios=[1.5, 1, 0.5, 0, 1],
+                                                         select_smote_ratios=[1, 0, 0, 0, 1],
+                                                         withFolds=False)
+
+    #TODO: Implement predictions across folds - need to be handled in the findNBestModels
 
 """
     # TODO: Implement function to calculate standard error of the ensemble method!

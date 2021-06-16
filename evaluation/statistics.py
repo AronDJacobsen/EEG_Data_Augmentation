@@ -93,7 +93,8 @@ if __name__ == '__main__':
     #error rate 1(simple) or error rate 2(the nn scores)
     er1 = False
 
-    methods = ["colorNoise", "whiteNoise", "GAN", "MixUp"]
+    #methods = ["colorNoise", "whiteNoise", "GAN", "MixUp"]
+    methods = ["MixUp", "GAN", "whiteNoise", "colorNoise"] # In line with report setup
     #methods = ["MixUp"] # fast run
 
 
@@ -188,7 +189,7 @@ if __name__ == '__main__':
         artifact_list = []
 
         for j, artifact in enumerate(artifact_names):
-            print(artifact)
+            print(f"\n{artifact}")
             # y true predictions
             if t_test:
                 y_true = y_true_dict[artifact]
@@ -202,30 +203,35 @@ if __name__ == '__main__':
             smote, best_model, best_ratio = best[method][artifact]
 
             best_control_model = best_control[artifact]
+            smote_val = int(smote) + 1
+
+
+            # Getting control predictions
+            y_c = obj_aug.getPredictions(models=[best_control_model], aug_ratios=[0], smote_ratios=[1],
+                                         withFolds=with_folds)
+            y_c = obj_aug.compressDict(y_c, smote_ratio=1, aug_ratio=0)
+            A = y_c[best_control_model][artifact]
 
             #getting predictions
             if not smote: # if augmentation was best model
                 # getting predictions
-                y = obj_aug.getPredictions(models=[best_model], aug_ratios=[best_ratio], smote_ratios = [1],  withFolds=with_folds)
-                y = obj_aug.compressDict(y, smote_ratio=1, aug_ratio=best_ratio)
+                y = obj_aug.getPredictions(models=[best_model], aug_ratios=[best_ratio], smote_ratios = [smote_val],  withFolds=with_folds)
+                y = obj_aug.compressDict(y, smote_ratio=smote_val, aug_ratio=best_ratio)
                 # best models predictions
                 B = y[best_model][artifact]
 
-                y_c = obj_aug.getPredictions(models=[best_control_model], aug_ratios=[0], smote_ratios = [1], withFolds=with_folds)
-                y_c = obj_aug.compressDict(y_c, smote_ratio=1, aug_ratio=0)
-                A = y_c[best_control_model][artifact]
-
             else: # if improvement was best model
                 # getting predictions
-                y = obj_improv.getPredictions(models=[best_model], aug_ratios=[best_ratio], smote_ratios = [1],  withFolds=with_folds)
-                y = obj_improv.compressDict(y, smote_ratio=1, aug_ratio=best_ratio)
+                y = obj_improv.getPredictions(models=[best_model], aug_ratios=[best_ratio], smote_ratios = [smote_val],  withFolds=with_folds)
+                y = obj_improv.compressDict(y, smote_ratio=smote_val, aug_ratio=best_ratio)
                 # best models predictions
                 B = y[best_model][artifact]
 
                 #getting control predictions
-                y_c = obj_improv.getPredictions(models=[best_control_model], aug_ratios=[0], smote_ratios = [1], withFolds=with_folds)
-                y_c = obj_improv.compressDict(y_c, smote_ratio=1, aug_ratio=0)
-                A = y_c[best_control_model][artifact]
+                #y_c = obj_improv.getPredictions(models=[best_control_model], aug_ratios=[0], smote_ratios = [1], withFolds=with_folds)
+                #y_c = obj_improv.compressDict(y_c, smote_ratio=1, aug_ratio=0)
+                #A = y_c[best_control_model][artifact]
+
             if not t_test:
                 # McNemar, from toolbox in data mining course
                 [thetahat, CI, p] = mcnemar(y_true, A, B, alpha = 0.05)
