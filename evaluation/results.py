@@ -113,7 +113,7 @@ class getResults:
         print(f"\n ---> Pickle path changed to: {self.pickle_path}")
 
     def mergeResultFiles(self, file_name="merged", merge_smote_files=False, merge_aug_files=False, exclude_models=None,
-                         merge_smote=False, model_name='AdaBoost', ensemble_files=[]):
+                         merge_smote=False, model_name='AdaBoost', ensemble_experiments=[]):
 
         if self.merged_file == False:
             raise Exception("Merged file set to 'False'")
@@ -121,18 +121,23 @@ class getResults:
             if exclude_models is None:
                 exclude_models = ['baseline_major']
 
-            if ensemble_files != []:
+            if ensemble_experiments != []:
                 file_names = []
-                pickle_paths = []
-                for experiment in ensemble_files:
+                pickle_paths = defaultdict(dict)
+                #scores = {}
+                for experiment in ensemble_experiments:
                     file_path = (self.slash).join([self.basepath, "performance", experiment, ""])
-                    file_names.append([results_file.split(self.slash)[-1] for results_file in
-                                       glob.glob(file_path + "**")])
 
-                    path1 = (self.slash).join(self.pickle_path.split(self.slash)[:-1])
-                    pickle_paths.append((self.slash).join([path1, experiment]))
-                file_names = list(np.concatenate(file_names))
+                    for results_file in glob.glob(file_path + "**"):
+                        path1 = (self.slash).join(self.pickle_path.split(self.slash)[:-1])
+                        name = results_file.split(self.slash)[-1]
+
+                        file_names.append(name)
+                        pickle_paths[name] = (self.slash).join([path1, experiment])
+
+
             else:
+                ensemble_experiments = [self.experiment]
                 # Find files to be merged
                 file_path = (self.slash).join([self.basepath, "performance", self.experiment, ""])
                 file_names = [results_file.split(self.slash)[-1] for results_file in
@@ -143,139 +148,89 @@ class getResults:
 
             i = 0
             all_results_dict = {}
+            all_results_dict_ensemble = {}
 
             # Extract information from the original pickles from the experiments and save them in a new nested dictionary.
             file_names.append(file_names[0])
             for model_idx, model_file in enumerate(file_names):
 
-                if ensemble_files != []:
-                    results = LoadNumpyPickles(pickle_paths[model_idx] + self.slash, model_file, windowsOS=self.windowsOS)[()]
+                if len(ensemble_experiments) != 1:
+                    pickle_path = pickle_paths[model_file]
+                    results = LoadNumpyPickles(pickle_path + self.slash, model_file, windowsOS=self.windowsOS)[()]
                 else:
                     results = LoadNumpyPickles(self.pickle_path + self.slash, model_file, windowsOS=self.windowsOS)[()]
 
                 if merge_aug_files and merge_smote_files:
                     raise AttributeError("Only possible to merge one file-type at a time!")
 
-                # Rereference the dictionary. The if-statements are created to ensure that the accumulated dictionary is not
-                # overwritten when looping through either aug_ratios, smote_ratios, etc.
-
-                """
-                if merge_smote_files:
-                    for aug_ratio in self.aug_ratios:
-                        if i == 0:  # This line makes the difference
-                            all_results_dict[aug_ratio] = defaultdict(dict)
-                        for ratio in self.smote_ratios:
-                            all_results_dict[aug_ratio][ratio] = defaultdict(dict)
-                            for fold in self.folds:
-                                all_results_dict[aug_ratio][ratio][fold] = defaultdict(dict)
-                                for artifact in self.artifacts:
-                                    all_results_dict[aug_ratio][ratio][fold][artifact] = defaultdict(dict)
-                                    for model in self.models:
-                                        all_results_dict[aug_ratio][ratio][fold][artifact][model] = defaultdict(dict)
-                                        if model in exclude_models:
-                                            pass
-                                        else:
-                                            try:
-                                                all_results_dict[aug_ratio][ratio][fold][artifact][model] = \
-                                                    results[aug_ratio][ratio][fold][artifact][model]
-                                            except KeyError:
-                                                pass
-
-                elif merge_aug_files:
-                    for aug_ratio in self.aug_ratios:  # Default dictionary is set from the start so no problem here
-                        all_results_dict[aug_ratio] = defaultdict(dict)
-                        for ratio in self.smote_ratios:
-                            all_results_dict[aug_ratio][ratio] = defaultdict(dict)
-                            for fold in self.folds:
-                                all_results_dict[aug_ratio][ratio][fold] = defaultdict(dict)
-                                for artifact in self.artifacts:
-                                    all_results_dict[aug_ratio][ratio][fold][artifact] = defaultdict(dict)
-                                    for model in self.models:
-                                        all_results_dict[aug_ratio][ratio][fold][artifact][model] = defaultdict(dict)
-                                        if model in exclude_models:
-                                            pass
-                                        else:
-                                            all_results_dict[aug_ratio][ratio][fold][artifact][model] = \
-                                                results[aug_ratio][ratio][fold][artifact][model]
-                
-                else:
-                    if i == 0:  # If merging full files we will first create a dictionary and continue to
-                        # the else-statement ...
-                        for aug_ratio in self.aug_ratios:
-                            all_results_dict[aug_ratio] = defaultdict(dict)
-                            for ratio in self.smote_ratios:
-                                all_results_dict[aug_ratio][ratio] = defaultdict(dict)
-                                for fold in self.folds:
-                                    all_results_dict[aug_ratio][ratio][fold] = defaultdict(dict)
-                                    for artifact in self.artifacts:
-                                        all_results_dict[aug_ratio][ratio][fold][artifact] = defaultdict(dict)
-                                        for model in self.models:
-                                            if model in exclude_models:
-                                                pass
-                                            else:
-                                                try:
-                                                    all_results_dict[aug_ratio][ratio][fold][artifact][model] = \
-                                                        results[aug_ratio][ratio][fold][artifact][model]
-                                                except KeyError:
-                                                    pass
-
-                    else:  # ... where we ensure that no keys get overwritten. Only functions when merging full model files, not smote
-                        for aug_ratio in self.aug_ratios:
-                            for ratio in self.smote_ratios:
-                                for fold in self.folds:
-                                    for artifact in self.artifacts:
-                                        for model in self.models:
-                                            try:
-                                                all_results_dict[aug_ratio][ratio][fold][artifact][model] = \
-                                                    results[aug_ratio][ratio][fold][artifact][model]
-                                            except KeyError:
-                                                pass
-                    """
                 if i == 0:  # If merging full files we will first create a dictionary and continue to
                     # the else-statement ...
-                    for aug_ratio in self.aug_ratios:
-                        all_results_dict[aug_ratio] = defaultdict(dict)
-                        for ratio in self.smote_ratios:
-                            all_results_dict[aug_ratio][ratio] = defaultdict(dict)
-                            for fold in self.folds:
-                                all_results_dict[aug_ratio][ratio][fold] = defaultdict(dict)
-                                for artifact in self.artifacts:
-                                    all_results_dict[aug_ratio][ratio][fold][artifact] = defaultdict(dict)
-                                    for model in self.models:
-                                        all_results_dict[aug_ratio][ratio][fold][artifact][model] = defaultdict(dict)
-                                        try:
-                                            scores = results[aug_ratio][ratio][fold][artifact][model]
-                                            all_results_dict[aug_ratio][ratio][fold][artifact][model] = scores
+                    for ensemble_file in ensemble_experiments:
+                        all_results_dict_ensemble[ensemble_file] = defaultdict(dict)
+                        for aug_ratio in self.aug_ratios:
+                            all_results_dict[aug_ratio] = defaultdict(dict)
+                            all_results_dict_ensemble[ensemble_file][aug_ratio] = defaultdict(dict)
+                            for ratio in self.smote_ratios:
+                                all_results_dict[aug_ratio][ratio] = defaultdict(dict)
+                                all_results_dict_ensemble[ensemble_file][aug_ratio][ratio] = defaultdict(dict)
+                                for fold in self.folds:
+                                    all_results_dict[aug_ratio][ratio][fold] = defaultdict(dict)
+                                    all_results_dict_ensemble[ensemble_file][aug_ratio][ratio][fold] = defaultdict(dict)
+                                    for artifact in self.artifacts:
+                                        all_results_dict[aug_ratio][ratio][fold][artifact] = defaultdict(dict)
+                                        all_results_dict_ensemble[ensemble_file][aug_ratio][ratio][fold][artifact] = defaultdict(
+                                            dict)
 
-                                        except KeyError:
-                                            pass
+                                        for model in self.models:
+                                            all_results_dict[aug_ratio][ratio][fold][artifact][model] = defaultdict(dict)
+                                            all_results_dict_ensemble[ensemble_file][aug_ratio][ratio][fold][artifact][model] = defaultdict(dict)
+
+                                            try:
+                                                if len(ensemble_experiments) == 1:
+                                                    scores = results[aug_ratio][ratio][fold][artifact][model]
+                                                    all_results_dict[aug_ratio][ratio][fold][artifact][model] = scores
+                                                else:
+                                                    scores = results[aug_ratio][ratio][fold][artifact][model]
+                                                    all_results_dict_ensemble[ensemble_file][aug_ratio][ratio][fold][artifact][model] = scores
+
+                                            except KeyError:
+                                                pass
 
                 else:  # ... where we ensure that no keys get overwritten. Only functions when merging full model files, not smote
-                    for aug_ratio in self.aug_ratios:
-                        for ratio in self.smote_ratios:
-                            for fold in self.folds:
-                                for artifact in self.artifacts:
-                                    for model in self.models:
-                                        try:
-                                            scores = results[aug_ratio][ratio][fold][artifact][model]
-                                            all_results_dict[aug_ratio][ratio][fold][artifact][model] = scores
+                    for ensemble_file in ensemble_experiments:
+                        for aug_ratio in self.aug_ratios:
+                            for ratio in self.smote_ratios:
+                                for fold in self.folds:
+                                    for artifact in self.artifacts:
+                                        for model in self.models:
+                                            try:
+                                                if len(ensemble_experiments) == 1:
+                                                    scores = results[aug_ratio][ratio][fold][artifact][model]
+                                                    all_results_dict[aug_ratio][ratio][fold][artifact][model] = scores
+                                                else:
+                                                    scores[ensemble_file] = results[aug_ratio][ratio][fold][artifact][model]
+                                                    all_results_dict_ensemble[ensemble_file][aug_ratio][ratio][fold][artifact][model] = scores
 
-                                        except KeyError:
-                                            pass
+                                            except KeyError:
+                                                pass
                 i += 1
 
             # Save new file in merged_files dir
-            results_basepath = self.slash.join(self.pickle_path.split(self.slash)[:-2])
+            if len(ensemble_experiments) == 1:
+                results_basepath = self.slash.join(self.pickle_path.split(self.slash)[:-2])
 
-            exp = self.pickle_path.split(self.slash)[-1]
+                exp = self.pickle_path.split(self.slash)[-1]
 
-            save_path = (self.slash).join([results_basepath, "merged_files", exp])
-            os.makedirs(save_path, exist_ok=True)
+                save_path = (self.slash).join([results_basepath, "merged_files", exp])
+                os.makedirs(save_path, exist_ok=True)
 
-            SaveNumpyPickles(save_path, self.slash + "results" + file_name, all_results_dict, self.windowsOS)
-            print(f"\nNew file created ({'results' + file_name})! Saved to:\n {save_path}")
+                SaveNumpyPickles(save_path, self.slash + "results" + file_name, all_results_dict, self.windowsOS)
+                print(f"\nNew file created ({'results' + file_name})! Saved to:\n {save_path}")
 
-    def tableResults_Augmentation(self, experiment_name, y_true_path=None, smote_ratios=None, measure="sensitivity"):
+            else:
+                return all_results_dict_ensemble
+
+    def tableResults_Augmentation(self, experiment_name, y_true_path=None, smote_ratios=None, measure="sensitivity", store_preds=False):
 
         if smote_ratios == None:
             smote_ratios = [1]
@@ -321,6 +276,7 @@ class getResults:
 
         table_aug_dict = defaultdict(dict)
         table_aug_std_dict = defaultdict(dict)
+        table_aug_preds = defaultdict(dict)
 
         for aug_ratio in results_all:
             results = results_all[aug_ratio]
@@ -340,22 +296,26 @@ class getResults:
 
             for smote_ratio in smote_ratios:
                 table = defaultdict(dict)  # {}
-                table_std = defaultdict(dict)  # {}
+                table_std = defaultdict(dict)
+                table_preds = defaultdict(dict) # {}
 
                 for idx_art, artifact in enumerate(self.artifacts):
                     # table[artifact] = []
                     store_model = [0] * len(self.models)
+                    store_allPreds = [0] * len(self.models)
                     measure_std = [0] * len(self.models)
 
                     for idx_mod, model in enumerate(self.models):
 
                         store_scores = []
+                        store_preds = []
 
                         temp_acc = []
                         temp_f2 = []
                         for fold in self.folds:
                             if results[smote_ratio][fold][artifact][model] == {}:
                                 store_scores.append(np.nan)
+                                store_preds.append(np.nan)
                                 temp_acc.append(np.nan)
                                 temp_f2.append(np.nan)
                                 empty = True
@@ -368,6 +328,7 @@ class getResults:
                                     ba = balanced_accuracy_score(y_true=actual, y_pred=predictions)
 
                                     store_scores.append(ba)
+                                    store_preds.append(predictions)
                                     temp_acc.append(results[smote_ratio][fold][artifact][model]['accuracy'])
                                     temp_f2.append(ba)  # Not f2 - naming is incorrect but calculation is good!
                                     empty = False
@@ -389,9 +350,18 @@ class getResults:
                         # Store standard deviation for sensitivies for each classifier/ model
                         store_model[idx_mod] = np.mean(store_scores)
                         measure_std[idx_mod] = np.std(store_scores)
+                        try:
+                            store_allPreds[idx_mod] = np.concatenate(store_preds)
+                        except ValueError:
+                            if np.all(np.isnan(store_preds)):
+                                pass
+                            else:
+                                raise ValueError
+
 
                     table[artifact] = store_model
                     table_std[artifact] = measure_std
+                    table_preds[artifact] = store_allPreds
 
                 table['avg. accuracy'] = np.mean(acc, axis=1)
                 table[f'avg. {measure}'] = np.mean(f2s, axis=1)
@@ -405,8 +375,12 @@ class getResults:
 
                 table_aug_dict[aug_ratio][smote_ratio] = table
                 table_aug_std_dict[aug_ratio][smote_ratio] = table_std
+                table_aug_preds[aug_ratio][smote_ratio] = table_preds
 
-        return table_aug_dict, table_aug_std_dict
+        if store_preds:
+            return table_aug_dict, table_aug_std_dict, table_aug_preds
+        else:
+            return table_aug_dict, table_aug_std_dict
 
     def plotResultsAugmentation(self, performances_dict, errors_dict, experiment, aug_technique, measure="sensitiviy",
                                 save_img=False):

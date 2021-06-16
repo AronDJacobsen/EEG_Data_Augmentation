@@ -29,7 +29,7 @@ class getResultsEnsemble:
         super(getResultsEnsemble, self).__init__()
 
     def findNBestModels(self, dir, experiment_name, experiments, y_true_path, N_best=None, measure='balanced_acc',
-                        windowsOS=True) -> object:
+                        windowsOS=True, withPreds=False) -> object:
         # Initialize parameters and environment
         results_object = getResults(dir, list(experiments.keys())[0], experiment_name, merged_file=True, windowsOS=True)
 
@@ -39,6 +39,7 @@ class getResultsEnsemble:
         artifact_technique = {artifact: [] for artifact in results_object.artifacts}
         artifact_augRatios = {artifact: [] for artifact in results_object.artifacts}
         artifact_smoteRatios = {artifact: [] for artifact in results_object.artifacts}
+        artifact_predictions = {artifact: [] for artifact in results_object.artifacts}
 
         for experiment, (smote_ratio, technique) in experiments.items():
             results_object = getResults(dir, experiment, experiment_name, merged_file=True, windowsOS=True)
@@ -46,8 +47,8 @@ class getResultsEnsemble:
 
             results_object.changePicklePath()
 
-            performances, errors = results_object.tableResults_Augmentation(experiment_name=experiment_name,
-                                                                            smote_ratios=[smote_ratio],
+            performances, errors, predictions = results_object.tableResults_Augmentation(experiment_name=experiment_name,
+                                                                            smote_ratios=[smote_ratio], store_preds=withPreds,
                                                                             y_true_path=y_true_path, measure=measure)
 
             for artifact in results_object.artifacts:
@@ -59,6 +60,7 @@ class getResultsEnsemble:
                     for i, model in enumerate(results_object.models):
                         score = performances[aug_ratio][smote_ratio][artifact][i]
                         error = errors[aug_ratio][smote_ratio][artifact][i]
+                        preds = predictions[aug_ratio][smote_ratio][artifact][i]
 
                         artifact_scores[artifact].append(score)
                         artifact_errors[artifact].append(error)
@@ -66,6 +68,7 @@ class getResultsEnsemble:
                         artifact_augRatios[artifact].append(aug_ratio)
                         artifact_smoteRatios[artifact].append(smote_ratio)
                         artifact_technique[artifact].append(technique)
+                        artifact_predictions[artifact].append(preds)
 
         for artifact in results_object.artifacts:
             order = np.argsort(-np.array(artifact_scores[artifact]))
@@ -81,6 +84,7 @@ class getResultsEnsemble:
             belonging_aug = np.take(artifact_augRatios[artifact], order[:n])
             belonging_smote = np.take(artifact_smoteRatios[artifact], order[:n])
             belonging_technique = np.take(artifact_technique[artifact], order[:n])
+            belonging_preds = np.take(artifact_predictions[artifact], order[:n])
 
             artifact_scores[artifact] = best_scores
             artifact_errors[artifact] = belonging_error
@@ -88,10 +92,12 @@ class getResultsEnsemble:
             artifact_augRatios[artifact] = belonging_aug
             artifact_smoteRatios[artifact] = belonging_smote
             artifact_technique[artifact] = belonging_technique
+            artifact_predictions[artifact] = belonging_preds
 
         output_dict = {'scores': artifact_scores, 'errors': artifact_errors,
                        'models': artifact_models, 'augRatios': artifact_augRatios,
-                       'smote_ratios': artifact_smoteRatios, 'technique': artifact_technique}
+                       'smote_ratios': artifact_smoteRatios, 'technique': artifact_technique,
+                        'predictions': artifact_predictions}
 
         save_path = ("\\").join([dir, "results", experiment_name])
         os.makedirs(save_path, exist_ok=True)
@@ -109,67 +115,151 @@ class getResultsEnsemble:
         if artifacts is None:
             artifacts = self.artifacts
 
-        fileList = []
+        experimentList = []
         new_dict = dict([(value, key) for key, value in experiments.items()])
 
         for artifact in artifacts:
-            best_techs = best_pred_dict['technique'][artifact][:N_best]
-            best_smotes = best_pred_dict['smote_ratios'][artifact][:N_best]
+            best_techs = best_pred_dict['technique'][artifact]#[:N_best]
+            best_smotes = best_pred_dict['smote_ratios'][artifact]#[:N_best]
 
             for i in range(N_best):
-                fileList.append(new_dict[(best_smotes[i], best_techs[i])])
+                experimentList.append(new_dict[(best_smotes[i], best_techs[i])])
 
-        fileList = np.unique(fileList)
+        experimentList = np.unique(experimentList)
 
         helper = getResults(self.dir, self.experiment_name, self.experiment_name, merged_file=True, windowsOS=True)
-        helper.mergeResultFiles(file_name=self.experiment_name, ensemble_files=fileList)
-
-        #TODO: at merge virker ikke helt endnu - det er lidt dumt, da der ikke er en key til aug-method
-        #TODO: så dictionary kommer til at override tidligere brugte modeller, hvis de bruger samme ratios...
-
-
-        # Specifies basepath
-        results_basepath = self.slash.join(self.pickle_path.split(self.slash)[:-1])
-        exp = experiment_name
-
-        # Loads merged file or not.
-        if self.merged_file:
-            results_all = LoadNumpyPickles(
-                pickle_path=(self.slash).join([results_basepath, "merged_files", exp]),
-                file_name=self.slash + "results" + self.experiment_name + '.npy', windowsOS=self.windowsOS)
-            results_all = results_all[()]
-        else:
-            results_all = LoadNumpyPickles(pickle_path=(self.slash).join([results_basepath, "performance", exp]),
-                                           file_name=self.slash + "results" + self.experiment_name + '.npy',
-                                           windowsOS=self.windowsOS)
-            results_all = results_all[()]
+        ensemble_results = helper.mergeResultFiles(file_name=self.experiment_name, ensemble_experiments=experimentList)
 
         # For all folds to get predictions of all data points.
-        y_pred_dict = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(dict))))
-        for aug_ratio in aug_ratios:
-            for smote_ratio in smote_ratios:
-                for artifact in artifacts:
-                    for model in models:
-                        y_pred = []
-                        for fold in self.folds:
-                            # if results_all[aug_ratio][smote_ratio][fold][artifact][model] != defaultdict(dict): # if model is not in merged files
-                            y_pred_fold = results_all[aug_ratio][smote_ratio][fold][artifact][model]['y_pred']
+        y_pred_dict = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(dict)))))
+        for ensemble_exp in experimentList:
+            #aug_ratios = list(ensemble_results[ensemle_exp].keys())
+            for aug_ratio in self.aug_ratios:
+                for smote_ratio in [1, 2]:
+                    for artifact in self.artifacts:
+                        for model in self.models:
+                            y_pred = []
 
-                            y_pred.append(y_pred_fold)
+                            technique = experiments[ensemble_exp][1]
 
-                        try:
-                            trial = np.concatenate(y_pred)
-                            if withFolds == False:
-                                y_pred = trial
+                            model_pos = np.where(best_pred_dict['models'][artifact] == model)[0]
+                            augPos = np.where(best_pred_dict['augRatios'][artifact] == aug_ratio)[0]
+                            smotePos = np.where(best_pred_dict['smote_ratios'][artifact] == smote_ratio)[0]
+                            tech_pos = np.where(best_pred_dict['technique'][artifact] == technique)[0]
 
-                        except ValueError:
-                            y_pred = np.nan
+                            temp = np.intersect1d(model_pos, augPos)
+                            temp = np.intersect1d(temp, smotePos)
+                            temp = np.intersect1d(temp, tech_pos)
 
-                        #TODO: Måske skal der en key der hedder aug_technique på her?
-                        y_pred_dict[aug_ratio][smote_ratio][artifact][model] = y_pred
+                            if temp < N_best:
+                                for fold in self.folds:
+                                # if results_all[aug_ratio][smote_ratio][fold][artifact][model] != defaultdict(dict): # if model is not in merged files
+
+                                    y_pred_fold = ensemble_results[ensemble_exp][aug_ratio][smote_ratio][fold][artifact][model]['y_pred']
+
+                                    y_pred.append(y_pred_fold)
+
+                                    if fold == 0:
+                                        name = (artifact, model, smote_ratio - 1, technique, aug_ratio)
+
+                            else:
+                                pass
+
+                            try:
+                                trial = np.concatenate(y_pred)
+                                if withFolds == False:
+                                    y_pred = trial
+
+                            except ValueError:
+                                y_pred = np.nan
+
+                            if temp < N_best:
+                                #y_pred_dict[technique][aug_ratio][smote_ratio][artifact][model] = y_pred
+                                y_pred_dict[artifact][technique][aug_ratio][smote_ratio][model] = y_pred
+                                print(name)
+
+
 
         return y_pred_dict
 
+    def compressDict(self, pred_dict):
+
+        pred_dict_new = defaultdict(dict)
+
+        for artifact in self.artifacts:
+            techniques = list(pred_dict[artifact].keys())
+            name_pred_list = []
+            for technique in techniques:
+                for aug_ratio in self.aug_ratios:
+                    for smote_ratio in self.smote_ratios:
+                        for model in self.models:
+                            try:
+                                y_pred = pred_dict[artifact][technique][aug_ratio][smote_ratio][model]
+
+                                if np.any(y_pred == {}):
+                                    pass
+                                else:
+                                    name = f"{model}_{technique}{aug_ratio}SMOTE{smote_ratio}"
+                                    name_pred_list.append((name, y_pred))
+                                    #np.all(y_pred_old == y_pred) # TO CHECK SOMETHING WITH PREDICs.
+                                    #np.all(name_old == name)
+
+                                    name_old = name
+                                    y_pred_old = y_pred
+
+
+                            except KeyError:
+                                pass
+            pred_dict_new[artifact] = name_pred_list
+                #pred_dict_new[technique][artifact] = pred_dict[technique][artifact]
+
+        return pred_dict_new
+
+    def getCorrelation(self, y_pred_dict, artifact=None, latex=False):
+
+        if artifact == None:
+            print("Please specify artifact!")
+        else:
+            matrix = []
+            model_names = []
+
+            for (name, preds) in y_pred_dict[artifact]:
+                matrix.append(preds)
+                model_names.append(name)
+
+
+        corr_matrix = pd.DataFrame(np.corrcoef(matrix), columns=model_names, index=model_names)
+
+        print("#" * 80)
+        print(f"Correlation matrix: class = {artifact}")
+        if latex:
+            print(corr_matrix.to_latex())
+        else:
+            print(corr_matrix)
+
+        mat_trans = np.transpose(matrix)
+
+        pred_check = [np.all(mat_trans[i] == 1) or np.all(mat_trans[i] == 0) for i in range(len(matrix))]
+        print(f"All models predictions are identical: {np.all(pred_check)}")
+
+
+        return corr_matrix
+
+    def getMutualInformation(self, y_pred_dict, artifact=None):
+
+        if artifact == None:
+            print("Please specify artifact!")
+        else:
+            corr_matrix = self.getCorrelation(y_pred_dict=y_pred_dict, artifact='eyem')
+
+            # Formula from here: https://lips.cs.princeton.edu/correlation-and-mutual-information/
+            I = -1 / 2 * np.log(1 - np.round(corr_matrix, 4) ** 2)
+
+            print("#" * 80)
+            print(f"Mutual information matrix: class = {artifact}")
+            print(I)
+
+        return I
 
     def plotAugTechnique(self, bestDict, mean=True, max_Aug=False, smote_ratio=None, measure='Balanced acc', artifacts=None, exclude_baseline=True):
 
@@ -487,30 +577,40 @@ if __name__ == '__main__':
     experiment_name = "_ensemble_experiment"
     ensembleExp = getResultsEnsemble(dir, experiments=experiments, experiment_name=experiment_name, merged_file=False, windowsOS=windowsOS)
     measure = 'balanced_acc'
-    N_best = None
+    N_best = 20
 
-    loadedBestDictName = slash + "orderedPredictions_AllBestbalanced_acc.npy"
+    loadedBestDictName = None #slash + "orderedPredictions_AllBestbalanced_acc.npy"
     bestDictPicklepath = (slash).join([dir, "results", experiment_name])
 
     if loadedBestDictName == None:
         bestDict = ensembleExp.findNBestModels(dir=dir, experiment_name=experiment_name,
                                                experiments=experiments, y_true_path=y_true_path,
-                                               N_best=N_best,
+                                               N_best=N_best, withPreds=True,
                                                measure=measure, windowsOS=windowsOS)
     else:
         bestDict = LoadNumpyPickles(pickle_path=bestDictPicklepath, file_name=loadedBestDictName, windowsOS=windowsOS)[()]
 
-    ensembleExp.printNBestModels(bestDict=bestDict, N_best=100, exclude_baseline=True)
-
+    ensembleExp.printNBestModels(bestDict=bestDict, N_best=N_best, exclude_baseline=True)
     ensembleExp.plotAugTechnique(bestDict=bestDict, mean=True, max_Aug=False, measure=measure, exclude_baseline=True)
 
-    y_pred_dict = ensembleExp.getPredictionsEnsemble(best_pred_dict=bestDict, experiments=experiments, N_best=20, artifacts=['eyem'])
+    y_pred_dict = ensembleExp.getPredictionsEnsemble(best_pred_dict=bestDict, experiments=experiments, N_best=N_best, artifacts=None)
+    y_pred_dict = ensembleExp.compressDict(y_pred_dict)
 
-    y_pred_dict = fullSMOTE.compressDict(y_pred_dict, smote_ratio=1, aug_ratio=0)
+    corr_matrix = ensembleExp.getCorrelation(y_pred_dict=y_pred_dict, artifact='eyem')
+    corr_matrix = ensembleExp.getCorrelation(y_pred_dict=y_pred_dict, artifact='null')
 
-    corr_matrix = fullSMOTE.getCorrelation(artifact='eyem')
-    MI = fullSMOTE.getMutualInformation(artifact='eyem')
-    print("Mutual Information:\n" + str(MI))
+    MI = ensembleExp.getMutualInformation(y_pred_dict=y_pred_dict, artifact='eyem')
+
+    # The input should be a list of models, a list of aug_ratios for each model and a list of smote_ratios for each
+    # model. For future experiments it should take a list with augmentation_techniques in as well.
+    ensemble_pred_dict = fullSMOTE.EnsemblePredictions(['LDA', 'GNB', 'MLP', 'LR', 'SGD'], [0, 0, 0, 0, 0],
+                                                       [1, 1, 1, 1, 1], withFolds=False)
+
+"""
+    # TODO: Implement function to calculate standard error of the ensemble method!
+    fullSMOTE.printScores(pred_dict=ensemble_pred_dict, y_true_filename="y_true_randomstate_0", ensemble=True)
+
+
 
     y_pred_dict_sub = fullSMOTE.getPredictions(  # models=['LDA', 'GNB', 'MLP', 'LR', 'SGD'],
         aug_ratios=[0],
@@ -519,11 +619,4 @@ if __name__ == '__main__':
     # Choose smote and aug-ratio
     y_pred_dict_sub = fullSMOTE.compressDict(y_pred_dict_sub, smote_ratio=1, aug_ratio=0)
     # fullSMOTE.printScores(pred_dict=y_pred_dict_sub, model='LDA', y_true_filename="y_true_randomstate_0")
-
-    # The input should be a list of models, a list of aug_ratios for each model and a list of smote_ratios for each
-    # model. For future experiments it should take a list with augmentation_techniques in as well.
-    ensemble_pred_dict = fullSMOTE.EnsemblePredictions(['LDA', 'GNB', 'MLP', 'LR', 'SGD'], [0, 0, 0, 0, 0],
-                                                       [1, 1, 1, 1, 1], withFolds=False)
-
-    # TODO: Implement function to calculate standard error of the ensemble method!
-    fullSMOTE.printScores(pred_dict=ensemble_pred_dict, y_true_filename="y_true_randomstate_0", ensemble=True)
+"""
