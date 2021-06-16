@@ -146,10 +146,10 @@ class pipeline:
                         throughout CV-folds for the specified artifact(s).
         """
 
-        X = LoadNumpyPickles(pickle_path=self.pickle_path + self.slash + "true_pickles", file_name=self.X_file, windowsOS=self.windowsOS)
-        y = LoadNumpyPickles(pickle_path=self.pickle_path + self.slash + "true_pickles", file_name=self.y_file, windowsOS=self.windowsOS)
-        ID_frame = LoadNumpyPickles(pickle_path=self.pickle_path + self.slash + "true_pickles", file_name=self.ID_file, windowsOS=self.windowsOS)
-
+        X = LoadNumpyPickles(pickle_path=self.pickle_path + self.slash , file_name=self.X_file, windowsOS=self.windowsOS)
+        y = LoadNumpyPickles(pickle_path=self.pickle_path + self.slash  , file_name=self.y_file, windowsOS=self.windowsOS)
+        ID_frame = LoadNumpyPickles(pickle_path=self.pickle_path + self.slash , file_name=self.ID_file, windowsOS=self.windowsOS)
+        X = LoadNumpyPickles(pickle_path=self.pickle_path + self.slash, file_name=r"\X.npy", windowsOS=self.windowsOS)
         # extract a subset for faster running time
         # X, y, ID_frame = subset(X, y, ID_frame, no_indiv=30)
 

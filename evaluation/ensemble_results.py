@@ -364,9 +364,16 @@ class getResultsEnsemble:
                     i += 1
 
                 plt.xticks(np.arange(len(self.artifacts)), self.artifacts, rotation=0)
-                plt.title(f"{aug_technique}, SMOTE: {smote_ratio}, {measure}")
+                plt.title(f"{aug_technique}, SMOTE: {smote_ratio-1}, {measure}")
                 plt.legend()
-                plt.ylim(-0.2, 0.4)
+                if measure=='sensitivity':
+                    plt.ylim(-0.4, 0.4)
+                else:
+                    plt.ylim(-0.2, 0.4)
+
+                img_path = f"{(self.slash).join([self.dir, 'Plots', self.experiment_name, measure])}{self.slash}{aug_technique}_SMOTE{smote_ratio}_{measure}.png"
+                os.makedirs((self.slash).join(img_path.split(self.slash)[:-1]), exist_ok=True)
+                plt.savefig(img_path)
                 plt.show()
 
 
@@ -460,11 +467,10 @@ if __name__ == '__main__':
     dir = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia"  # dir = "/Users/philliphoejbjerg/Documents/GitHub/EEG_epilepsia"  # dir = r"/Users/Jacobsen/Documents/GitHub/EEG_epilepsia" + "/"
     y_true_path = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia\results\y_true\y_true_5fold_randomstate_0.npy"
 
-    dir = r"/Users/Jacobsen/Documents/GitHub/EEG_epilepsia"  # dir = "/Users/philliphoejbjerg/Documents/GitHub/EEG_epilepsia"  # dir = r"/Users/Jacobsen/Documents/GitHub/EEG_epilepsia" + "/"
-    y_true_path = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia\results\y_true\y_true_5fold_randomstate_0.npy"
+    #dir = r"/Users/Jacobsen/Documents/GitHub/EEG_epilepsia"  # dir = "/Users/philliphoejbjerg/Documents/GitHub/EEG_epilepsia"  # dir = r"/Users/Jacobsen/Documents/GitHub/EEG_epilepsia" + "/"
+    #y_true_path = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia\results\y_true\y_true_5fold_randomstate_0.npy"
 
-
-windowsOS = True
+    windowsOS = True
     if windowsOS:
         slash = "\\"
     else:

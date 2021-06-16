@@ -60,7 +60,7 @@ if __name__ == '__main__':
     #y_true_path = r"/Users/Jacobsen/Documents/GitHub/EEG_epilepsia/results/y_true" + "/"
 
 
-    windowsOS = False
+    windowsOS = True
 
 
     #smote(T/F), best_model, best_ratio

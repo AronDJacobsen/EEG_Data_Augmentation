@@ -26,16 +26,16 @@ if __name__ == '__main__':
 
         bestDict = LoadNumpyPickles(pickle_path=bestDictPicklepath, file_name=loadedBestDictName, windowsOS=windowsOS)[()]
 
-        augmentationExp.plotImprovementExp(bestDict=bestDict, smote_ratio=1, measure=measure)
-        augmentationExp.plotImprovementExp(bestDict=bestDict, smote_ratio=2, measure=measure)
+        augmentationExp.plotImprovementExp(bestDict=bestDict, smote_ratio=1, measure=measure)#, grid=True)
+        augmentationExp.plotImprovementExp(bestDict=bestDict, smote_ratio=2, measure=measure)#, grid=True)
 
-        """augmentationExp.plotAugTechnique(bestDict=bestDict, measure=measure, smote_ratio=1, mean=True, max_Aug=False, exclude_baseline=True)
+        augmentationExp.plotAugTechnique(bestDict=bestDict, measure=measure, smote_ratio=1, mean=True, max_Aug=False, exclude_baseline=True)
         augmentationExp.plotAugTechnique(bestDict=bestDict, measure=measure, smote_ratio=2, mean=True, max_Aug=False, exclude_baseline=True)
         augmentationExp.plotAugTechnique(bestDict=bestDict, measure=measure, smote_ratio=None, mean=True, max_Aug=False, exclude_baseline=True)
 
         augmentationExp.plotAugTechnique(bestDict=bestDict, measure=measure, smote_ratio=1, mean=False, max_Aug=True, exclude_baseline=True)
         augmentationExp.plotAugTechnique(bestDict=bestDict, measure=measure, smote_ratio=2, mean=False, max_Aug=True, exclude_baseline=True)
-        augmentationExp.plotAugTechnique(bestDict=bestDict, measure=measure, smote_ratio=None, mean=False, max_Aug=True, exclude_baseline=True)"""
+        augmentationExp.plotAugTechnique(bestDict=bestDict, measure=measure, smote_ratio=None, mean=False, max_Aug=True, exclude_baseline=True)
         
 
 
