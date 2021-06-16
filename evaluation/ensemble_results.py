@@ -299,6 +299,77 @@ class getResultsEnsemble:
         plt.show()
 
 
+    def plotImprovementExp(self, bestDict, smote_ratio, measure='balanced_acc'):
+        self.augtechniques = ['control', 'MixUp', 'GAN', 'white', 'color']
+
+        control_max = defaultdict(dict)
+        control_err = defaultdict(dict)
+
+        for aug_technique in self.augtechniques:
+
+            bestForEachModel = {model: [] for model in self.models}
+            errorForEachModel = {model: [] for model in self.models}
+
+            for a, artifact in enumerate(self.artifacts):
+                tech_pos = np.where(bestDict['technique'][artifact] == aug_technique)
+
+                for model in self.models:
+                    model_pos = np.where(bestDict['models'][artifact] == model)
+                    temp_pos = np.intersect1d(tech_pos, model_pos)
+
+                    if aug_technique == 'control':
+                        control_max[(artifact, model)] = bestDict['scores'][artifact][temp_pos][0]
+                        control_err[(artifact, model)] = bestDict['errors'][artifact][temp_pos][0]
+
+                    else:
+                        controlAUG_pos = np.where(bestDict['augRatios'][artifact] == 0)
+                        conrtolSMOTE_pos = np.where(bestDict['smote_ratios'][artifact] == 1)
+                        control_pos = np.intersect1d(controlAUG_pos, conrtolSMOTE_pos)
+                        temp_pos = np.setdiff1d(temp_pos, control_pos)
+
+                        smote_pos = np.where(bestDict['smote_ratios'][artifact] == smote_ratio)
+                        temp_pos = np.intersect1d(temp_pos, smote_pos)
+
+                        bestForEachModel[model].append(bestDict['scores'][artifact][temp_pos][0])
+                        errorForEachModel[model].append(bestDict['errors'][artifact][temp_pos][0])
+
+            if aug_technique == 'control':
+                pass
+            else:
+                number = len(self.models)
+                cmap = plt.get_cmap('coolwarm')
+                colorlist = [cmap(i) for i in np.linspace(0, 1, number)]
+
+                w = 0.15
+                w = 0.75 / len(self.models)
+                X_axis = np.arange(len(self.artifacts)) - 0.3
+
+                i = 0
+                for model in self.models:
+                    control_maxList = np.array([control_max[(artifact, model)] for artifact in self.artifacts])
+                    control_errList = np.array([control_err[(artifact, model)] for artifact in self.artifacts])
+
+                    height = np.array(bestForEachModel[model]) - control_maxList
+                    pooledSTD = np.sqrt((np.array(errorForEachModel[model])**2 + control_errList**2) / 2)
+
+                    plt.bar(x=X_axis + w * i,
+                            height=height,
+                            width=w,
+                            color=colorlist[i],
+                            label=model)
+
+                    plt.errorbar(x=X_axis + w * i, y=height,
+                                 yerr=pooledSTD,
+                                 fmt='.', color='k')
+                    i += 1
+
+                plt.xticks(np.arange(len(self.artifacts)), self.artifacts, rotation=0)
+                plt.title(f"{aug_technique}, SMOTE: {smote_ratio}, {measure}")
+                plt.legend()
+                plt.ylim(-0.2, 0.4)
+                plt.show()
+
+
 
     def printNBestModels(self, bestDict, N_best=20, exclude_baseline=False, exclude_zero_aug=False):
 

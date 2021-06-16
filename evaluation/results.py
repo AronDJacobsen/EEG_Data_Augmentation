@@ -1060,7 +1060,7 @@ class getResults:
                                                                         smote_ratios=[smote_ratio],
                                                                         experiment_name=experiment_name)
         #TODO: Ændre til balanced_acc
-        performances_F2, errors_F2 = self.tableResults_Augmentation(measure="sensitivity", y_true_path=y_true_path,
+        performances_F2, errors_F2 = self.tableResults_Augmentation(measure="balanced_acc", y_true_path=y_true_path,
                                                                     smote_ratios=[smote_ratio],
                                                                     experiment_name=experiment_name)
         self.smote_ratios.sort()

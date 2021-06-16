@@ -13,25 +13,33 @@ if __name__ == '__main__':
                    "augmentation_MixUp": (1, 'MixUp'), "augmentation_GAN": (1, 'GAN'),
                    "colorNoiseimprovement": (2, 'color'), "whiteNoiseimprovement": (2, 'white'),
                    "MixUpimprovement": (2, 'MixUp'), "GANimprovement": (2, 'GAN')}
-    ensembleExp = getResultsEnsemble(dir, experiments=experiments, experiment_name=experiment_name, merged_file=False,
+    augmentationExp = getResultsEnsemble(dir, experiments=experiments, experiment_name=experiment_name, merged_file=False,
                                      windowsOS=windowsOS)
-    files = ["orderedPredictions_AllBestsensitivity.npy", "orderedPredictions_AllBestbalanced_acc.npy"]
-    for i, measure in enumerate(['sensitivity', 'balanced_acc']):
+
+    files = ["orderedPredictions_AllBestbalanced_acc.npy", "orderedPredictions_AllBestsensitivity.npy"]
+    for i, measure in enumerate(['balanced_acc', 'sensitivity']):
         N_best = None
-        slash = ensembleExp.slash
+        slash = augmentationExp.slash
 
         loadedBestDictName = slash + files[i]
         bestDictPicklepath = (slash).join([dir, "results", experiment_name])
 
         bestDict = LoadNumpyPickles(pickle_path=bestDictPicklepath, file_name=loadedBestDictName, windowsOS=windowsOS)[()]
 
-        ensembleExp.plotAugTechnique(bestDict=bestDict, measure=measure, smote_ratio=1, mean=True, max_Aug=False, exclude_baseline=True)
-        ensembleExp.plotAugTechnique(bestDict=bestDict, measure=measure, smote_ratio=2, mean=True, max_Aug=False, exclude_baseline=True)
-        ensembleExp.plotAugTechnique(bestDict=bestDict, measure=measure, smote_ratio=None, mean=True, max_Aug=False, exclude_baseline=True)
+        augmentationExp.plotImprovementExp(bestDict=bestDict, smote_ratio=1, measure=measure)
+        augmentationExp.plotImprovementExp(bestDict=bestDict, smote_ratio=2, measure=measure)
 
-        ensembleExp.plotAugTechnique(bestDict=bestDict, measure=measure, smote_ratio=1, mean=False, max_Aug=True, exclude_baseline=True)
-        ensembleExp.plotAugTechnique(bestDict=bestDict, measure=measure, smote_ratio=2, mean=False, max_Aug=True, exclude_baseline=True)
-        ensembleExp.plotAugTechnique(bestDict=bestDict, measure=measure, smote_ratio=None, mean=False, max_Aug=True, exclude_baseline=True)
+        """augmentationExp.plotAugTechnique(bestDict=bestDict, measure=measure, smote_ratio=1, mean=True, max_Aug=False, exclude_baseline=True)
+        augmentationExp.plotAugTechnique(bestDict=bestDict, measure=measure, smote_ratio=2, mean=True, max_Aug=False, exclude_baseline=True)
+        augmentationExp.plotAugTechnique(bestDict=bestDict, measure=measure, smote_ratio=None, mean=True, max_Aug=False, exclude_baseline=True)
+
+        augmentationExp.plotAugTechnique(bestDict=bestDict, measure=measure, smote_ratio=1, mean=False, max_Aug=True, exclude_baseline=True)
+        augmentationExp.plotAugTechnique(bestDict=bestDict, measure=measure, smote_ratio=2, mean=False, max_Aug=True, exclude_baseline=True)
+        augmentationExp.plotAugTechnique(bestDict=bestDict, measure=measure, smote_ratio=None, mean=False, max_Aug=True, exclude_baseline=True)"""
+        
+
+
+
 
     experiments = ["augmentation_colorNoise", "augmentation_whiteNoise", "augmentation_GAN", "augmentation_MixUp"]
     aug_techniques = ["colored noise", "white noise", "GAN", "MixUp"]
