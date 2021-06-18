@@ -3,14 +3,29 @@ from sklearn.metrics import balanced_accuracy_score
 from scipy import stats
 import scikit_posthocs as sp
 import statsmodels
+from sklearn.metrics import confusion_matrix
 
 
-def error_rate(y_true, y_pred):
+
+
+
+def error_rate1(y_true, y_pred):
     # balanced accuracy
     score = balanced_accuracy_score(y_true, y_pred)
 
     #accuracy
     #score = np.mean(y_true == y_pred)
+    '''
+    #other balanced accuracy
+    cm1 = confusion_matrix(y_true, y_pred)
+    sensitivity = cm1[0,0]/(cm1[0,0]+cm1[0,1])
+    specificity = cm1[1,1]/(cm1[1,0]+cm1[1,1])
+    score = (sensitivity + specificity)/2
+    '''
+
+    #accuracy
+    #score = np.mean(y_true == y_pred)
+
 
     return 1-score
 
@@ -23,10 +38,16 @@ def error_rate2(y_true, yhatA, yhatB):
     nn[0,1] = sum(c1 & ~c2)
     nn[1,0] = sum(~c1 & c2)
     nn[1,1] = sum(~c1 & ~c2)
-    n = sum(nn.flat);
 
-    erA = (nn[0,0]+nn[0,1]) / n
-    erB = (nn[0,0]+nn[1,0]) / n
+    #rather confusion
+    n = sum(nn.flat);
+    n00 = nn[1, 1]
+    n01 = nn[1,0]
+    n10 = nn[0,1]
+
+
+    erA = (n00+n01) / n
+    erB = (n00+n10) / n
     return erA, erB
 
 #imported from toolbox from data mining course
@@ -91,11 +112,12 @@ if __name__ == '__main__':
     #t test or mcnemar
     t_test=True
     #error rate 1(simple) or error rate 2(the nn scores)
+    #error rate 1(simple) or error rate 2(the nn scores) (comment: 2 is just accuracy)
     er1 = True
 
-    #methods = ["colorNoise", "whiteNoise", "GAN", "MixUp"]
-    methods = ["MixUp", "GAN", "whiteNoise", "colorNoise"] # In line with report setup
-    #methods = ["MixUp"] # fast run
+    methods = ["colorNoise", "whiteNoise", "GAN", "MixUp"]
+    #methods = ["MixUp", "GAN", "whiteNoise", "colorNoise"] # In line with report setup
+    #methods = ['MixUp', "GAN"] # fast run
 
 
     #smote(T/F), best_model, best_ratio
@@ -111,30 +133,30 @@ if __name__ == '__main__':
         },
 
         'colorNoise': {
-            'eyem': (False, 'RF', 1.5),
-            'chew': (True, 'LR', 0),
-            'shiv': (True, 'LR', 0),
-            'elpp': (False, 'LR', 0),
+            'eyem': (False, 'RF', 0.5),
+            'chew': (False, 'LR', 1),
+            'shiv': (True, 'SGD', 1),
+            'elpp': (False, 'LR', 0.5),
             'musc': (False, 'GNB', 2),
             'null': (False, 'SGD', 0.5)
         },
 
         'whiteNoise': {
             'eyem': (True, 'RF', 1.5),
-            'chew': (False, 'LR', 0),
-            'shiv': (True, 'LR', 0),
+            'chew': (True, 'SGD', 0.5),
+            'shiv': (True, 'LR', 2),
             'elpp': (True, 'LR', 0.5),
             'musc': (False, 'GNB', 2),
             'null': (False, 'SGD', 0.5)
         },
 
         'GAN': {
-            'eyem': (False, 'RF', 0),
+            'eyem': (False, 'RF', 0.5),
             'chew': (False, 'LR', 1),
             'shiv': (False, 'LR', 0.5),
-            'elpp': (False, 'LR', 0),
-            'musc': (False, 'GNB', 0),
-            'null': (False, 'SGD', 0)
+            'elpp': (False, 'LR', 0.5),
+            'musc': (False, 'GNB', 0.5),
+            'null': (True, 'LR', 0.5)
         }
     }
 
@@ -175,12 +197,15 @@ if __name__ == '__main__':
 
         #for each method
         #activating augmentation
+
+
         augmentation = "augmentation_" + method
         augmentation_name = "_" + augmentation + "_merged_allModels"
         obj_aug = getResults(dir, augmentation, augmentation_name, merged_file=True, windowsOS=windowsOS)
 
+
         #activating improvement
-        improvement = method + "improvement"
+        improvement = method + "_improvement"
         improvement_name = "_" + improvement + "_merged_allModels"
         obj_improv = getResults(dir, improvement, improvement_name, merged_file=True, windowsOS=windowsOS)
 
@@ -213,24 +238,19 @@ if __name__ == '__main__':
             A = y_c[best_control_model][artifact]
 
             #getting predictions
-            if not smote: # if augmentation was best model
-                # getting predictions
-                y = obj_aug.getPredictions(models=[best_model], aug_ratios=[best_ratio], smote_ratios = [smote_val],  withFolds=with_folds)
-                y = obj_aug.compressDict(y, smote_ratio=smote_val, aug_ratio=best_ratio)
+            # prediction called y_improv in both cases
+            if not smote:
+                y_improv = obj_aug.getPredictions(models=[best_model], aug_ratios=[best_ratio], smote_ratios = [smote_val],  withFolds=with_folds)
+                y_improv = obj_aug.compressDict(y_improv, smote_ratio=smote_val, aug_ratio=best_ratio)
                 # best models predictions
-                B = y[best_model][artifact]
-
-            else: # if improvement was best model
-                # getting predictions
-                y = obj_improv.getPredictions(models=[best_model], aug_ratios=[best_ratio], smote_ratios = [smote_val],  withFolds=with_folds)
-                y = obj_improv.compressDict(y, smote_ratio=smote_val, aug_ratio=best_ratio)
+                B = y_improv[best_model][artifact]
+            else:
+                y_improv = obj_improv.getPredictions(models=[best_model], aug_ratios=[best_ratio], smote_ratios = [smote_val],  withFolds=with_folds)
+                y_improv = obj_improv.compressDict(y_improv, smote_ratio=smote_val, aug_ratio=best_ratio)
                 # best models predictions
-                B = y[best_model][artifact]
+                B = y_improv[best_model][artifact]
 
-                #getting control predictions
-                #y_c = obj_improv.getPredictions(models=[best_control_model], aug_ratios=[0], smote_ratios = [1], withFolds=with_folds)
-                #y_c = obj_improv.compressDict(y_c, smote_ratio=1, aug_ratio=0)
-                #A = y_c[best_control_model][artifact]
+
 
             if not t_test:
                 # McNemar, from toolbox in data mining course
@@ -245,25 +265,28 @@ if __name__ == '__main__':
                     ERA = []
                     ERB = []
                     for i in folds:
-                        ERA.append(error_rate(y_true[i], A[i]))
-                        ERB.append(error_rate(y_true[i], B[i]))
+                        ERA.append(error_rate1(y_true[i], A[i]))
+                        ERB.append(error_rate1(y_true[i], B[i]))
 
                     t, p = stats.ttest_rel(ERA, ERB)
-                else:
+                else: # error 2
                     ERA = []
                     ERB = []
                     for i in folds:
                         erA, erB = error_rate2(y_true[i], A[i], B[i])
                         ERA.append(erA)
                         ERB.append(erB)
+
                     t, p = stats.ttest_ind(ERA, ERB)
 
 
 
 
 
-        # add this p value
+            # add this p value list
             artifact_list.append(float(f"{p:.3e}")) # modifying format
+
+        # after each augmentation method
         df.loc[method] = artifact_list
         stop=0
 
