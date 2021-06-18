@@ -440,13 +440,13 @@ class getResultsEnsemble:
                             height=height,
                             width=w,
                             color=colorlist[i],
-                            label=f"{technique} (SMOTE: mixed)")
+                            label=f"{technique}")
                 else:
                     plt.bar(x=X_axis + w * i,
                             height=height,
                             width=w,
                             color=colorlist[i],
-                            label=f"{technique} (SMOTE {smote_ratio - 1})")
+                            label=f"{technique}")
 
                 plt.errorbar(x=X_axis + w * i, y=height,
                              yerr=yerr,
@@ -466,8 +466,8 @@ class getResultsEnsemble:
             plt.ylabel(measure)
 
             if a == 0:
-                plt.legend(loc='center right', bbox_to_anchor=(1.36, 0.5))
-                plt.subplots_adjust(bottom=0.2, right=0.775)
+                plt.legend(loc='center right', bbox_to_anchor=(1.33, 0.5))
+                plt.subplots_adjust(right=0.775)
 
         if smote_ratio == None:
             img_path = f"{(self.slash).join([self.dir, 'Plots', self.experiment_name, measure])}{self.slash}augTechniquesComparison_SMOTEmixed_Mean={mean}.png"
@@ -742,10 +742,10 @@ if __name__ == '__main__':
     ensembleExp = getResultsEnsemble(dir, experiments=experiments, experiment_name=experiment_name, merged_file=False,
                                      windowsOS=windowsOS)
     measure = 'balanced_acc'
-    N_best = 20
+    N_best = 100
     withFolds = True
 
-    loadedBestDictName = slash + "orderedPredictions_20balanced_acc_foldsTrue.npy"  # Either None or file-name
+    loadedBestDictName = slash + "orderedPredictions_100balanced_acc_foldsTrue.npy"  # Either None or file-name
     bestDictPicklepath = (slash).join([dir, "results", experiment_name])
 
     if loadedBestDictName == None:
@@ -763,6 +763,7 @@ if __name__ == '__main__':
     # y_pred_dict = ensembleExp.getPredictionsEnsemble(best_pred_dict=bestDict, experiments=experiments, N_best=N_best, artifacts=None)
     # y_pred_dict = ensembleExp.compressDict(y_pred_dict)
 
+    N_best = 20
     corr_matrix = ensembleExp.getCorrelation(bestDict=bestDict, N_best=N_best,
                                                  withFolds=withFolds)  # , latex=True)
 
@@ -817,9 +818,9 @@ if __name__ == '__main__':
 
     exps = ['control', 'ensemble']
 
-    cmap = plt.get_cmap('coolwarm')
-    colorlist = [cmap(i) for i in np.linspace(0.1, 0.9, len(exps))]
-    colorlist = ["lightsteelblue", "lightslategrey"]
+    cmap = plt.get_cmap('Blues')
+    colorlist = [cmap(i) for i in np.linspace(0.3, 0.8, len(exps))]
+    #colorlist = ["lightsteelblue", "darkcyan"]
     for indv_art, artifact in enumerate(ensembleExp.artifacts):
         for i, exp in enumerate(exps):
 
