@@ -393,6 +393,7 @@ class getResultsEnsemble:
 
         for a, artifact in enumerate(artifacts):
             techniques = np.unique(bestDict['technique'][artifact])
+            techniques = np.array(['control', 'MixUp', 'GAN', 'color', 'white'])
             for i, technique in enumerate(techniques):
                 if technique == "control":
                     smote_ratio_old = smote_ratio
@@ -790,6 +791,18 @@ if __name__ == '__main__':
         for i in ensembleExp.folds:
             y_true_art.append(results_y_true[i][artifact]['y_true'])
         y_true_dict[artifact] = y_true_art
+
+    fold_art_table = np.zeros((5, 6))
+
+    for fold in ensembleExp.folds:
+        for i, artifact in enumerate(ensembleExp.artifacts):
+            present = y_true_dict[artifact][fold].sum()
+            all = len(y_true_dict[artifact][fold])
+
+            fold_art_table[fold, i] = present / all
+
+    df = pd.DataFrame(np.round(fold_art_table, 4) * 100, columns=ensembleExp.artifacts, index=np.arange(5) + 1)
+    print(df.to_latex())
 
     # The input should be a list of models, a list of aug_ratios for each model and a list of smote_ratios for each
     # model. For future experiments it should take a list with augmentation_techniques in as well.

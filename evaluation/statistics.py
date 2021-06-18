@@ -6,9 +6,6 @@ import statsmodels
 from sklearn.metrics import confusion_matrix
 
 
-
-
-
 def error_rate1(y_true, y_pred):
     # balanced accuracy
     score = balanced_accuracy_score(y_true, y_pred)
@@ -115,7 +112,7 @@ if __name__ == '__main__':
     #error rate 1(simple) or error rate 2(the nn scores) (comment: 2 is just accuracy)
     er1 = True
 
-    methods = ["colorNoise", "whiteNoise", "GAN", "MixUp"]
+    methods = ["MixUp", "GAN", "whiteNoise", "colorNoise"]
     #methods = ["MixUp", "GAN", "whiteNoise", "colorNoise"] # In line with report setup
     #methods = ['MixUp', "GAN"] # fast run
 
@@ -205,7 +202,7 @@ if __name__ == '__main__':
 
 
         #activating improvement
-        improvement = method + "_improvement"
+        improvement = method + "improvement"
         improvement_name = "_" + improvement + "_merged_allModels"
         obj_improv = getResults(dir, improvement, improvement_name, merged_file=True, windowsOS=windowsOS)
 
