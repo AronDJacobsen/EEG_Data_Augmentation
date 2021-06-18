@@ -230,7 +230,8 @@ class getResults:
             else:
                 return all_results_dict_ensemble
 
-    def tableResults_Augmentation(self, experiment_name, y_true_path=None, smote_ratios=None, measure="sensitivity", store_preds=False):
+    def tableResults_Augmentation(self, experiment_name, y_true_path=None, smote_ratios=None, measure="sensitivity", store_preds=False,
+                                  withFolds=False):
 
         if smote_ratios == None:
             smote_ratios = [1]
@@ -351,7 +352,10 @@ class getResults:
                         store_model[idx_mod] = np.mean(store_scores)
                         measure_std[idx_mod] = np.std(store_scores)
                         try:
-                            store_allPreds[idx_mod] = np.concatenate(store_preds)
+                            if withFolds:
+                                store_allPreds[idx_mod] = store_preds
+                            else:
+                                store_allPreds[idx_mod] = np.concatenate(store_preds)
                         except ValueError:
                             if np.all(np.isnan(store_preds)):
                                 pass
@@ -1388,78 +1392,83 @@ class getResults:
 
         return pred_dict_new
 
-    def plot_multi_label_confusion(self, pred_dict, y_true_filename, artifacts, smote_ratio=1, aug_ratio=0,
-                                   aug_technique=None, models=None, ensemble=False):
+    def plot_multi_label_confusion(self, pred_dict, y_true_filename, bestModelOnArtifact, artifacts, smote_ratio=1, aug_ratio=0,
+                                   aug_technique=None, models=None, withFolds=True):
         pred_dict_orig = pred_dict
-        for model in models:
 
-            if ensemble:
-                model = "Ensemble method"
-            else:
-                pred_dict = pred_dict_orig[model]
+        results_basepath = self.slash.join(self.pickle_path.split(self.slash)[:-2])
 
-            results_basepath = self.slash.join(self.pickle_path.split(self.slash)[:-2])
+        y_true = LoadNumpyPickles(
+            pickle_path=(self.slash).join([results_basepath, "y_true"]),
+            file_name=self.slash + y_true_filename + '.npy', windowsOS=self.windowsOS)
+        y_true = y_true[()]
 
-            y_true = LoadNumpyPickles(
-                pickle_path=(self.slash).join([results_basepath, "y_true"]),
-                file_name=self.slash + y_true_filename + '.npy', windowsOS=self.windowsOS)
-            y_true = y_true[()]
+        y_true_dict = {}
 
-            y_true_dict = {}
+        for artifact in self.artifacts:
+            y_true_art = []
+            for i in self.folds:
+                y_true_art.append(y_true[i][artifact]['y_true'])
 
-            for artifact in self.artifacts:
-                y_true_art = []
-                for i in self.folds:
-                    y_true_art.append(y_true[i][artifact]['y_true'])
-
+            if withFolds == False:
                 y_true_art = np.concatenate(y_true_art)
-                y_true_dict[artifact] = y_true_art
+            y_true_dict[artifact] = y_true_art
 
-            predictions = np.array([item for item in pred_dict.values()]).T
-            actual = np.array([item for item in y_true_dict.values()]).T
+        fig, axs = plt.subplots(2, 3)  # , sharex=True, sharey=True)
 
-            multi_cm = multilabel_confusion_matrix(y_true=actual, y_pred=predictions)
-            multi_cm = [cm.astype('float') / cm.sum(axis=1)[:, np.newaxis] for cm in multi_cm]
+        cbar_ax = fig.add_axes([0.89, .3, .03, .4])
+        plt.subplots_adjust(left=0.1, right=0.85)
 
-            fig, axs = plt.subplots(2, 3)  # , sharex=True, sharey=True)
+        for i, artifact in enumerate(self.artifacts):
+            j = 0
 
-            cbar_ax = fig.add_axes([0.89, .3, .03, .4])
-            plt.subplots_adjust(left=0.1, right=0.85)
+            if i > 2:
+                j = 1
 
-            for i, artifact in enumerate(self.artifacts):
-                j = 0
+            model = bestModelOnArtifact[artifact]
+            pred_dict = pred_dict_orig[model]
+            #TODO: HER!
+            #predictions = pred_dict[artifact]
+            #actual = y_true_dict[artifact]
 
-                if i > 2:
-                    j = 1
+            conf_folds = [confusion_matrix(y_pred=pred_dict[artifact][fold], y_true=y_true_dict[artifact][fold]) for fold in self.folds]
+            sum_conf_matrix = np.sum(conf_folds, axis=0)
+            sum_conf_matrix = sum_conf_matrix.astype('float') / sum_conf_matrix.sum(axis=1)[:, np.newaxis]
+            conf_matrix = sn.heatmap(np.round(sum_conf_matrix, 2), annot=True, cmap=plt.cm.Blues,
+                                      ax=axs[j, i % 3], cbar_ax=cbar_ax,
+                                      vmin=0, vmax=1)
 
-                conf_matrix = sn.heatmap(multi_cm[i], annot=True, cmap=plt.cm.Blues,
-                                         ax=axs[j, i % 3], cbar_ax=cbar_ax,
-                                         vmin=0, vmax=1)
-                conf_matrix.set_aspect('equal', 'box')
+            """conf_matrix = confusion_matrix(y_true=actual, y_pred=predictions)
+            conf_matrix = conf_matrix.astype('float') / conf_matrix.sum(axis=1)[:, np.newaxis]
 
-                axs[j, 0].tick_params()
-                axs[j, 1].tick_params()
 
-                if i % 3 == 0:
-                    conf_matrix.set_ylabel("Actual label")
-                if j == 1:
-                    conf_matrix.set_xlabel("Predicted label")
+            conf_matrix = sn.heatmap(conf_matrix, annot=True, cmap=plt.cm.Blues,
+                                     ax=axs[j, i % 3], cbar_ax=cbar_ax,
+                                     vmin=0, vmax=1)"""
 
-                conf_matrix.set_title(artifact)
+            conf_matrix.set_aspect('equal', 'box')
 
-            if aug_technique == None:
-                fig.suptitle(f"Model: {model}, SMOTE: {smote_ratio}")
-            else:
-                fig.suptitle(f"Model: {model}, SMOTE: {smote_ratio}, {aug_technique}: {aug_ratio}")
+            axs[j, 0].tick_params()
+            axs[j, 1].tick_params()
 
-            save_path = (self.slash).join([self.dir, "Plots" + self.slash + "confusion_matrix",
-                                           f"SMOTE{smote_ratio}_aug{aug_technique}{aug_ratio}"])
+            if i % 3 == 0:
+                conf_matrix.set_ylabel("Actual label")
+            if j == 1:
+                conf_matrix.set_xlabel("Predicted label")
 
-            img_path = f"{save_path}{self.slash}{model}.png"
-            os.makedirs((self.slash).join(img_path.split(self.slash)[:-1]), exist_ok=True)
-            fig.savefig(img_path)
+            conf_matrix.set_title(f"{artifact}, {model}")
 
-            fig.show()
+
+        fig.suptitle(f"Confusion matrices on each artifact, Control experiment")
+
+        save_path = (self.slash).join([self.dir, "Plots" + self.slash + "confusion_matrix"])
+
+        img_path = f"{save_path}{self.slash}control_confusionMatrix.png"
+        os.makedirs((self.slash).join(img_path.split(self.slash)[:-1]), exist_ok=True)
+        fig.savefig(img_path)
+
+        fig.show()
+
 
     def plotAllModelsBestAug(self, experiment_name: object, aug_technique: object, y_true_path: object = None,
                              smote_ratios: object = None,
@@ -1495,15 +1504,52 @@ if __name__ == '__main__':
     # Example of merging fully created files from different models.
     experiment = "SMOTE"  # directory containing the files we will look at
     experiment_name = '_control_experiment'
-    fullSMOTE = getResults(dir, experiment, experiment_name, merged_file=True, windowsOS=True)
+    fullSMOTE = getResults(dir, experiment,
+                           experiment_name,
+                           merged_file=True,
+                           windowsOS=True)
+
     fullSMOTE.mergeResultFiles(file_name=experiment_name)
 
     # To work with the merged file we have to change the pickle path to the "merged" folder.
     fullSMOTE.changePicklePath()
-    y_true_path = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia\results\y_true\y_true_5fold_randomstate_0.npy"
+    y_true_path = r"/results/y_true/y_true_5fold_randomstate_0.npy"
     # performances, errors = fullSMOTE.tableResults_Augmentation(experiment_name=experiment_name, y_true_path=y_true_path, smote_ratios=[1], measure="balanced_acc")
 
-    fullSMOTE.plotResultsPlainExp(experiment_name=experiment_name, y_true_path=y_true_path, across_SMOTE=True,
+    artifacts = fullSMOTE.artifacts
+    smote_ratio = 1
+    models = fullSMOTE.models  # 'GNB'
+
+    withFolds = True
+    y_pred_dict = fullSMOTE.getPredictions(models=models,
+                                           aug_ratios=[0],
+                                           smote_ratios=[smote_ratio],
+                                           artifacts=artifacts,
+                                           withFolds=withFolds)
+
+    y_pred_dict = fullSMOTE.compressDict(y_pred_dict,
+                                         smote_ratio=1,
+                                         aug_ratio=0)
+
+    best = {'eyem':'RF', 'chew':'LR', 'shiv':'LR',
+            'elpp':'LR', 'musc':'GNB', 'null':'SGD'}
+
+    fullSMOTE.plot_multi_label_confusion(pred_dict=y_pred_dict,
+                                         y_true_filename="y_true_5fold_randomstate_0",
+                                         models=models,
+                                         artifacts=fullSMOTE.artifacts,
+                                         smote_ratio=smote_ratio - 1,
+                                         bestModelOnArtifact=best,
+                                         withFolds=withFolds)
+
+    fullSMOTE.printScores(pred_dict=y_pred_dict,
+                          y_true_filename="y_true_5fold_randomstate_0",
+                          model='LDA', artifacts=artifacts,
+                          ensemble=False, print_confusion=True)
+
+    fullSMOTE.plotResultsPlainExp(experiment_name=experiment_name,
+                                  y_true_path=y_true_path,
+                                  across_SMOTE=True,
                                   save_img=True)
 
     fullSMOTE.printResults(measure="sensitivity",
@@ -1528,22 +1574,5 @@ if __name__ == '__main__':
                           aug_ratios=[0],
                           measure='balanced_acc',
                           across_SMOTE=True, save_img=True)
-
-    artifacts = fullSMOTE.artifacts
-    smote_ratio = 1
-    models = fullSMOTE.models  # 'GNB'
-
-    y_pred_dict = fullSMOTE.getPredictions(models=models,
-                                           aug_ratios=[0],
-                                           smote_ratios=[smote_ratio],
-                                           artifacts=artifacts)
-    y_pred_dict = fullSMOTE.compressDict(y_pred_dict, smote_ratio=1, aug_ratio=0)
-
-    fullSMOTE.printScores(pred_dict=y_pred_dict, y_true_filename="y_true_5fold_randomstate_0", model='LDA',
-                          artifacts=artifacts, ensemble=False, print_confusion=True)
-
-    fullSMOTE.plot_multi_label_confusion(pred_dict=y_pred_dict, y_true_filename="y_true_5fold_randomstate_0",
-                                         models=models,
-                                         artifacts=fullSMOTE.artifacts, smote_ratio=smote_ratio - 1, ensemble=False)
 
     print("")

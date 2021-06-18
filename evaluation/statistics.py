@@ -7,10 +7,10 @@ import statsmodels
 
 def error_rate(y_true, y_pred):
     # balanced accuracy
-    #score = balanced_accuracy_score(y_true, y_pred)
+    score = balanced_accuracy_score(y_true, y_pred)
 
     #accuracy
-    score = np.mean(y_true == y_pred)
+    #score = np.mean(y_true == y_pred)
 
     return 1-score
 
@@ -91,7 +91,7 @@ if __name__ == '__main__':
     #t test or mcnemar
     t_test=True
     #error rate 1(simple) or error rate 2(the nn scores)
-    er1 = False
+    er1 = True
 
     #methods = ["colorNoise", "whiteNoise", "GAN", "MixUp"]
     methods = ["MixUp", "GAN", "whiteNoise", "colorNoise"] # In line with report setup
