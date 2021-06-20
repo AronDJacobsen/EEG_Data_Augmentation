@@ -15,7 +15,45 @@ from models.mixup import useMixUp
 from models.noiseAddition import useNoiseAddition, prepareNoiseAddition
 from sklearn import preprocessing
 
-def plotSpectro(dict):
+
+def plotControl(dict, Smote):
+
+    fontsz = 13
+
+    idx_i = [0,0,0,1,1,1]
+    idx_j = [0,1,2,0,1,2]
+
+    fig, axs = plt.subplots(2,3, sharex=True, sharey=True, constrained_layout = True)
+    plt.subplots_adjust(left=0.1, right=0.8)
+    cbar_ax = fig.add_axes([.82, .3, .03, .4])
+
+    for artifactNumber, artifact in enumerate(['eyem', 'chew', 'shiv', 'elpp', 'musc', 'null']):
+
+        spectro = sns.heatmap(dict['NoAug'][artifact], ax = axs[idx_i[artifactNumber], idx_j[artifactNumber]],
+                              vmin=-1, vmax=1, cmap = 'viridis', cbar_ax=cbar_ax)
+        spectro.set_aspect('equal', 'box')
+        spectro.set_title(artifact, fontsize=fontsz)
+        axs[idx_i[artifactNumber], idx_j[artifactNumber]].set_xticks(np.array([3, 10, 17, 24]))
+        axs[idx_i[artifactNumber], idx_j[artifactNumber]].set_xticklabels(np.array([3, 10, 17, 24]), rotation=0)  # , rotation = -45)
+        axs[idx_i[artifactNumber], idx_j[artifactNumber]].set_yticks(np.array([3, 8, 13, 18]))
+        axs[idx_i[artifactNumber], idx_j[artifactNumber]].set_yticklabels(np.array([4, 9, 14, 19]), rotation=0)  # , rotation = -45)
+
+        axs[idx_i[artifactNumber], 0].tick_params(left=True, labelleft=True)
+        axs[idx_i[artifactNumber], -1].tick_params(right=False, labelright=False)
+        axs[0, idx_j[artifactNumber]].tick_params(top=False, labeltop=False)
+        axs[-1, idx_j[artifactNumber]].tick_params(bottom=True, labelbottom=True)
+
+    plt.subplots_adjust(hspace=-0.3, wspace=0.10)
+    if Smote == True:
+        plt.savefig('spectro_control_Smote.png', bbox_inches='tight')
+    else:
+        plt.savefig('spectro_control.png', bbox_inches='tight')
+    plt.show()
+
+#plotControl(newData, Smote)
+
+
+def plotSpectro(dict, Smote):
     # Reshaping Data
     # plotting as heatmap:
     #plt.figure(dpi=1000)
@@ -34,7 +72,7 @@ def plotSpectro(dict):
                                cmap="viridis", cbar_ax=cbar_ax)#, xticklabels=['0', '5', '10', '15', '20', '24'])
             spectro.set_aspect('equal', 'box')
             axs[AugNumber, artifactNumber].set_xticks(np.array([3, 10, 17, 24]))
-            axs[AugNumber, artifactNumber].set_xticklabels(np.array([3, 10, 17, 24]))#, rotation = -45)
+            axs[AugNumber, artifactNumber].set_xticklabels(np.array([3, 10, 17, 24]), rotation = -90)#, rotation = -45)
             axs[AugNumber, artifactNumber].set_yticks(np.array([3, 8, 13, 18]))
             axs[AugNumber, artifactNumber].set_yticklabels(np.array([4, 9, 14, 19]), rotation = 0)  # , rotation = -45)
             axs[AugNumber, 0].tick_params(left=False, labelleft=False)
@@ -53,14 +91,58 @@ def plotSpectro(dict):
                 spectro.set_title(artifact, fontsize=fontsz)
 
     plt.subplots_adjust(hspace = -0.5, wspace = 0.10)
-
-    plt.savefig('spectro.png',bbox_inches='tight')
+    if Smote == True:
+        plt.savefig('spectro_smote.png',bbox_inches='tight')
+    else:
+        plt.savefig('spectro.png', bbox_inches='tight')
     plt.show()
 
-#plotSpectro(newData)
+#plotSpectro(newData, Smote)
+
+def plotArtifact(artifact, data):
+    fontsz = 13
+
+    fig, axs = plt.subplots(2,3, sharex=True, sharey=True, constrained_layout = True)
+    plt.subplots_adjust(left=0.1, right=0.8)
+    cbar_ax = fig.add_axes([.82, .3, .03, .4])
+
+    for number in range(6):
 
 
-def MeanStandardize(dictionary):
+        if number < 3:
+            j = 0
+        else:
+            j = 1
+
+        fold = np.random.randint(5) + 1
+        pic = np.random.randint(data['NoAug'][artifact][fold].shape[0])
+        spectrogram = np.reshape(data['NoAug'][artifact][fold][pic], (19, 25))
+
+
+        spectro = sns.heatmap(spectrogram, ax = axs[j, number % 3],
+                              vmin=-1, vmax=1, cmap = 'viridis', cbar_ax=cbar_ax)
+        spectro.set_aspect('equal', 'box')
+        spectro.set_title(artifact, fontsize=fontsz)
+        spectro.set_xticks(np.array([3, 10, 17, 24]))
+        spectro.set_xticklabels(np.array([3, 10, 17, 24]), rotation=0)  # , rotation = -45)
+        spectro.set_yticks(np.array([3, 8, 13, 18]))
+        spectro.set_yticklabels(np.array([4, 9, 14, 19]), rotation=0)  # , rotation = -45)
+
+        spectro.tick_params(left=True, labelleft=True)
+        spectro.tick_params(right=False, labelright=False)
+        #spectro.tick_params(top=False, labeltop=False)
+        #spectro.tick_params(bottom=True, labelbottom=True)
+
+        plt.subplots_adjust(hspace=-0.3, wspace=0.10)
+
+    plt.show()
+
+
+plotArtifact('elpp', MeanData)
+
+
+
+def MeanStandardize(dictionary, control):
 
     Standardized = defaultdict(lambda: defaultdict(dict))
 
@@ -69,8 +151,19 @@ def MeanStandardize(dictionary):
             # mean spectrograms: Calculated as mean spectrogram in fold, then mean over folds
             Standardized[AugMethod][artifact] = np.mean([np.reshape(np.mean(dictionary[AugMethod][artifact][fold], axis = 0).tolist(), (19,25)) for fold in range(1,6)], axis = 0)
 
-    minval = [np.min([np.min(Standardized[AugMethod][artifact]) for AugMethod in ['NoAug', 'GAN', 'MixUp', 'white_noise', 'color_noise']]) for artifact in ['eyem', 'chew', 'shiv', 'elpp', 'musc', 'null']]
-    maxval = [np.max([np.max(Standardized[AugMethod][artifact]) for AugMethod in ['NoAug', 'GAN', 'MixUp', 'white_noise', 'color_noise']]) for artifact in ['eyem', 'chew', 'shiv', 'elpp', 'musc', 'null']]
+    if control:
+        minval = [np.min([np.min(Standardized['NoAug'][artifact]) for AugMethod in
+                          ['NoAug', 'GAN', 'MixUp', 'white_noise', 'color_noise']]) for artifact in
+                  ['eyem', 'chew', 'shiv', 'elpp', 'musc', 'null']]
+        maxval = [np.max([np.max(Standardized['NoAug'][artifact]) for AugMethod in
+                          ['NoAug', 'GAN', 'MixUp', 'white_noise', 'color_noise']]) for artifact in
+                  ['eyem', 'chew', 'shiv', 'elpp', 'musc', 'null']]
+
+    else:
+        minval = [np.min([np.min(Standardized[AugMethod][artifact]) for AugMethod in ['NoAug', 'GAN', 'MixUp', 'white_noise', 'color_noise']]) for artifact in ['eyem', 'chew', 'shiv', 'elpp', 'musc', 'null']]
+        maxval = [np.max([np.max(Standardized[AugMethod][artifact]) for AugMethod in ['NoAug', 'GAN', 'MixUp', 'white_noise', 'color_noise']]) for artifact in ['eyem', 'chew', 'shiv', 'elpp', 'musc', 'null']]
+
+
 
     for artifactNumber, artifact in enumerate(['eyem', 'chew', 'shiv', 'elpp', 'musc', 'null']):
         for AugMethod in ['NoAug', 'GAN', 'MixUp', 'white_noise', 'color_noise']:
@@ -86,8 +179,9 @@ def MeanStandardize(dictionary):
 
 if __name__ == '__main__':
 
-    GAN_epochs = 5
-    Smote = True
+    GAN_epochs = 0
+    Smote = False
+    control = True
 
     # Dataload data
     pickle_path = r'/Users/philliphoejbjerg/Documents/GitHub/EEG_epilepsia/'
@@ -95,13 +189,13 @@ if __name__ == '__main__':
     y = LoadNumpyPickles(pickle_path, r'y_clean.npy', True)
     ID_frame = LoadNumpyPickles(pickle_path, r'ID_frame_clean.npy', True)
 
+
     # DataLoad noisy data
     pickle_path_aug = pickle_path + r"augmentation_pickles"
     X_color, y_color, ID_frame_color = prepareNoiseAddition(pickle_path_aug, '/colornoise30Hz_covarOne/', r'X_clean.npy', r'y_clean.npy',
                                                             r'ID_frame_clean.npy', windowsOS=True)
     X_white, y_white, ID_frame_white = prepareNoiseAddition(pickle_path_aug, '/whitenoise_covarOne/', r'X_clean.npy', r'y_clean.npy',
                                                             r'ID_frame_clean.npy', windowsOS=True)
-
 
 
     # apply the inclusion principle
@@ -226,5 +320,6 @@ if __name__ == '__main__':
             MeanData['white_noise'][artifact_name][fold] = X_white_artifact
             #plotSpectro(X_white_artifact, min_val, max_val, artifact = artifact_names[artifact], AugMethod = "white noise")
 
-    newData = MeanStandardize(MeanData)
-    plotSpectro(newData)
+    newData = MeanStandardize(MeanData, control)
+    plotSpectro(newData, Smote)
+    plotControl(newData, Smote)

@@ -1,11 +1,19 @@
 import numpy as np
 import os
 
+from prepData.dataLoader import *
+
+pickle_path = r'/Users/philliphoejbjerg/Documents/GitHub/EEG_epilepsia/'
+#X = LoadNumpyPickles(pickle_path, r'X_clean.npy', True)
+y = LoadNumpyPickles(pickle_path, r'y_clean.npy', True)
+
+
 def DescriptiveStats_labels(labels):
     # Artifacts
     n_labels = {i: np.unique(labels[:, i], return_counts=True)[1][1] for i in range(len(labels[0]))}
     N = sum(n_labels.values())
-    label_ratio = list(n_labels.values()) / N
+    N_windows = 1344862
+    label_ratio = np.array(list(n_labels.values()) )/ N_windows
     return n_labels, N, label_ratio
 
 def DescriptiveStats_person(tempdata_path = '/Users/philliphoejbjerg/NovelEEG/tempData'):
@@ -21,4 +29,6 @@ def DescriptiveStats_person(tempdata_path = '/Users/philliphoejbjerg/NovelEEG/te
     return time_pers
 
 
+n_labels, N, label_ratio = DescriptiveStats_labels(y)
+#time_pers = DescriptiveStats_person()
 
