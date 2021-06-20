@@ -1,92 +1,124 @@
 from results import *
-
+from ensemble_results import *
 
 if __name__ == '__main__':
     dir = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia"  # dir = "/Users/philliphoejbjerg/Documents/GitHub/EEG_epilepsia"  # dir = r"/Users/Jacobsen/Documents/GitHub/EEG_epilepsia" + "/"
+    windowsOS = True
 
-    # Example of merging fully created files from different models.
-    experiment = "augmentation_colorNoise"  # directory containing the files we will look at
-    experiment_name = '_augmentation_colorNoise_merged_allModels'
-    fullSMOTE = getResults(dir, experiment, experiment_name, merged_file=True, windowsOS=True)
-    fullSMOTE.mergeResultFiles(file_name=experiment_name)
+    y_true_path = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia\results\y_true\y_true_5fold_randomstate_0.npy"
 
-    # To work with the merged file we have to change the pickle path to the "merged" folder.
-    fullSMOTE.changePicklePath()
+    experiment_name = "_ensemble_experiment"
+    experiments = {"SMOTE": (1, 'control'),
+                   "augmentation_colorNoise": (1, 'color'), "augmentation_whiteNoise": (1, 'white'),
+                   "augmentation_MixUp": (1, 'MixUp'), "augmentation_GAN": (1, 'GAN'),
+                   "colorNoiseimprovement": (2, 'color'), "whiteNoiseimprovement": (2, 'white'),
+                   "MixUpimprovement": (2, 'MixUp'), "GANimprovement": (2, 'GAN')}
+    augmentationExp = getResultsEnsemble(dir, experiments=experiments, experiment_name=experiment_name, merged_file=False,
+                                     windowsOS=windowsOS)
 
-    # Initialize global parameters?
-    aug_technique = "colored noise"  # "GAN" # "MixUp" #Noise Addition --> mainly for naming of the plots
+    files = ["orderedPredictions_AllBestbalanced_acc.npy", "orderedPredictions_AllBestsensitivity.npy"]
+    for i, measure in enumerate(['balanced_acc', 'sensitivity']):
+        N_best = None
+        slash = augmentationExp.slash
+
+        loadedBestDictName = slash + files[i]
+        bestDictPicklepath = (slash).join([dir, "results", experiment_name])
+
+        bestDict = LoadNumpyPickles(pickle_path=bestDictPicklepath, file_name=loadedBestDictName, windowsOS=windowsOS)[()]
+
+        augmentationExp.plotImprovementExp(bestDict=bestDict, smote_ratio=1, measure=measure)#, grid=True)
+        augmentationExp.plotImprovementExp(bestDict=bestDict, smote_ratio=2, measure=measure)#, grid=True)
+
+        augmentationExp.plotAugTechnique(bestDict=bestDict, measure=measure, smote_ratio=1, mean=True, max_Aug=False, exclude_baseline=True)
+        augmentationExp.plotAugTechnique(bestDict=bestDict, measure=measure, smote_ratio=2, mean=True, max_Aug=False, exclude_baseline=True)
+        augmentationExp.plotAugTechnique(bestDict=bestDict, measure=measure, smote_ratio=None, mean=True, max_Aug=False, exclude_baseline=True)
+
+        augmentationExp.plotAugTechnique(bestDict=bestDict, measure=measure, smote_ratio=1, mean=False, max_Aug=True, exclude_baseline=True)
+        augmentationExp.plotAugTechnique(bestDict=bestDict, measure=measure, smote_ratio=2, mean=False, max_Aug=True, exclude_baseline=True)
+        augmentationExp.plotAugTechnique(bestDict=bestDict, measure=measure, smote_ratio=None, mean=False, max_Aug=True, exclude_baseline=True)
+        
+
+
+
+
+    experiments = ["augmentation_colorNoise", "augmentation_whiteNoise", "augmentation_GAN", "augmentation_MixUp"]
+    aug_techniques = ["colored noise", "white noise", "GAN", "MixUp"]
     LaTeX = False
     save_img = True
+    smote = 0
 
-    # Next we wish to examine F2!
-    fullSMOTE.printResults(measure="weighted_F2",
-                           experiment_name=experiment_name,
-                           smote_ratios=[1],
-                           aug_ratios=[0.5],
-                           printSTDTable=True,
-                           across_SMOTE=False,
-                           LaTeX=False)
+    for i, experiment in enumerate(experiments):
+        experiment_name = "_" + experiment + "_merged_allModels"
+        augExp = getResults(dir, experiment, experiment_name, merged_file=True, windowsOS=True)
+        augExp.mergeResultFiles(file_name=experiment_name)
 
-    fullSMOTE.plotResults(measure="weighted_F2",
-                          experiment_name=experiment_name,
-                          aug_technique=aug_technique,
-                          smote_ratios=[1],
-                          aug_ratios=fullSMOTE.aug_ratios,
-                          across_SMOTE=False,
-                          save_img=save_img)
+        augExp.changePicklePath()
 
-    # Example of merging fully created files from different models.
-    experiment = "augmentation_whiteNoise"  # directory containing the files we will look at
-    experiment_name = '_augmentation_whiteNoise_merged_allModels'
-    fullSMOTE = getResults(dir, experiment, experiment_name, merged_file=True, windowsOS=True)
-    fullSMOTE.mergeResultFiles(file_name=experiment_name)
+        aug_technique = aug_techniques[i]
+        """for measure in ["weighted_F2", "sensitivity", "balanced_acc"]:
+            augExp.plotAllModelsBestAug(measure=measure,
+                                        experiment_name=experiment_name,
+                                        y_true_path=y_true_path,
+                                        aug_technique=aug_technique,
+                                        smote_ratios=[smote + 1],
+                                        aug_ratios=augExp.aug_ratios,
+                                        save_img=save_img)"""
 
-    # To work with the merged file we have to change the pickle path to the "merged" folder.
-    fullSMOTE.changePicklePath()
+        augExp.plotResultsImprovementExp(experiment_name=experiment_name,
+                                         smote_ratio=smote + 1,
+                                         y_true_path=y_true_path,
+                                         aug_technique=aug_technique,
+                                         sens_control=[0.72, 0.81, 0.7, 0.69, 0.7, 0.76],
+                                         sens_std_control=[0.04, 0.06, 0.04, 0.04, 0.04, 0.03],
+                                         bacc_control=[0.76, 0.86, 0.69, 0.63, 0.7, 0.69],
+                                         bacc_std_control=[0.02, 0.02, 0.16, 0.04, 0.05, 0.02],
+                                         save_img=True)
 
-    # Initialize global parameters?
-    aug_technique = "white noise"  # "GAN" # "MixUp" #Noise Addition --> mainly for naming of the plots
+    experiments = ["colorNoiseimprovement", "whiteNoiseimprovement", "GANimprovement", "MixUpimprovement"]
+    aug_techniques = ["colored noise", "white noise", "GAN", "MixUp"]
     LaTeX = False
     save_img = True
+    smote = 1
 
-    # Next we wish to examine F2!
-    fullSMOTE.printResults(measure="weighted_F2",
-                           experiment_name=experiment_name,
-                           smote_ratios=[1],
-                           aug_ratios=[0.5],
-                           printSTDTable=True,
-                           across_SMOTE=False,
-                           LaTeX=False)
+    for i, experiment in enumerate(experiments):
+        experiment_name = "_" + experiment + "_merged_allModels"
+        augExp = getResults(dir, experiment, experiment_name, merged_file=True, windowsOS=True)
+        augExp.mergeResultFiles(file_name=experiment_name)
 
-    fullSMOTE.plotResults(measure="weighted_F2",
-                          experiment_name=experiment_name,
-                          aug_technique=aug_technique,
-                          smote_ratios=[1],
-                          aug_ratios=fullSMOTE.aug_ratios,
-                          across_SMOTE=False,
-                          save_img=save_img)
+        augExp.changePicklePath()
+
+        aug_technique = aug_techniques[i]
+        """for measure in ["weighted_F2", "sensitivity", "balanced_acc"]:
+            augExp.plotAllModelsBestAug(measure=measure,
+                                        experiment_name=experiment_name,
+                                        y_true_path=y_true_path,
+                                        aug_technique=aug_technique,
+                                        smote_ratios=[smote + 1],
+                                        aug_ratios=augExp.aug_ratios,
+                                        save_img=save_img)"""
+
+        augExp.plotResultsImprovementExp(experiment_name=experiment_name,
+                                         smote_ratio=smote + 1,
+                                         y_true_path=y_true_path,
+                                         aug_technique=aug_technique,
+                                         sens_control=[0.72, 0.81, 0.7, 0.69, 0.7, 0.76],
+                                         sens_std_control=[0.04, 0.06, 0.04, 0.04, 0.04, 0.03],
+                                         bacc_control=[0.76, 0.86, 0.69, 0.63, 0.7, 0.69],
+                                         bacc_std_control=[0.02, 0.02, 0.16, 0.04, 0.05, 0.02],
+                                         save_img=True)
 
 
 
+    print("")
 
 
-    # TODO: Don't know how we will work with the augmented files
+    """# Next we wish to examine F2!
+    augExp.printResults(measure="weighted_F2",
+                        experiment_name=experiment_name,
+                        y_true_path=y_true_path,
+                        smote_ratios=[1],
+                        aug_ratios=[0.5],
+                        printSTDTable=True,
+                        across_SMOTE=False,
+                        LaTeX=False)"""
 
-    # Example of merging result-files created with same models but different Augmentation-ratios
-    # TODO: Not tried yet as we have not conducted the experiment
-    # experiment = "LR_for_merge_MixUp"
-    # experiment_name = '_MixUp_LR'
-    # LR_MixUp = getResults(dir, experiment, experiment_name, merged_file=True, windowsOS=True)
-    # LR_MixUp.mergeResultFiles(file_name=experiment_name)
-
-    # across_SMOTE has to be False when doing it with augmentation
-    """
-    # For augmentation
-    fullSMOTE.plotResults(measure="sensitivity",
-                          experiment_name=experiment_name,
-                          aug_technique=aug_technique,
-                          smote_ratios=fullSMOTE.smote_ratios,
-                          aug_ratios=[0],
-                          across_SMOTE=False,
-                          save_img=save_img)
-    """

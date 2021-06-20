@@ -1,18 +1,27 @@
 import numpy as np
 from sklearn.linear_model import LogisticRegression
+from scipy.special import expit
 from models.models import models
 
 def norm_grad_x_LR(theta, x, C=1.):
     # Function taken from course in Active Machine Learning at DTU - course number: 02463
+    # Modified by us to account for overflow in exponential calculation of the logistic sigmoid.
 
     # probability of high class
-    p1 = 1 / (1 + np.exp(-np.sum(theta * x)))
+    #p1 = 1 / (1 + np.exp(-np.sum(theta * x, dtype=np.float64)))
+    p1 = expit(np.sum(theta * x))
+
     # probability of low class
     p0 = 1 - p1
+
     # derivative of cost as derived above for high class
-    dL1 = -x / (1 + np.exp(theta * x)) + theta / C
+    #dL1_before = -x / (1 + np.exp(theta * x)) + theta / C
+    dL1 = -x * expit(-(theta * x)) + theta / C
+
     # same for low class
-    dL0 = x * np.exp(theta * x) / (1 + np.exp(theta * x)) + theta / C
+    #dL0_before = x * np.exp(theta * x) / (1 + np.exp(theta * x)) + theta / C
+    dL0 = x * np.exp(theta*x) * expit(-(theta * x)) + theta / C
+
     # 2-norm of these
     g1 = np.sqrt(np.sum(dL1 ** 2, 1))
     g0 = np.sqrt(np.sum(dL0 ** 2, 1))

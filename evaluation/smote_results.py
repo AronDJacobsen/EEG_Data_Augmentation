@@ -16,24 +16,35 @@ if __name__ == '__main__':
     aug_technique = None  # "GAN" # "MixUp" #Noise Addition --> mainly for naming of the plots
     LaTeX = True
     save_img = True
+    y_true_path = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia\results\y_true\y_true_5fold_randomstate_0.npy"
 
     # Next we wish to examine F2!
     fullSMOTE.printResults(measure="weighted_F2",
                            experiment_name=experiment_name,
+                           y_true_path=y_true_path,
                            smote_ratios=[1],
                            aug_ratios=[0],
                            printSTDTable=True,
                            LaTeX=True)
 
-    fullSMOTE.plotResultsPlainExp(experiment_name=experiment_name,
-                                  across_SMOTE=True,
-                                  save_img=True)
+    #fullSMOTE.plotResultsPlainExp(experiment_name=experiment_name,
+    #                              across_SMOTE=True, y_true_path=y_true_path,
+    #                              save_img=True)
 
 
     # No augmentation or smote at all!
+    """fullSMOTE.plotResults(measure="balanced_acc",
+                          experiment_name=experiment_name,
+                          aug_technique=aug_technique,
+                          y_true_path=y_true_path,
+                          smote_ratios=fullSMOTE.smote_ratios,
+                          aug_ratios=[0],
+                          across_SMOTE=True,
+                          save_img=True)#save_img))"""
     fullSMOTE.plotResults(measure="weighted_F2",
                           experiment_name=experiment_name,
                           aug_technique=aug_technique,
+                          y_true_path=y_true_path,
                           smote_ratios=[1],#fullSMOTE.smote_ratios,
                           aug_ratios=[0],
                           across_SMOTE=True,
@@ -41,6 +52,7 @@ if __name__ == '__main__':
     fullSMOTE.plotResults(measure="accuracy",
                           experiment_name=experiment_name,
                           aug_technique=aug_technique,
+                          y_true_path=y_true_path,
                           smote_ratios=[1],  # fullSMOTE.smote_ratios,
                           aug_ratios=[0],
                           across_SMOTE=True,
@@ -48,47 +60,42 @@ if __name__ == '__main__':
     fullSMOTE.plotResults(measure="sensitivity",
                           experiment_name=experiment_name,
                           aug_technique=aug_technique,
+                          y_true_path=y_true_path,
                           smote_ratios=[1],  # fullSMOTE.smote_ratios,
                           aug_ratios=[0],
                           across_SMOTE=True,
                           save_img=True)  # save_img)
 
+    """fullSMOTE.plotResults(measure="balanced_acc",
+                          experiment_name=experiment_name,
+                          aug_technique=aug_technique,
+                          smote_ratios=fullSMOTE.smote_ratios,
+                          aug_ratios=[0],
+                          across_SMOTE=True,
+                          save_img=True)  # save_img)"""
 
     fullSMOTE.plotResults(measure="weighted_F2",
                           experiment_name=experiment_name,
                           aug_technique=aug_technique,
+                          y_true_path=y_true_path,
                           smote_ratios=fullSMOTE.smote_ratios,
                           aug_ratios=[0],
                           across_SMOTE=True,
                           save_img=True)  # save_img)
 
-    # Next we wish to examine accuracy
-    fullSMOTE.printResults(measure="accuracy",
-                           experiment_name=experiment_name,
-                           smote_ratios=[1],
-                           aug_ratios=[0],
-                           printSTDTable=False,
-                           LaTeX=False)
-
     fullSMOTE.plotResults(measure="accuracy",
                           experiment_name=experiment_name,
                           aug_technique=aug_technique,
+                          y_true_path=y_true_path,
                           smote_ratios=fullSMOTE.smote_ratios,
                           aug_ratios=[0],
                           across_SMOTE=True,
                           save_img=save_img)
 
-    # Next we wish to examine accuracy
-    fullSMOTE.printResults(measure="sensitivity",
-                           experiment_name=experiment_name,
-                           smote_ratios=[1],
-                           aug_ratios=[0],
-                           printSTDTable=False,
-                           LaTeX=False)
-
     fullSMOTE.plotResults(measure='sensitivity',
                           experiment_name=experiment_name,
                           aug_technique=aug_technique,
+                          y_true_path=y_true_path,
                           smote_ratios=fullSMOTE.smote_ratios,
                           aug_ratios=[0],
                           across_SMOTE=True,

@@ -23,9 +23,6 @@ from sklearn.utils import shuffle
 from sklearn.preprocessing import OneHotEncoder
 import pandas as pd
 
-from modAL.models import ActiveLearner
-from modAL.expected_error import expected_error_reduction
-
 from models.ActiveLearning import *
 from models.GAN import useGAN
 from models.mixup import useMixUp
@@ -99,8 +96,8 @@ class pipeline:
                                 'SGD': {'SGD': ('SGD', spacesgd)}}
         super(pipeline, self)
 
-    def runActivePipeline(self, model, HO_evals, active_ratio, smote_ratios, aug_ratios, experiment, experiment_name, init_amount,
-                          n_pr_query, artifact_names=None, GAN_epochs=100, noise_experiment=None,
+    def runActivePipeline(self, model, HO_evals, active_ratio, smote_ratios, aug_ratios, experiment, experiment_name, init_amount_percent,
+                          n_pr_query_percent, artifact_names=None, GAN_epochs=100, noise_experiment=None, randomSampler = False,
                           DelNan_noiseFiles=False, fast_run=False, K=5, random_state=0, save_y_true=False):
         """
         Parameters:
@@ -220,7 +217,7 @@ class pipeline:
 
                 if ratio != 1:
                     print("\n####---------------------------------------####")
-                    print("Running a", ratio, "ratio of SMOTE")
+                    print("Running a", ratio - 1, "ratio of SMOTE")
                     print("####---------------------------------------####")
 
                 i = 0  # CV fold index
@@ -229,6 +226,7 @@ class pipeline:
                 #### initializing dict for this ratio ####
                 ho_trials[aug_ratio][ratio] = {}  # for this fold
                 results[aug_ratio][ratio] = {}
+                active_results[aug_ratio][ratio] = {}
 
                 for train_idx, test_idx in kf.split(individuals):
                     # single loop
@@ -250,9 +248,11 @@ class pipeline:
 
                     X_test, y_test = X[test_indices, :], y[test_indices]
 
-                    # TODO: HER!
                     # Preparing for active learning
                     Xpool_orig, ypool_orig = X[train_indices, :], y[train_indices]
+
+                    init_amount = int(np.round(init_amount_percent * len(Xpool_orig), 0))
+                    n_pr_query = int(np.round(n_pr_query_percent * len(Xpool_orig), 0))
 
                     order = np.random.permutation(range(len(Xpool_orig)))
                     trainset_orig = order[:init_amount]
@@ -263,6 +263,7 @@ class pipeline:
                     poolidx_orig = np.arange(len(Xpool_orig), dtype=np.int)
                     poolidx_orig = np.setdiff1d(poolidx_orig, trainset_orig)
 
+                    trainData_balance = [] #TODO: These empty list are positioned wrongly. Should be in the artifact loop.
                     testacc_al = []
                     testF2_al = []
                     testSens_al = []
@@ -272,7 +273,7 @@ class pipeline:
                     #### initializing dict for this fold ####
                     ho_trials[aug_ratio][ratio][i] = {}  # for this fold
                     results[aug_ratio][ratio][i] = {}
-                    active_results[aug_ratio][i] = {}
+                    active_results[aug_ratio][ratio][i] = {}
 
                     y_true_dict[i] = {}
 
@@ -286,8 +287,7 @@ class pipeline:
                         poolidx = poolidx_orig
 
                         query_round = 0
-
-                        while len(trainset) <= active_ratio * len(train_indices):
+                        while len(X_train) <= active_ratio * len(Xpool_orig):
 
                             #### initializing hyperopt split #### #TODO: Det her er overflødigt, vi kan bare ændre HO_individuals til trainindv (tror jeg)
                             train_ID_frame = ID_frame[trainset]
@@ -403,7 +403,7 @@ class pipeline:
                             ho_trials[aug_ratio][ratio][i][artifact_names[artifact]] = {}  # for this artifact
                             results[aug_ratio][ratio][i][artifact_names[artifact]] = {}
                             y_true_dict[i][artifact_names[artifact]] = {}
-                            active_results[aug_ratio][i][artifact_names[artifact]] = {}
+                            active_results[aug_ratio][ratio][i][artifact_names[artifact]] = {}
 
 
                             # https://medium.com/district-data-labs/parameter-tuning-with-hyperopt-faa86acdfdce
@@ -450,8 +450,7 @@ class pipeline:
 
                             print(model + ": \t" + str(f[:3]) + ". Time: {:f} seconds".format(took_time))
 
-                            """ This part using the modAL library is currently broken. It works if uncertainty sampling
-                            is used ! """
+                            """ This part using the modAL library is currently broken. 
 
                             AL_env = ActiveModels(X_train=Xtrain, y_train=ytrain,
                                                   X_test=Xtest, y_test=ytest,
@@ -459,46 +458,50 @@ class pipeline:
 
                             f = AL_env.LR(**best)
 
-
                             modAL_learner = ActiveLearner(estimator=AL_env.model,
                                                           #query_strategy=expected_error_reduction,
                                                           X_training=AL_env.X_train, y_training=AL_env.y_train)
-                            query_idx = expected_error_reduction(learner=modAL_learner, X=Xpool, n_instances=n_pr_query)
 
-                            query_idx, query_inst = modAL_learner.query(X_pool=Xpool)
-
-
-
-                            #query_strategy=expected_error_reduction,
-                            #X_training=X[[0, 50, 100]], y_training=y[[0, 50, 100]])
+                            query_idx, query_inst = modAL_learner.query(X_pool=Xpool, n_instances=1)
+                            modAL_learner.teach(Xpool[query_idx], ypool[query_idx])
+                            """
 
                             acc, F2, sensitivity, y_pred, weights = f
-                            emc = norm_grad_x_LR(weights, Xpool[poolidx])
 
-                            ypool_p_sort_idx = np.argsort(emc)
-                            X_train = np.concatenate((X_train, Xpool[poolidx[ypool_p_sort_idx[-n_pr_query:]]]))
-                            y_train = np.concatenate((y_train, ypool[poolidx[ypool_p_sort_idx[-n_pr_query:]]]))
-                            poolidx = np.setdiff1d(poolidx, ypool_p_sort_idx[-n_pr_query:])
-                            print('Model: LR, %i samples (EMC)' % (init_amount + query_round * n_pr_query))
+                            if randomSampler:
+                                order_sub = np.random.permutation(poolidx)
+                                newIdxsPool = order_sub[:n_pr_query]
 
+                                X_train = np.concatenate((X_train, Xpool[newIdxsPool]))
+                                y_train = np.concatenate((y_train, ypool[newIdxsPool]))
+                                poolidx = np.setdiff1d(poolidx, newIdxsPool)
+                                print('Model: LR, %i samples (Random)' % (init_amount + query_round * n_pr_query))
+
+                            else:
+                                emc = norm_grad_x_LR(weights, Xpool[poolidx])
+
+                                ypool_p_sort_idx = np.argsort(emc)
+                                X_train = np.concatenate((X_train, Xpool[poolidx[ypool_p_sort_idx[-n_pr_query:]]]))
+                                y_train = np.concatenate((y_train, ypool[poolidx[ypool_p_sort_idx[-n_pr_query:]]]))
+                                poolidx = np.setdiff1d(poolidx, ypool_p_sort_idx[-n_pr_query:])
+                                print('Model: LR, %i samples (EMC)' % (init_amount + query_round * n_pr_query))
+
+                            counts = np.unique(ytrain, return_counts=True)[1]
+
+                            trainData_balance.append((len(Xtrain), counts[1] / counts[0]))
                             testacc_al.append((len(Xtrain), acc))
                             testF2_al.append((len(Xtrain), F2))
                             testSens_al.append((len(Xtrain), sensitivity))
 
                             query_round += 1
 
-                        # Accumulated results with active learning
-                        plt.plot(*tuple(np.array(testacc_al).T))
-                        plt.plot(*tuple(np.array(testF2_al).T))
-                        plt.plot(*tuple(np.array(testSens_al).T))
-                        plt.legend(('Accuracy', 'F2', 'Sensitivity'))
-                        plt.show()
 
                         active_results[aug_ratio][ratio][i][artifact_names[artifact]][model] = {}
 
-                        active_results[aug_ratio][i][artifact_names[artifact]][model]['accuracy'] = testacc_al
-                        active_results[aug_ratio][i][artifact_names[artifact]][model]['F2'] = testF2_al
-                        active_results[aug_ratio][i][artifact_names[artifact]][model]['sensitivity'] = testSens_al
+                        active_results[aug_ratio][ratio][i][artifact_names[artifact]][model]['accuracy'] = testacc_al
+                        active_results[aug_ratio][ratio][i][artifact_names[artifact]][model]['F2'] = testF2_al
+                        active_results[aug_ratio][ratio][i][artifact_names[artifact]][model]['sensitivity'] = testSens_al
+                        active_results[aug_ratio][ratio][i][artifact_names[artifact]][model]['balance'] = trainData_balance
 
 
                         #### initializing dictionary of results for this model ####
@@ -519,7 +522,7 @@ class pipeline:
 
                 cross_val_time_end = time()
                 cross_val_time = cross_val_time_end - cross_val_time_start
-                print("The cross-validation for ratio" + str(ratio) + " took " + str(
+                print("The cross-validation for ratio" + str(ratio - 1) + " took " + str(
                     np.round(cross_val_time, 3)) + " seconds = " + str(np.round(cross_val_time / 60, 3)) + " minutes")
                 print('\n\n')
                 results[aug_ratio][ratio]['time'] = cross_val_time
@@ -537,6 +540,16 @@ class pipeline:
             SaveNumpyPickles(self.pickle_path + r"\results\hyperopt" + "\\" + experiment,
                              r"\ho_trials" + experiment_name, ho_trials, self.windowsOS)
 
+            # Active pickles
+            os.makedirs(self.pickle_path + r"\results\performance" + r"\active" + experiment, exist_ok=True)
+            os.makedirs(self.pickle_path + r"\results\hyperopt" + r"\active" + experiment, exist_ok=True)
+
+            SaveNumpyPickles(self.pickle_path + r"\results\performance" + r"\active" + experiment,
+                             r"\resultsActive" + experiment_name, active_results, self.windowsOS)
+
+
+
+
             if save_y_true:
                 SaveNumpyPickles(self.pickle_path + r"\results\y_true", r"\y_true_" + str(K) + "fold_randomstate_"
                                  + str(random_state_val), y_true_dict, self.windowsOS)
@@ -552,6 +565,14 @@ class pipeline:
             SaveNumpyPickles(self.pickle_path + r"results/hyperopt" + "/" + experiment, r"/ho_trials" + experiment_name,
                              ho_trials, windowsOS=self.windowsOS)
 
+            #Active results
+            os.makedirs(self.pickle_path + r"/results/performance" + "/active" + experiment, exist_ok=True)
+            os.makedirs(self.pickle_path + r"/results/hyperopt" + "/active" + experiment, exist_ok=True)
+
+            SaveNumpyPickles(self.pickle_path + r"/results/performance" + r"/active" + experiment,
+                             r"/resultsActive" + experiment_name, active_results, self.windowsOS)
+
+
             if save_y_true:
                 SaveNumpyPickles(self.pickle_path + r"results/y_true", r"/y_true_" + str(K) + "fold_randomstate_"
                                  + str(random_state_val) + y_true_dict, windowsOS=self.windowsOS)
@@ -559,7 +580,7 @@ class pipeline:
 
 if __name__ == '__main__':
     """ Select path to the data-pickles ! """
-    pickle_path = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia\true_pickles"
+    pickle_path = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia"
     # pickle_path = r"/Users/Jacobsen/Documents/GitHub/EEG_epilepsia" + "/"
     # pickle_path = r"/Users/philliphoejbjerg/Documents/GitHub/EEG_epilepsia" + "/"
 
@@ -592,54 +613,28 @@ if __name__ == '__main__':
                             not experimenting with Noise Addition augmentation technique. """
 
     model = 'LR'
-    aug_method = "_MixUp"  # or '_Noise' or so.
+    aug_method = "_GAN"  # or '_Noise' or so.
+    artifact = "eyem"
 
-    experiment = 'active_test'  # 'DataAug_color_noiseAdd_LR'
-    experiment_name = experiment + "_" + model + aug_method  # "_DataAug_color_Noise" added to saving files. For augmentation end with "_Noise" or so.
-    noise_experiment = None  # r"\whitenoise_covarOne" # r"\colornoise30Hz_covarOne" #
-
-    """ Define ratios to use for SMOTE and data augmentation techniques !"""
-    smote_ratios = np.array([1])
-    active_ratio = np.array([0.1])
-    aug_ratios = np.array([0, 0.5, 1, 1.5, 2])
+    experiment = 'random_sampler_test'  # 'DataAug_color_noiseAdd_LR'
+    experiment_name = experiment + "_" + model + artifact + aug_method  # "_DataAug_color_Noise" added to saving files. For augmentation end with "_Noise" or so.
+    noise_experiment = None #r"\colornoise30Hz_covarOne" #
+    #noise_experiment = r"\whitenoise_covarOne" # r"\colornoise30Hz_covarOne" #
 
     """ Specify other parameters"""
     HO_evals = 25
     K = 5
     random_state_val = 0
 
-    # Example of normal run - with no smote and no augmentation. For illustration, 1-Fold CV.
     this_pipeline.runActivePipeline(model=model,
+                                    randomSampler=True,
                                     HO_evals=HO_evals,
-                                    n_pr_query=1000, init_amount=1000,
-                                    active_ratio=0.1,
-                                    smote_ratios=smote_ratios, aug_ratios=np.array([0]),
+                                    n_pr_query_percent=0.01, init_amount_percent=0.1,
+                                    active_ratio=0.3,
+                                    smote_ratios=np.array([0]), aug_ratios=np.array([0, 0.5, 1, 1.5, 2]),
                                     experiment=experiment,
                                     experiment_name=experiment_name,
-                                    random_state=random_state_val,
-                                    K=K)
-
-    # Example of running with MixUp and no SMOTE.
-    aug_method = "_MixUp"
-    experiment_name = experiment + "_" + model + aug_method
-
-    this_pipeline.runActivePipeline(model=model,
-                                    HO_evals=HO_evals,
-                                    active_ratio=0.1, aug_ratios=np.array([0.5]),
-                                    experiment=experiment,
-                                    experiment_name=experiment_name,
-                                    random_state=random_state_val,
-                                    K=K)
-
-    # Example of running on a single artifact.
-    artifact = 'null'
-    experiment_name = experiment + model + artifact + aug_method
-
-    this_pipeline.runActivePipeline(model=model,
-                                    HO_evals=HO_evals,
-                                    active_ratio=0.1, aug_ratios=np.array([0]),
-                                    experiment=experiment,
-                                    experiment_name=experiment_name,
+                                    noise_experiment=noise_experiment,
                                     artifact_names=[artifact],
                                     random_state=random_state_val,
                                     K=K)
