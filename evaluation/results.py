@@ -1063,8 +1063,10 @@ class getResults:
         if aug_ratios == None:
             aug_ratios = self.aug_ratios
 
-        performances, errors = self.tableResults_Augmentation(measure=measure, y_true_path=y_true_path,
-                                                              smote_ratios=smote_ratios,
+
+        performances, errors, _ = self.tableResults_Augmentation(measure=measure, y_true_path=y_true_path,
+                                                              smote_ratios=smote_ratios, store_preds=False,
+                                                              withFolds=False,
                                                               experiment_name=experiment_name)
         self.smote_ratios.sort()
 

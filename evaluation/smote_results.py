@@ -19,10 +19,10 @@ if __name__ == '__main__':
     y_true_path = r"C:\Users\Albert Kjøller\Documents\GitHub\EEG_epilepsia\results\y_true\y_true_5fold_randomstate_0.npy"
 
     # Next we wish to examine F2!
-    fullSMOTE.printResults(measure="weighted_F2",
+    fullSMOTE.printResults(measure="sensitivity",
                            experiment_name=experiment_name,
                            y_true_path=y_true_path,
-                           smote_ratios=[1],
+                           smote_ratios=[3],
                            aug_ratios=[0],
                            printSTDTable=True,
                            LaTeX=True)

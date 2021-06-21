@@ -512,8 +512,12 @@ class getResultsEnsemble:
 
         control_max = defaultdict(dict)
         control_err = defaultdict(dict)
+        ax_control = 0
 
-        for aug_technique in self.augtechniques:
+        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2,2, figsize = (14, 8))
+        axList = [ax_control, ax1, ax2, ax3, ax4]
+
+        for ax, aug_technique in enumerate(self.augtechniques):
 
             bestForEachModel = {model: [] for model in self.models}
             errorForEachModel = {model: [] for model in self.models}
@@ -553,6 +557,7 @@ class getResultsEnsemble:
                 X_axis = np.arange(len(self.artifacts)) - 0.3
 
                 i = 0
+
                 for model in self.models:
                     control_maxList = np.array([control_max[(artifact, model)] for artifact in self.artifacts])
                     control_errList = np.array([control_err[(artifact, model)] for artifact in self.artifacts])
@@ -560,29 +565,39 @@ class getResultsEnsemble:
                     height = np.array(bestForEachModel[model]) - control_maxList
                     pooledSTD = np.sqrt((np.array(errorForEachModel[model]) ** 2 + control_errList ** 2) / 2)
 
-                    plt.bar(x=X_axis + w * i,
+                    axList[ax].bar(x=X_axis + w * i,
                             height=height,
                             width=w,
                             color=colorlist[i],
                             label=model)
 
-                    plt.errorbar(x=X_axis + w * i, y=height,
+                    axList[ax].errorbar(x=X_axis + w * i, y=height,
                                  yerr=pooledSTD,
                                  fmt='.', color='k')
                     i += 1
 
-                plt.xticks(np.arange(len(self.artifacts)), self.artifacts, rotation=0)
-                plt.title(f"{aug_technique}, SMOTE: {smote_ratio - 1}, {measure}")
-                plt.legend()
-                if measure == 'sensitivity':
-                    plt.ylim(-0.4, 0.4)
-                else:
-                    plt.ylim(-0.2, 0.4)
+                    axList[ax].tick_params()
+                    axList[ax].tick_params()
 
-                img_path = f"{(self.slash).join([self.dir, 'Plots', self.experiment_name, measure])}{self.slash}{aug_technique}_SMOTE{smote_ratio}_{measure}.png"
-                os.makedirs((self.slash).join(img_path.split(self.slash)[:-1]), exist_ok=True)
-                plt.savefig(img_path)
-                plt.show()
+                    axList[ax].set_xticks(np.arange(len(self.artifacts)))
+                    axList[ax].set_xticklabels(self.artifacts)
+                    axList[ax].set_title(f"{aug_technique}, SMOTE: {smote_ratio - 1}")#, {measure}")
+                    if measure == 'sensitivity':
+                        axList[ax].set_ylim(-0.4, 0.4)
+                    else:
+                        axList[ax].set_ylim(-0.2, 0.4)
+
+                if ax == 4:
+                    #fig.suptitle(measure)
+                    plt.legend(loc='center right', bbox_to_anchor=(1.36, 1.1))
+                    plt.subplots_adjust(left=0.05, right=0.87, bottom=0.05)
+
+
+                    img_path = f"{(self.slash).join([self.dir, 'Plots', self.experiment_name, measure])}{self.slash}_SMOTE{smote_ratio}_{measure}.png"
+                    os.makedirs((self.slash).join(img_path.split(self.slash)[:-1]), exist_ok=True)
+                    plt.savefig(img_path)
+
+                    plt.show()
 
     def printNBestModels(self, bestDict, N_best=20, exclude_baseline=False, exclude_zero_aug=False):
 
@@ -742,8 +757,8 @@ if __name__ == '__main__':
     experiment_name = "_ensemble_experiment"
     ensembleExp = getResultsEnsemble(dir, experiments=experiments, experiment_name=experiment_name, merged_file=False,
                                      windowsOS=windowsOS)
-    measure = 'balanced_acc'
-    N_best = 100
+    measure = 'balanced_acc' #'balanced_acc'
+    N_best = 20
     withFolds = True
 
     loadedBestDictName = slash + "orderedPredictions_100balanced_acc_foldsTrue.npy"  # Either None or file-name
@@ -808,6 +823,7 @@ if __name__ == '__main__':
     # model. For future experiments it should take a list with augmentation_techniques in as well.
     ensemble_preds = defaultdict(dict)
     bacc_dict = defaultdict(dict)
+    sens_dict = defaultdict(dict)
     bestModelsDict = leastCorrelatedModelsDict
     for artifact in ensembleExp.artifacts:
         ensemble_preds_artifact = ensembleExp.EnsemblePredictions(bestDict=bestDict,
@@ -820,59 +836,102 @@ if __name__ == '__main__':
         ensemble_preds[artifact] = ensemble_preds_artifact
 
         bacc = []
+        sens = []
         for fold in ensembleExp.folds:
             actual = y_true_dict[artifact][fold]
             predictions = ensemble_preds_artifact[fold]
             bacc.append(balanced_accuracy_score(y_true=actual, y_pred=predictions))
+
+            conf_matrix = confusion_matrix(y_true=actual, y_pred=predictions, labels=[0, 1])
+
+            TP = conf_matrix[1][1]
+            TN = conf_matrix[0][0]
+            FP = conf_matrix[0][1]
+            FN = conf_matrix[1][0]
+
+            if TP == 0 and FN == 0:
+                print("No TP or FN found.")
+                FN = 1  # Random number to account for division by zero
+            sensitivity = (TP / float(TP + FN))
+            sens.append(sensitivity)
+
+
         bacc_dict[artifact] = (np.mean(bacc), np.std(bacc))
-        print(f"\n{artifact}: {bacc_dict[artifact]}")
+        sens_dict[artifact] = (np.mean(sens), np.std(sens))
+        print(f"\nB.acc.{artifact}: {bacc_dict[artifact]}")
+        print(f"\nSens. {artifact}: {sens_dict[artifact]}")
 
     ensembleExp.plotEnsembleMulitLabelCM(ensemble_preds=ensemble_preds, y_true=y_true_dict)
 
     exps = ['control', 'ensemble']
 
+    control_sens_manual = {'scores': {'eyem': 0.69,
+                                      'chew': 0.81,
+                                      'shiv': 0.49,
+                                      'elpp': 0.49,
+                                      'musc': 0.55,
+                                      'null': 0.76},
+
+                           'errors': {'eyem': 0.04,
+                                      'chew': 0.06,
+                                      'shiv': 0.34,
+                                      'elpp': 0.11,
+                                      'musc': 0.10,
+                                      'null': 0.03}}
+
     cmap = plt.get_cmap('Blues')
     colorlist = [cmap(i) for i in np.linspace(0.3, 0.8, len(exps))]
     #colorlist = ["lightsteelblue", "darkcyan"]
-    for indv_art, artifact in enumerate(ensembleExp.artifacts):
-        for i, exp in enumerate(exps):
+    fig, ((ax1,ax2)) = plt.subplots(1, 2, figsize=(10,5))
+    axList = [ax1, ax2]
+    for m, measure in enumerate(['balanced_acc', 'sensitivity']):
+        for indv_art, artifact in enumerate(ensembleExp.artifacts):
+            for i, exp in enumerate(exps):
 
-            if exp == 'control':
-                pos = np.where(bestDict['technique'][artifact] == exp)[0][0]
-                score = bestDict['scores'][artifact][pos]
-                error = bestDict['errors'][artifact][pos]
+                if exp == 'control':
+                    if measure == 'balanced_acc':
+                        pos = np.where(bestDict['technique'][artifact] == exp)[0][0]
+                        score = bestDict['scores'][artifact][pos]
+                        error = bestDict['errors'][artifact][pos]
+                    elif measure == 'sensitivity':
+                        score = control_sens_manual['scores'][artifact]
+                        error = control_sens_manual['errors'][artifact]
 
-            if exp == 'ensemble':
-                score, error = bacc_dict[artifact]
+                if exp == 'ensemble':
+                    if measure == 'balanced_acc':
+                        score, error = bacc_dict[artifact]
+                    elif measure == 'sensitivity':
+                        score, error = sens_dict[artifact]
 
-            if indv_art == 0:
-                label = f"{exp}"
-            else:
-                label = ""
+                if indv_art == 0:
+                    label = f"{exp}"
+                else:
+                    label = ""
 
-            # TODO: FIX THIS AXIS-thing for a nice bar plot!!
-            X_axis = np.arange(len(ensembleExp.artifacts)) - 0.35/2
-            plt.bar(x=X_axis[indv_art] + 0.35 * i,
-                    height=score,
-                    width=0.35,
-                    color=colorlist[i],
-                    label=label)
+                # TODO: FIX THIS AXIS-thing for a nice bar plot!!
+                X_axis = np.arange(len(ensembleExp.artifacts)) - 0.35/2
+                axList[m].bar(x=X_axis[indv_art] + 0.35 * i,
+                        height=score,
+                        width=0.35,
+                        color=colorlist[i],
+                        label=label)
 
-            plt.errorbar(x=X_axis[indv_art] + 0.35 * i,
-                         y=score,
-                         yerr=error,
-                         fmt='.', color='k')
+                axList[m].errorbar(x=X_axis[indv_art] + 0.35 * i,
+                             y=score,
+                             yerr=error,
+                             fmt='.', color='k')
 
-    artifacts = ensembleExp.artifacts
+        artifacts = ensembleExp.artifacts
 
-    plt.xticks(np.arange(len(artifacts)), artifacts)
-    plt.ylim(0, 1)
-    plt.title("Performance of best classifiers")
+        axList[m].set_xticks(np.arange(len(artifacts)))
+        axList[m].set_xticklabels(artifacts)
+        axList[m].set_ylim(0, 1)
+        #plt.title()
 
-    plt.xlabel("Artifacts")
-    plt.ylabel(measure)
-    plt.legend(loc='center right', bbox_to_anchor=(1.33, 0.5))
-    plt.subplots_adjust(right=0.775)
+        axList[m].set_xlabel("Artifacts")
+        axList[m].set_ylabel(measure)
+    plt.legend(loc='center right', bbox_to_anchor=(1.4, 0.5))
+    plt.subplots_adjust(right=0.85)
     plt.show()
 
 
