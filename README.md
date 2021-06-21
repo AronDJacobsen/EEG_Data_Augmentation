@@ -1,5 +1,5 @@
 # 02466 (DTU - AI and Data): Project work on TUH EEG Artifact classification 
-
+Created by Albert Kjøller Jacobsen, Aron Djurhuus Jacobsen & Phillip Chavarria Højbjerg
 
 This project investigates the role of data augmentation on the Temple University Hospital EEG Artifact corpus.
 
