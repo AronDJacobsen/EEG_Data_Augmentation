@@ -14,7 +14,7 @@ the Neural Engineering Data Consortium (NEDC).
 ## Repository
 This Git-repo contains python-files for pre-processing as well as fully implemented pipelines coded with an object-oriented 
 approach for easily running Machine Learning fitting (using various data augmentation techniques). Furthermore, python scripts
-for obtaining results from pickled data files are to be found.
+for obtaining results from pickled data files are to be found. Some parts of the code are redundant.
 
 
 ### Preprocessing
